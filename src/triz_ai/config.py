@@ -2,16 +2,21 @@
 
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
+# Load .env from project root (if present) so API keys are available to litellm
+load_dotenv()
+
 
 class LLMConfig(BaseModel):
-    default_model: str = "openrouter/google/gemini-2.5-flash"
+    default_model: str = "openrouter/stepfun/step-3.5-flash:free"
 
 
 class EmbeddingsConfig(BaseModel):
-    model: str = "ollama/nomic-embed-text"
+    model: str = "openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free"
+    dimensions: int = 768
 
 
 class DatabaseConfig(BaseModel):

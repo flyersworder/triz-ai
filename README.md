@@ -18,18 +18,13 @@ AI-powered TRIZ innovation engine — analyze technical problems, classify paten
 uv sync
 ```
 
-Set up your LLM provider API key:
+Set up your LLM provider API key in a `.env` file:
 
 ```bash
-export OPENROUTER_API_KEY="your-key"  # default provider
-# or ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.
+echo 'OPENROUTER_API_KEY=your-key' > .env
 ```
 
-For embeddings, the default uses Ollama locally:
-
-```bash
-ollama pull nomic-embed-text
-```
+Or export directly: `export OPENROUTER_API_KEY="your-key"`
 
 ## Quick Start
 
@@ -88,10 +83,11 @@ Config lives at `~/.triz-ai/config.yaml`:
 
 ```yaml
 llm:
-  default_model: openrouter/google/gemini-2.5-flash
+  default_model: openrouter/stepfun/step-3.5-flash:free
 
 embeddings:
-  model: ollama/nomic-embed-text
+  model: openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free
+  dimensions: 768
 
 database:
   path: ~/.triz-ai/patents.db

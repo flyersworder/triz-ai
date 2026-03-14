@@ -27,5 +27,5 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 ## References
 
 - Design spec: `docs/specs/2026-03-14-triz-ai-design.md`
-- Config: `~/.triz-ai/config.yaml` (defaults: model `openrouter/google/gemini-2.5-flash`, embeddings `ollama/nomic-embed-text`)
-- API keys: env vars per litellm conventions (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
+- Config: `~/.triz-ai/config.yaml` (defaults: model `openrouter/stepfun/step-3.5-flash:free`, embeddings `openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free`)
+- API keys: `.env` file (loaded via python-dotenv) or env vars per litellm conventions (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
