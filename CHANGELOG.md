@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-14
+
+### Added
+
+- **Progress bars**: Rich progress indicators for patent ingestion and evolution pipeline classification steps
+- **User-friendly error messages**: Actionable guidance for common failures — authentication, rate limits, timeouts, connection errors, model not found
+- **Auto-classify in discover**: `discover` command now automatically classifies unclassified patents in the domain before generating insights
+- **Fuzzy domain matching**: `discover` and domain queries now match patents by domain field, title, or abstract (case-insensitive contains), so txt-ingested patents without a domain field are included
+
+### Fixed
+
+- **Suppressed litellm console noise**: No more red `Provider List` and `Give Feedback` lines polluting CLI output
+- **Smart retry logic**: Only retries LLM calls on validation/parsing errors; auth, network, and rate limit errors are raised immediately with helpful messages instead of pointlessly retrying
+
 ## [0.2.0] - 2026-03-14
 
 ### Added
@@ -42,5 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.3.0]: https://github.com/flyersworder/triz-ai/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/flyersworder/triz-ai/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/flyersworder/triz-ai/releases/tag/v0.1.0

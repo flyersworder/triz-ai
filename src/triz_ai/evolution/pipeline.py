@@ -2,6 +2,8 @@
 
 import logging
 
+from rich.progress import Progress, SpinnerColumn, TextColumn
+
 from triz_ai.engine.classifier import classify
 from triz_ai.llm.client import LLMClient
 from triz_ai.patents.store import CandidatePrinciple, PatentStore
@@ -39,14 +41,22 @@ def run_evolution(
 
     # Step 1: Classify unclassified patents
     unclassified = store.get_unclassified_patents()
-    logger.info("Found %d unclassified patents", len(unclassified))
-
-    for patent in unclassified:
-        text = f"{patent.title}\n{patent.abstract or ''}\n{patent.claims or ''}"
-        try:
-            classify(text, patent_id=patent.id, llm_client=llm_client, store=store)
-        except Exception:
-            logger.exception("Failed to classify patent %s", patent.id)
+    if unclassified:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            TextColumn("[cyan]{task.completed}/{task.total}"),
+            transient=True,
+        ) as progress:
+            task = progress.add_task("Classifying patents...", total=len(unclassified))
+            for patent in unclassified:
+                progress.update(task, description=f"Classifying {patent.id}")
+                text = f"{patent.title}\n{patent.abstract or ''}\n{patent.claims or ''}"
+                try:
+                    classify(text, patent_id=patent.id, llm_client=llm_client, store=store)
+                except Exception:
+                    logger.exception("Failed to classify patent %s", patent.id)
+                progress.advance(task)
 
     # Step 2: Find poorly-mapped patents (low confidence)
     all_patents = store.get_all_patents()

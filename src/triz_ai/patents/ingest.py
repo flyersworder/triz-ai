@@ -5,6 +5,8 @@ import logging
 import uuid
 from pathlib import Path
 
+from rich.progress import Progress, SpinnerColumn, TextColumn
+
 from triz_ai.llm.client import LLMClient
 from triz_ai.patents.store import Patent, PatentStore
 
@@ -92,6 +94,7 @@ def ingest_file(
     store: PatentStore,
     llm_client: LLMClient | None = None,
     embed: bool = True,
+    show_progress: bool = True,
 ) -> list[Patent]:
     """Ingest a single file and store patents.
 
@@ -100,6 +103,7 @@ def ingest_file(
         store: Patent store to save to.
         llm_client: LLM client for embeddings (created if None and embed=True).
         embed: Whether to compute and store embeddings.
+        show_progress: Whether to show a progress bar.
 
     Returns:
         List of ingested patents.
@@ -124,17 +128,7 @@ def ingest_file(
     if embed and llm_client is None:
         llm_client = LLMClient()
 
-    for patent in patents:
-        embedding = None
-        if embed and llm_client is not None:
-            text = f"{patent.title}\n{patent.abstract or ''}"
-            try:
-                embedding = llm_client.get_embedding(text)
-            except Exception:
-                logger.warning("Failed to embed patent %s, storing without embedding", patent.id)
-        store.insert_patent(patent, embedding=embedding)
-        logger.info("Ingested patent: %s — %s", patent.id, patent.title)
-
+    _store_patents(patents, store, llm_client, embed, show_progress)
     return patents
 
 
@@ -143,6 +137,7 @@ def ingest_directory(
     store: PatentStore,
     llm_client: LLMClient | None = None,
     embed: bool = True,
+    show_progress: bool = True,
 ) -> list[Patent]:
     """Ingest all supported files from a directory.
 
@@ -151,6 +146,7 @@ def ingest_directory(
         store: Patent store to save to.
         llm_client: LLM client for embeddings.
         embed: Whether to compute and store embeddings.
+        show_progress: Whether to show a progress bar.
 
     Returns:
         List of all ingested patents.
@@ -162,14 +158,74 @@ def ingest_directory(
     if embed and llm_client is None:
         llm_client = LLMClient()
 
-    all_patents = []
+    # Collect all patents from files first
+    all_patents: list[Patent] = []
     for ext in SUPPORTED_EXTENSIONS:
         for file_path in sorted(directory.glob(f"*{ext}")):
             try:
-                patents = ingest_file(file_path, store, llm_client=llm_client, embed=embed)
-                all_patents.extend(patents)
+                parsed = _parse_file(file_path)
+                all_patents.extend(parsed)
             except Exception:
-                logger.exception("Failed to ingest %s", file_path)
+                logger.exception("Failed to parse %s", file_path)
+
+    # Store with progress
+    _store_patents(all_patents, store, llm_client, embed, show_progress)
 
     logger.info("Ingested %d patents from %s", len(all_patents), directory)
     return all_patents
+
+
+def _parse_file(path: Path) -> list[Patent]:
+    """Parse a file into Patent objects without storing."""
+    ext = path.suffix.lower()
+    if ext == ".txt":
+        return _ingest_txt(path)
+    elif ext == ".pdf":
+        return _ingest_pdf(path)
+    elif ext == ".json":
+        return _ingest_json(path)
+    return []
+
+
+def _store_patents(
+    patents: list[Patent],
+    store: PatentStore,
+    llm_client: LLMClient | None,
+    embed: bool,
+    show_progress: bool,
+) -> None:
+    """Store patents with optional embeddings and progress bar."""
+    if not patents:
+        return
+
+    if show_progress and len(patents) > 1:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            TextColumn("[cyan]{task.completed}/{task.total}"),
+            transient=True,
+        ) as progress:
+            task = progress.add_task("Ingesting patents...", total=len(patents))
+            for patent in patents:
+                progress.update(task, description=f"Embedding {patent.id}")
+                embedding = _get_embedding(patent, llm_client, embed)
+                store.insert_patent(patent, embedding=embedding)
+                progress.advance(task)
+    else:
+        for patent in patents:
+            embedding = _get_embedding(patent, llm_client, embed)
+            store.insert_patent(patent, embedding=embedding)
+
+
+def _get_embedding(
+    patent: Patent, llm_client: LLMClient | None, embed: bool
+) -> list[float] | None:
+    """Get embedding for a patent, returning None on failure."""
+    if not embed or llm_client is None:
+        return None
+    text = f"{patent.title}\n{patent.abstract or ''}"
+    try:
+        return llm_client.get_embedding(text)
+    except Exception:
+        logger.warning("Failed to embed patent %s, storing without embedding", patent.id)
+        return None

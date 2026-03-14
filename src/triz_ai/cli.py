@@ -1,6 +1,7 @@
 """CLI entry point for triz-ai."""
 
 import json
+import logging
 import sys
 from pathlib import Path
 
@@ -9,13 +10,18 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+# Suppress litellm noise before any imports trigger it
+logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+logging.getLogger("litellm").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 app = typer.Typer(
     name="triz-ai",
     help="AI-Powered TRIZ Innovation Engine — analyze problems, classify patents, "
     "and discover new inventive principles.",
     no_args_is_help=True,
 )
-console = Console()
+console = Console(stderr=True)
 
 
 def _get_llm_client(model: str | None = None):

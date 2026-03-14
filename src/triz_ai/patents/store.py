@@ -250,14 +250,23 @@ class PatentStore:
         return [Patent(**dict(row)) for row in rows]
 
     def get_classifications_by_domain(self, domain: str) -> list[tuple[Patent, Classification]]:
-        """Get all classified patents in a domain."""
+        """Get all classified patents in a domain.
+
+        Matches patents where:
+        - domain field contains the search term (case-insensitive), OR
+        - domain is NULL but title or abstract contains the search term
+        """
         conn = self._get_conn()
+        term = domain.lower()
         rows = conn.execute(
             "SELECT p.*, c.principle_ids, c.contradiction, c.confidence, c.classified_at "
             "FROM patents p "
             "JOIN classifications c ON p.id = c.patent_id "
-            "WHERE p.domain = ?",
-            (domain,),
+            "WHERE LOWER(p.domain) LIKE '%' || ? || '%' "
+            "   OR (p.domain IS NULL AND ("
+            "       LOWER(p.title) LIKE '%' || ? || '%' "
+            "       OR LOWER(p.abstract) LIKE '%' || ? || '%'))",
+            (term, term, term),
         ).fetchall()
         results = []
         for row in rows:

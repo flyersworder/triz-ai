@@ -20,6 +20,16 @@ T = TypeVar("T", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
 
+# Suppress litellm's noisy console output
+litellm.suppress_debug_info = True  # type: ignore[assignment]
+logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+logging.getLogger("litellm").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+class TrizAIError(Exception):
+    """User-facing error with actionable guidance."""
+
 
 # Response models
 class ExtractedContradiction(BaseModel):
@@ -52,6 +62,58 @@ class CandidatePrincipleProposal(BaseModel):
     confidence: float
 
 
+def _friendly_error(e: Exception) -> TrizAIError:
+    """Convert litellm exceptions to user-friendly error messages."""
+    error_str = str(e)
+    error_type = type(e).__name__
+
+    if "AuthenticationError" in error_type or "401" in error_str:
+        return TrizAIError(
+            "Authentication failed. Check your API key:\n"
+            "  1. Add OPENROUTER_API_KEY=your-key to .env file\n"
+            "  2. Or set api_key in ~/.triz-ai/config.yaml\n"
+            "  3. Or export OPENROUTER_API_KEY=your-key"
+        )
+    if "RateLimitError" in error_type or "429" in error_str:
+        return TrizAIError(
+            "Rate limit exceeded. Wait a moment and try again, "
+            "or switch to a different model with --model."
+        )
+    if "Timeout" in error_type:
+        return TrizAIError(
+            "Request timed out. The LLM provider may be slow or unreachable. "
+            "Check your network or try a different model with --model."
+        )
+    if "APIConnectionError" in error_type or "Connection" in error_str:
+        return TrizAIError(
+            "Cannot connect to LLM provider. Check your network connection.\n"
+            "If using Ollama, make sure it's running: ollama serve"
+        )
+    if "NotFoundError" in error_type or "404" in error_str:
+        return TrizAIError(
+            "Model not found. Check your model name in config.\n"
+            "  Current model may not be available on your provider."
+        )
+    return TrizAIError(f"LLM request failed: {e}")
+
+
+def _is_retryable(e: Exception) -> bool:
+    """Check if an error is worth retrying with a stricter prompt.
+
+    Only retry on validation/parsing errors, not auth/network/rate issues.
+    """
+    error_type = type(e).__name__
+    non_retryable = {
+        "AuthenticationError",
+        "RateLimitError",
+        "APIConnectionError",
+        "Timeout",
+        "NotFoundError",
+        "BudgetExceededError",
+    }
+    return not any(name in error_type for name in non_retryable)
+
+
 class LLMClient:
     def __init__(self, model: str | None = None):
         config = load_config()
@@ -63,6 +125,24 @@ class LLMClient:
         self.embedding_api_base = config.embeddings.api_base
         self.embedding_api_key = config.embeddings.api_key
 
+    def _completion_kwargs(self) -> dict:
+        """Build optional kwargs for litellm.completion."""
+        kwargs: dict = {}
+        if self.api_base:
+            kwargs["api_base"] = self.api_base
+        if self.api_key:
+            kwargs["api_key"] = self.api_key
+        return kwargs
+
+    def _embedding_kwargs(self) -> dict:
+        """Build optional kwargs for litellm.embedding."""
+        kwargs: dict = {}
+        if self.embedding_api_base:
+            kwargs["api_base"] = self.embedding_api_base
+        if self.embedding_api_key:
+            kwargs["api_key"] = self.embedding_api_key
+        return kwargs
+
     def _complete(
         self,
         system_prompt: str,
@@ -72,7 +152,8 @@ class LLMClient:
     ) -> T:
         """Call LLM and validate response against pydantic model.
 
-        On malformed response, retry once with stricter prompt, then fail with raw response logged.
+        On malformed response, retry once with stricter prompt, then fail.
+        Auth/network errors are raised immediately without retry.
         """
         messages = [
             {"role": "system", "content": system_prompt},
@@ -80,31 +161,25 @@ class LLMClient:
         ]
 
         try:
-            kwargs: dict = {}
-            if self.api_base:
-                kwargs["api_base"] = self.api_base
-            if self.api_key:
-                kwargs["api_key"] = self.api_key
             response = litellm.completion(
                 model=self.model,
                 messages=messages,
                 response_format={"type": "json_object"},
-                **kwargs,
+                **self._completion_kwargs(),
             )
             raw = response.choices[0].message.content
             data = json.loads(raw)
             return response_model.model_validate(data)
         except Exception as e:
-            if retry:
-                logger.warning(f"First LLM attempt failed ({e}), retrying with stricter prompt")
+            if retry and _is_retryable(e):
+                logger.debug("First attempt failed (%s), retrying with stricter prompt", e)
                 strict_system = (
                     system_prompt
-                    + f"\n\nIMPORTANT: You MUST respond with valid JSON matching this exact"
+                    + "\n\nIMPORTANT: You MUST respond with valid JSON matching this exact"
                     f" schema: {response_model.model_json_schema()}"
                 )
                 return self._complete(strict_system, user_prompt, response_model, retry=False)
-            logger.error(f"LLM response validation failed: {e}")
-            raise
+            raise _friendly_error(e) from e
 
     def extract_contradiction(self, problem_text: str) -> ExtractedContradiction:
         """Extract technical contradiction from problem description."""
@@ -154,18 +229,16 @@ class LLMClient:
 
     def get_embedding(self, text: str) -> list[float]:
         """Get embedding vector for text."""
-        kwargs: dict = {}
-        if self.embedding_api_base:
-            kwargs["api_base"] = self.embedding_api_base
-        if self.embedding_api_key:
-            kwargs["api_key"] = self.embedding_api_key
-        response = litellm.embedding(
-            model=self.embedding_model,
-            input=[text],
-            dimensions=self.embedding_dimensions,
-            **kwargs,
-        )
-        return response.data[0]["embedding"]
+        try:
+            response = litellm.embedding(
+                model=self.embedding_model,
+                input=[text],
+                dimensions=self.embedding_dimensions,
+                **self._embedding_kwargs(),
+            )
+            return response.data[0]["embedding"]
+        except Exception as e:
+            raise _friendly_error(e) from e
 
     def cluster_patents(self, patent_abstracts: list[str]) -> list[list[int]]:
         """Use LLM to semantically cluster patent abstracts.
