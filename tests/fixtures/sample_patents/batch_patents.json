@@ -1,0 +1,29 @@
+[
+  {
+    "id": "US2024001234",
+    "title": "Self-Healing Battery Separator",
+    "abstract": "A battery separator membrane incorporating microcapsules filled with a polymer precursor that ruptures upon mechanical damage, releasing the precursor to seal punctures and prevent internal short circuits. The microcapsules are distributed within a polyethylene matrix and sized to match common dendrite penetration dimensions.",
+    "claims": "1. A battery separator comprising a porous polymer membrane with embedded microcapsules containing a self-polymerizing agent.",
+    "domain": "battery technology",
+    "filing_date": "2024-01-15",
+    "source": "curated"
+  },
+  {
+    "id": "US2024005678",
+    "title": "Adaptive Charging Protocol Using Impedance Spectroscopy",
+    "abstract": "An adaptive fast-charging system that continuously monitors battery impedance during charging using electrochemical impedance spectroscopy (EIS) and adjusts charging current in real-time to maintain optimal lithium plating conditions. The system uses a neural network trained on impedance signatures to predict the onset of lithium plating before it occurs.",
+    "claims": "1. A charging system comprising an EIS measurement circuit integrated with a charge controller and trained neural network for real-time charging optimization.",
+    "domain": "battery technology",
+    "filing_date": "2024-03-22",
+    "source": "curated"
+  },
+  {
+    "id": "US2024009012",
+    "title": "Recyclable Wind Turbine Blade Using Thermoplastic Composites",
+    "abstract": "A wind turbine blade constructed from thermoplastic composite materials that can be fully recycled at end-of-life by remelting. The blade uses a segmented design with thermoplastic resin infusion and welded joints that maintain structural integrity during operation but can be separated by controlled heating for recycling.",
+    "claims": "1. A wind turbine blade comprising thermoplastic composite segments joined by thermoplastic welding.",
+    "domain": "renewable energy",
+    "filing_date": "2024-05-10",
+    "source": "curated"
+  }
+]

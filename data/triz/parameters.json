@@ -1,0 +1,197 @@
+[
+  {
+    "id": 1,
+    "name": "Weight of moving object",
+    "description": "The mass of the object in a gravitational field. The force that the body exerts on its support or suspension in the field of gravity."
+  },
+  {
+    "id": 2,
+    "name": "Weight of stationary object",
+    "description": "The mass of the object in a gravitational field when the object is not moving. The force that the body exerts on its support or suspension."
+  },
+  {
+    "id": 3,
+    "name": "Length of moving object",
+    "description": "Any one linear dimension of the moving object, not necessarily the longest."
+  },
+  {
+    "id": 4,
+    "name": "Length of stationary object",
+    "description": "Any one linear dimension of the stationary object, not necessarily the longest."
+  },
+  {
+    "id": 5,
+    "name": "Area of moving object",
+    "description": "A geometric characteristic of the moving object described by the part of a plane enclosed by a line. The square measure of the surface of the moving object."
+  },
+  {
+    "id": 6,
+    "name": "Area of stationary object",
+    "description": "A geometric characteristic of the stationary object described by the part of a plane enclosed by a line. The square measure of the surface of the stationary object."
+  },
+  {
+    "id": 7,
+    "name": "Volume of moving object",
+    "description": "The cubic measure of space occupied by the moving object. Length times width times height for a rectangular object."
+  },
+  {
+    "id": 8,
+    "name": "Volume of stationary object",
+    "description": "The cubic measure of space occupied by the stationary object. Length times width times height for a rectangular object."
+  },
+  {
+    "id": 9,
+    "name": "Speed",
+    "description": "The velocity of an object; the rate of a process or action in time."
+  },
+  {
+    "id": 10,
+    "name": "Force (intensity)",
+    "description": "Force measures the interaction between systems. In Newtonian physics force equals mass times acceleration. In TRIZ force is any interaction that is intended to change an object's condition."
+  },
+  {
+    "id": 11,
+    "name": "Stress or pressure",
+    "description": "Force per unit area. Also used for tension."
+  },
+  {
+    "id": 12,
+    "name": "Shape",
+    "description": "The external contours, appearance of a system."
+  },
+  {
+    "id": 13,
+    "name": "Stability of the object's composition",
+    "description": "The wholeness or integrity of the system; the relationship of the system's constituent elements. Wear, chemical decomposition, and disassembly are all decreases in stability."
+  },
+  {
+    "id": 14,
+    "name": "Strength",
+    "description": "The extent to which the object is able to resist changing in response to force. Resistance to breaking."
+  },
+  {
+    "id": 15,
+    "name": "Duration of action by a moving object",
+    "description": "The time that the moving object can perform the action. Service life. Mean time between failures for a moving object."
+  },
+  {
+    "id": 16,
+    "name": "Duration of action by a stationary object",
+    "description": "The time that the stationary object can perform the action. Service life. Mean time between failures for a stationary object."
+  },
+  {
+    "id": 17,
+    "name": "Temperature",
+    "description": "The thermal condition of the object or system. Includes the ability of the system to raise or lower its temperature and the ability to withstand temperature changes."
+  },
+  {
+    "id": 18,
+    "name": "Illumination intensity",
+    "description": "Light flux per unit area, measured in lux. Also includes any optical properties of the system such as brightness, color quality, etc."
+  },
+  {
+    "id": 19,
+    "name": "Use of energy by moving object",
+    "description": "The energy required to perform a particular action with a moving object. The measure of the object's capacity for doing work."
+  },
+  {
+    "id": 20,
+    "name": "Use of energy by stationary object",
+    "description": "The energy required to perform a particular action with a stationary object. The measure of the object's capacity for doing work."
+  },
+  {
+    "id": 21,
+    "name": "Power",
+    "description": "The time rate at which work is performed. The rate of use of energy."
+  },
+  {
+    "id": 22,
+    "name": "Loss of energy",
+    "description": "The reduction of the energy involved in completing a particular action. Use of energy that does not contribute to the desired function."
+  },
+  {
+    "id": 23,
+    "name": "Loss of substance",
+    "description": "Partial or complete, permanent or temporary loss of some of a system's materials, substances, parts, or subsystems."
+  },
+  {
+    "id": 24,
+    "name": "Loss of information",
+    "description": "Partial or complete, permanent or temporary loss of data or access to data in or by a system. Includes sensory data such as aroma, texture, etc."
+  },
+  {
+    "id": 25,
+    "name": "Loss of time",
+    "description": "Time is the duration of an activity. Improving loss of time means reducing the time taken for the activity."
+  },
+  {
+    "id": 26,
+    "name": "Quantity of substance/the matter",
+    "description": "The number or amount of a system's materials, substances, parts, or subsystems which might be altered or would be difficult to alter."
+  },
+  {
+    "id": 27,
+    "name": "Reliability",
+    "description": "A system's ability to perform its intended functions in predictable and consistent ways under expected conditions."
+  },
+  {
+    "id": 28,
+    "name": "Measurement accuracy",
+    "description": "The closeness of the measured value to the actual value of a property of a system. Reducing the error of measurement increases measurement accuracy."
+  },
+  {
+    "id": 29,
+    "name": "Manufacturing precision",
+    "description": "The extent to which the actual characteristics of the system or object match the specified or required characteristics."
+  },
+  {
+    "id": 30,
+    "name": "Object-affected harmful factors",
+    "description": "Susceptibility of a system to externally generated harmful effects."
+  },
+  {
+    "id": 31,
+    "name": "Object-generated harmful factors",
+    "description": "A harmful effect is one that reduces the efficiency or quality of the functioning of the object or system. Harmful effects generated by the object or system as part of its operation."
+  },
+  {
+    "id": 32,
+    "name": "Ease of manufacture",
+    "description": "The degree of facility, comfort, or effortlessness in manufacturing or fabricating the object or system."
+  },
+  {
+    "id": 33,
+    "name": "Ease of operation",
+    "description": "Simplicity: the process is not complex, does not require a large number of people or significant effort. Convenience of use."
+  },
+  {
+    "id": 34,
+    "name": "Ease of repair",
+    "description": "Quality characteristics such as convenience, comfort, simplicity, and time to repair faults, failures, or defects in a system."
+  },
+  {
+    "id": 35,
+    "name": "Adaptability or versatility",
+    "description": "The extent to which a system or object positively responds to external changes. A resistance to change or a system that can be used in multiple ways under a variety of circumstances."
+  },
+  {
+    "id": 36,
+    "name": "Device complexity",
+    "description": "The number and diversity of elements and element interrelationships within a system. The user may be unaware of the complexity."
+  },
+  {
+    "id": 37,
+    "name": "Difficulty of detecting and measuring",
+    "description": "Measuring or monitoring systems that are complex, costly, require a long time, or are difficult to set up. Making measurements more difficult and less accurate."
+  },
+  {
+    "id": 38,
+    "name": "Extent of automation",
+    "description": "The extent to which a system or object performs its functions without human interface. The lowest level of automation includes the use of a manual tool."
+  },
+  {
+    "id": 39,
+    "name": "Productivity",
+    "description": "The number of functions or operations performed by a system per unit time. The time for a unit function or operation. The output per unit time, or the cost per unit output."
+  }
+]

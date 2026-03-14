@@ -1,0 +1,585 @@
+[
+  {
+    "id": 1,
+    "name": "Segmentation",
+    "description": "Divide an object into independent parts, make an object easy to disassemble, or increase the degree of fragmentation or segmentation.",
+    "sub_principles": [
+      "Divide an object into independent parts",
+      "Make an object easy to disassemble",
+      "Increase the degree of fragmentation or segmentation"
+    ],
+    "examples": [
+      "Modular furniture that can be rearranged in different configurations",
+      "Sectional sofa made of individual pieces"
+    ],
+    "keywords": ["divide", "segment", "modular", "partition", "fragment"]
+  },
+  {
+    "id": 2,
+    "name": "Taking out/Extraction",
+    "description": "Separate an interfering part or property from an object, or single out the only necessary part or property of an object.",
+    "sub_principles": [
+      "Separate an interfering part or property from an object",
+      "Single out the only necessary part or property of an object"
+    ],
+    "examples": [
+      "Use a loudspeaker separate from a noisy computer",
+      "Extract the heat from a solar panel and use it for water heating"
+    ],
+    "keywords": ["extract", "separate", "remove", "isolate"]
+  },
+  {
+    "id": 3,
+    "name": "Local quality",
+    "description": "Change an object's structure from uniform to non-uniform, change an external environment or external influence from uniform to non-uniform, make each part of an object function in conditions most suitable for its operation, make each part of an object fulfill a different and useful function.",
+    "sub_principles": [
+      "Change an object's structure from uniform to non-uniform",
+      "Make each part of an object function in conditions most suitable for its operation",
+      "Make each part of an object fulfill a different and useful function"
+    ],
+    "examples": [
+      "A pencil with an eraser on one end",
+      "Multi-zone climate control in a car"
+    ],
+    "keywords": ["local", "non-uniform", "optimize", "zone", "gradient"]
+  },
+  {
+    "id": 4,
+    "name": "Asymmetry",
+    "description": "Change the shape of an object from symmetrical to asymmetrical, or if an object is asymmetrical, increase its degree of asymmetry.",
+    "sub_principles": [
+      "Change the shape of an object from symmetrical to asymmetrical",
+      "If an object is asymmetrical, increase its degree of asymmetry"
+    ],
+    "examples": [
+      "Asymmetric mixing vane to improve fluid mixing",
+      "Ergonomic handle shaped to fit the hand"
+    ],
+    "keywords": ["asymmetry", "unequal", "offset", "irregular"]
+  },
+  {
+    "id": 5,
+    "name": "Merging/Combining",
+    "description": "Bring closer together or merge identical or similar objects, assemble identical or similar parts to perform parallel operations, or make operations contiguous or parallel.",
+    "sub_principles": [
+      "Bring closer together or merge identical or similar objects or operations",
+      "Assemble identical or similar parts to perform parallel operations",
+      "Make operations contiguous or parallel; bring them together in time"
+    ],
+    "examples": [
+      "Multi-blade razors for a closer shave",
+      "Combining a phone, camera, and GPS into a smartphone"
+    ],
+    "keywords": ["merge", "combine", "consolidate", "integrate", "parallel"]
+  },
+  {
+    "id": 6,
+    "name": "Universality",
+    "description": "Make a part or object perform multiple functions; eliminate the need for other parts.",
+    "sub_principles": [
+      "Make a part or object perform multiple functions",
+      "Eliminate the need for other parts"
+    ],
+    "examples": [
+      "A sofa that converts into a bed",
+      "Swiss army knife with multiple tools"
+    ],
+    "keywords": ["universal", "multi-function", "versatile", "general-purpose"]
+  },
+  {
+    "id": 7,
+    "name": "Nested doll/Nesting",
+    "description": "Place one object inside another; pass one part through a cavity in the other. Make one part pass through a cavity in the other. Telescoping.",
+    "sub_principles": [
+      "Place one object inside another",
+      "Make one part pass through a cavity in the other",
+      "Use telescoping or retractable components"
+    ],
+    "examples": [
+      "Telescoping antenna that collapses for storage",
+      "Russian nesting dolls (matryoshka)"
+    ],
+    "keywords": ["nesting", "telescoping", "stacking", "enclosing", "retractable"]
+  },
+  {
+    "id": 8,
+    "name": "Anti-weight/Counterweight",
+    "description": "To compensate for the weight of an object, merge it with other objects that provide lift. To compensate for the weight of an object, make it interact with the environment through aerodynamic or hydrodynamic forces.",
+    "sub_principles": [
+      "Compensate for the weight of an object by merging with another object that provides lift",
+      "Compensate for weight by making it interact with the environment (aerodynamic, hydrodynamic, buoyancy forces)"
+    ],
+    "examples": [
+      "Helium balloons used to lift heavy objects",
+      "Hydrofoils that lift a boat hull out of the water"
+    ],
+    "keywords": ["counterweight", "buoyancy", "lift", "compensate"]
+  },
+  {
+    "id": 9,
+    "name": "Preliminary anti-action",
+    "description": "If it will be necessary to do an action with both harmful and useful effects, this action should be replaced with anti-actions to control harmful effects. Create beforehand stresses in an object that will oppose known undesirable working stresses later on.",
+    "sub_principles": [
+      "Perform a counter-action in advance to prevent or neutralize harmful effects",
+      "Create preliminary stresses to oppose later undesirable stresses"
+    ],
+    "examples": [
+      "Pre-stressed concrete uses internal compression to resist later tensile loads",
+      "Immunization (introducing a weakened pathogen to prevent later disease)"
+    ],
+    "keywords": ["pre-stress", "counteract", "prevent", "neutralize", "anti-action"]
+  },
+  {
+    "id": 10,
+    "name": "Preliminary action",
+    "description": "Perform, before it is needed, the required change of an object (either fully or partially). Pre-arrange objects such that they can come into action from the most convenient place and without losing time for their delivery.",
+    "sub_principles": [
+      "Perform the required change of an object fully or partially in advance",
+      "Pre-arrange objects so they can come into action from the most convenient place without losing time"
+    ],
+    "examples": [
+      "Pre-pasted wallpaper that only needs water to activate adhesive",
+      "Pre-positioned emergency supplies in disaster-prone areas"
+    ],
+    "keywords": ["prepare", "pre-arrange", "preliminary", "advance", "setup"]
+  },
+  {
+    "id": 11,
+    "name": "Beforehand cushioning",
+    "description": "Prepare emergency means beforehand to compensate for the relatively low reliability of an object.",
+    "sub_principles": [
+      "Prepare emergency means beforehand to compensate for low reliability",
+      "Add safety margins or backup systems in advance"
+    ],
+    "examples": [
+      "Airbags in cars deployed during a collision",
+      "Parachutes for pilots and emergency backup power supplies"
+    ],
+    "keywords": ["cushion", "backup", "safety", "emergency", "contingency"]
+  },
+  {
+    "id": 12,
+    "name": "Equipotentiality",
+    "description": "In a potential field, limit position changes so that the object need not be raised or lowered. Change the conditions of work so that the object need not be raised or lowered.",
+    "sub_principles": [
+      "Change conditions so that an object does not need to be raised or lowered",
+      "Minimize potential energy changes during operation"
+    ],
+    "examples": [
+      "Spring-loaded platform that adjusts height as weight is added or removed",
+      "Canal locks that use water levels to move boats without lifting them"
+    ],
+    "keywords": ["equipotential", "level", "equal-potential", "gravity-free"]
+  },
+  {
+    "id": 13,
+    "name": "The other way round/Inversion",
+    "description": "Invert the action used to solve the problem. Make movable parts fixed, and fixed parts movable. Turn the object or process upside down.",
+    "sub_principles": [
+      "Invert the action or process",
+      "Make movable parts fixed, and fixed parts movable",
+      "Turn the object or process upside down"
+    ],
+    "examples": [
+      "Treadmill: instead of a person moving over ground, the ground moves under the person",
+      "Rotating the part instead of the tool in a lathe"
+    ],
+    "keywords": ["invert", "reverse", "opposite", "flip", "upside-down"]
+  },
+  {
+    "id": 14,
+    "name": "Spheroidality/Curvature",
+    "description": "Instead of using rectilinear parts, surfaces, or forms, use curvilinear ones; move from flat surfaces to spherical ones; use rollers, balls, spirals. Go from linear to rotary motion; use centrifugal forces.",
+    "sub_principles": [
+      "Use curvilinear parts, surfaces, or forms instead of rectilinear ones",
+      "Move from flat surfaces to spherical ones; from parts shaped as a cube to ball shapes",
+      "Go from linear to rotary motion; use centrifugal forces"
+    ],
+    "examples": [
+      "Ball bearings replace flat sliding surfaces to reduce friction",
+      "Arched bridges distribute loads more effectively than flat ones"
+    ],
+    "keywords": ["curve", "sphere", "rotate", "ball", "spiral"]
+  },
+  {
+    "id": 15,
+    "name": "Dynamics",
+    "description": "Allow or design the characteristics of an object, external environment, or process to change to be optimal or to find an optimal operating condition. Divide an object into parts capable of movement relative to each other. If an object is rigid, make it movable or adaptive.",
+    "sub_principles": [
+      "Allow characteristics of an object or process to change to find optimal conditions",
+      "Divide an object into parts capable of movement relative to each other",
+      "If an object is rigid or inflexible, make it movable or adaptive"
+    ],
+    "examples": [
+      "Adjustable steering wheel that can change tilt and height",
+      "Flexible straw that bends to the desired angle"
+    ],
+    "keywords": ["dynamic", "flexible", "adjustable", "adaptive", "variable"]
+  },
+  {
+    "id": 16,
+    "name": "Partial or excessive actions",
+    "description": "If 100 percent of an object is hard to achieve using a given solution method, then by using slightly less or slightly more of the same method, the problem may be considerably easier to solve.",
+    "sub_principles": [
+      "If an exact amount is hard to achieve, use slightly less",
+      "If an exact amount is hard to achieve, use slightly more and then remove the excess"
+    ],
+    "examples": [
+      "Overfilling a casting mold and then trimming the excess",
+      "Spray painting a surface and then wiping off the excess"
+    ],
+    "keywords": ["partial", "excessive", "overshoot", "approximate", "slightly"]
+  },
+  {
+    "id": 17,
+    "name": "Another dimension",
+    "description": "Move an object in two- or three-dimensional space. Use a multi-story arrangement instead of single-story. Tilt or reorient the object, lay it on its side. Use another side of a given area.",
+    "sub_principles": [
+      "Move an object in two- or three-dimensional space",
+      "Use a multi-story arrangement instead of single-story",
+      "Tilt or reorient the object; lay it on its side",
+      "Use another side of a given area"
+    ],
+    "examples": [
+      "Multi-level parking garages instead of single-level lots",
+      "Spiral staircase to save floor space"
+    ],
+    "keywords": ["dimension", "multi-layer", "3D", "reorient", "stack"]
+  },
+  {
+    "id": 18,
+    "name": "Mechanical vibration",
+    "description": "Cause an object to oscillate or vibrate. Increase its frequency. Use an object's resonant frequency. Use piezoelectric vibrators instead of mechanical ones. Use combined ultrasonic and electromagnetic field oscillations.",
+    "sub_principles": [
+      "Cause an object to oscillate or vibrate",
+      "Increase the frequency of vibration, even to ultrasonic",
+      "Use an object's resonant frequency",
+      "Use piezoelectric vibrators instead of mechanical ones"
+    ],
+    "examples": [
+      "Ultrasonic cleaning uses high-frequency vibrations to remove contaminants",
+      "Vibrating concrete to remove air pockets during pouring"
+    ],
+    "keywords": ["vibration", "oscillation", "resonance", "ultrasonic", "frequency"]
+  },
+  {
+    "id": 19,
+    "name": "Periodic action",
+    "description": "Instead of continuous action, use periodic or pulsating actions. If an action is already periodic, change the periodic magnitude or frequency. Use pauses between actions to perform a different action.",
+    "sub_principles": [
+      "Instead of continuous action, use periodic or pulsating actions",
+      "If an action is already periodic, change the magnitude or frequency",
+      "Use pauses between impulses to perform a different action"
+    ],
+    "examples": [
+      "Pulsed laser cutting is more precise than continuous cutting",
+      "Interval training alternates high-intensity and rest periods"
+    ],
+    "keywords": ["periodic", "pulsating", "intermittent", "cycle", "interval"]
+  },
+  {
+    "id": 20,
+    "name": "Continuity of useful action",
+    "description": "Carry on work continuously; make all parts of an object work at full load, all the time. Eliminate all idle or intermittent actions or work.",
+    "sub_principles": [
+      "Carry on work continuously; make all parts of an object work at full load all the time",
+      "Eliminate all idle or intermittent actions or work"
+    ],
+    "examples": [
+      "Continuous casting of steel instead of batch processing",
+      "Flywheel that stores energy during low-demand periods"
+    ],
+    "keywords": ["continuous", "non-stop", "full-load", "eliminate-idle"]
+  },
+  {
+    "id": 21,
+    "name": "Skipping/Rushing through",
+    "description": "Conduct a process, or certain stages, at high speed (e.g., a harmful or hazardous process).",
+    "sub_principles": [
+      "Conduct a process or certain stages at high speed",
+      "Skip over dangerous or harmful stages quickly"
+    ],
+    "examples": [
+      "Flash pasteurization heats and cools milk rapidly to minimize nutrient loss",
+      "High-speed cutting to prevent heat buildup in the workpiece"
+    ],
+    "keywords": ["skip", "rush", "high-speed", "fast", "rapid"]
+  },
+  {
+    "id": 22,
+    "name": "Blessing in disguise/Turn lemons into lemonade",
+    "description": "Use harmful factors or effects to achieve a positive effect. Eliminate a harmful factor by combining it with another harmful factor. Amplify a harmful factor to such a degree that it is no longer harmful.",
+    "sub_principles": [
+      "Use harmful factors to achieve a positive effect",
+      "Eliminate a harmful factor by combining it with another harmful factor",
+      "Amplify a harmful factor to such a degree that it is no longer harmful"
+    ],
+    "examples": [
+      "Using waste heat from a factory to heat nearby buildings",
+      "Sand blasting uses abrasive particles (harmful) for surface finishing (useful)"
+    ],
+    "keywords": ["benefit", "utilize-harm", "convert", "advantage", "repurpose"]
+  },
+  {
+    "id": 23,
+    "name": "Feedback",
+    "description": "Introduce feedback to improve a process or action. If feedback is already used, change its magnitude or influence in accordance with operating conditions.",
+    "sub_principles": [
+      "Introduce feedback to improve a process or action",
+      "If feedback is already used, change its magnitude or influence"
+    ],
+    "examples": [
+      "Thermostat uses temperature feedback to control heating/cooling",
+      "Cruise control adjusts throttle based on speed feedback"
+    ],
+    "keywords": ["feedback", "control", "sensor", "loop", "regulate"]
+  },
+  {
+    "id": 24,
+    "name": "Intermediary/Mediator",
+    "description": "Use an intermediary carrier article or intermediary process. Merge one object temporarily with another (which can be easily removed).",
+    "sub_principles": [
+      "Use an intermediary carrier article or process",
+      "Merge one object temporarily with another that can be easily removed"
+    ],
+    "examples": [
+      "Using a catalyst to facilitate a chemical reaction without being consumed",
+      "A carpenter's jig holds pieces in place during assembly"
+    ],
+    "keywords": ["intermediary", "mediator", "carrier", "go-between", "buffer"]
+  },
+  {
+    "id": 25,
+    "name": "Self-service",
+    "description": "Make an object serve itself by performing auxiliary helpful functions. Use waste resources, energy, or substances.",
+    "sub_principles": [
+      "Make an object serve itself by performing auxiliary helpful functions",
+      "Use waste resources, energy, or substances"
+    ],
+    "examples": [
+      "Self-cleaning oven uses high temperature to burn off residue",
+      "A machine that sharpens its own cutting tool during idle time"
+    ],
+    "keywords": ["self-service", "self-repair", "autonomous", "waste-reuse"]
+  },
+  {
+    "id": 26,
+    "name": "Copying",
+    "description": "Instead of an unavailable, expensive, or fragile object, use simpler and inexpensive copies. Replace an object with its optical copy (image). Use scale changes (enlarge or reduce).",
+    "sub_principles": [
+      "Instead of an unavailable, expensive, or fragile object, use simpler and inexpensive copies",
+      "Replace an object or process with optical copies",
+      "If visible optical copies are used, move to infrared or ultraviolet copies"
+    ],
+    "examples": [
+      "Virtual reality simulation of a dangerous environment for training",
+      "Scale models for wind tunnel testing"
+    ],
+    "keywords": ["copy", "replica", "simulate", "image", "model"]
+  },
+  {
+    "id": 27,
+    "name": "Cheap short-living objects",
+    "description": "Replace an inexpensive object with a multiple of inexpensive objects, compromising certain qualities (such as service life).",
+    "sub_principles": [
+      "Replace an expensive object with multiple inexpensive objects",
+      "Compromise certain qualities such as service life"
+    ],
+    "examples": [
+      "Disposable diapers instead of reusable cloth diapers",
+      "Single-use medical instruments to avoid sterilization costs"
+    ],
+    "keywords": ["disposable", "cheap", "short-lived", "replaceable"]
+  },
+  {
+    "id": 28,
+    "name": "Mechanics substitution",
+    "description": "Replace a mechanical means with a sensory (optical, acoustic, taste or smell) means. Use electric, magnetic, and electromagnetic fields to interact with the object. Change from static to movable fields, from unstructured to structured. Use fields in conjunction with field-activated particles.",
+    "sub_principles": [
+      "Replace a mechanical means with a sensory means (optical, acoustic, etc.)",
+      "Use electric, magnetic, and electromagnetic fields to interact with the object",
+      "Change from static to movable fields, from unstructured fields to those having structure",
+      "Use fields in conjunction with field-activated (ferromagnetic) particles"
+    ],
+    "examples": [
+      "Replacing mechanical switches with touch-sensitive controls",
+      "Magnetic levitation trains replace wheels with electromagnetic suspension"
+    ],
+    "keywords": ["field", "electromagnetic", "replace-mechanical", "sensor", "optical"]
+  },
+  {
+    "id": 29,
+    "name": "Pneumatics and hydraulics",
+    "description": "Use gas and liquid parts of an object instead of solid parts (e.g., inflatable and filled, air cushion, hydrostatic, hydroreactive).",
+    "sub_principles": [
+      "Use gas and liquid parts of an object instead of solid parts",
+      "Use inflatable, fluid-filled, air-cushion, hydrostatic, or hydroreactive structures"
+    ],
+    "examples": [
+      "Inflatable mattress replaces a rigid one for portability",
+      "Hydraulic jack uses fluid pressure instead of mechanical gears"
+    ],
+    "keywords": ["pneumatic", "hydraulic", "inflatable", "fluid", "air-cushion"]
+  },
+  {
+    "id": 30,
+    "name": "Flexible shells and thin films",
+    "description": "Use flexible shells and thin films instead of three-dimensional structures. Isolate the object from the external environment using flexible shells and thin films.",
+    "sub_principles": [
+      "Use flexible shells and thin films instead of three-dimensional structures",
+      "Isolate the object from the external environment using flexible shells and thin films"
+    ],
+    "examples": [
+      "Shrink-wrap packaging protects products with minimal material",
+      "Greenhouse plastic film instead of glass panels"
+    ],
+    "keywords": ["film", "membrane", "shell", "coating", "wrap"]
+  },
+  {
+    "id": 31,
+    "name": "Porous materials",
+    "description": "Make an object porous or add porous elements (inserts, coatings, etc.). If an object is already porous, use the pores to introduce a useful substance or function.",
+    "sub_principles": [
+      "Make an object porous or add porous elements",
+      "If an object is already porous, use the pores to introduce a useful substance or function"
+    ],
+    "examples": [
+      "Porous brake pads absorb and dissipate heat more effectively",
+      "Sponge-like materials for controlled drug release"
+    ],
+    "keywords": ["porous", "permeable", "foam", "sponge", "absorbent"]
+  },
+  {
+    "id": 32,
+    "name": "Color changes",
+    "description": "Change the color of an object or its external environment. Change the transparency of an object or its external environment.",
+    "sub_principles": [
+      "Change the color of an object or its external environment",
+      "Change the transparency of an object or its external environment",
+      "Use colored additives to observe objects or processes that are difficult to see"
+    ],
+    "examples": [
+      "Photochromic lenses that darken in sunlight",
+      "Adding dye to a leak detection fluid to find cracks"
+    ],
+    "keywords": ["color", "transparency", "optical", "dye", "photochromic"]
+  },
+  {
+    "id": 33,
+    "name": "Homogeneity",
+    "description": "Make objects interacting with a given object of the same material (or material with identical properties).",
+    "sub_principles": [
+      "Make objects interacting with a given object of the same material",
+      "Make interacting parts from material with identical properties"
+    ],
+    "examples": [
+      "An ice container made of ice to store ice without melting",
+      "Diamond cutting tools used to cut diamonds"
+    ],
+    "keywords": ["homogeneous", "same-material", "compatible", "uniform"]
+  },
+  {
+    "id": 34,
+    "name": "Discarding and recovering",
+    "description": "Make portions of an object that have fulfilled their functions go away (discard by dissolving, evaporating, etc.) or modify them directly during operation. Restore consumable parts of an object directly in operation.",
+    "sub_principles": [
+      "Make portions of an object that have fulfilled their functions go away",
+      "Restore consumable parts of an object directly in operation"
+    ],
+    "examples": [
+      "Dissolving surgical sutures that do not need removal",
+      "Rocket stages that separate and fall away after use"
+    ],
+    "keywords": ["discard", "dissolve", "recover", "consumable", "regenerate"]
+  },
+  {
+    "id": 35,
+    "name": "Parameter changes",
+    "description": "Change an object's physical state (e.g., to a gas, liquid, or solid). Change the concentration or consistency. Change the degree of flexibility. Change the temperature.",
+    "sub_principles": [
+      "Change an object's physical state (gas, liquid, solid)",
+      "Change the concentration or consistency",
+      "Change the degree of flexibility",
+      "Change the temperature or volume"
+    ],
+    "examples": [
+      "Freezing food for preservation and transport",
+      "Transporting natural gas as LNG (liquid) for efficiency"
+    ],
+    "keywords": ["parameter", "state-change", "phase", "concentration", "flexibility"]
+  },
+  {
+    "id": 36,
+    "name": "Phase transitions",
+    "description": "Use phenomena occurring during phase transitions (e.g., volume changes, loss or absorption of heat, etc.).",
+    "sub_principles": [
+      "Use phenomena occurring during phase transitions",
+      "Exploit volume changes during phase transitions",
+      "Exploit heat absorption or release during phase transitions"
+    ],
+    "examples": [
+      "Heat pipes use evaporation and condensation cycles for efficient heat transfer",
+      "Water expansion during freezing used for rock splitting in quarrying"
+    ],
+    "keywords": ["phase-transition", "evaporation", "condensation", "melting", "freezing"]
+  },
+  {
+    "id": 37,
+    "name": "Thermal expansion",
+    "description": "Use thermal expansion (or contraction) of materials. If thermal expansion is being used, use multiple materials with different coefficients of thermal expansion.",
+    "sub_principles": [
+      "Use thermal expansion or contraction of materials",
+      "Use multiple materials with different coefficients of thermal expansion"
+    ],
+    "examples": [
+      "Bimetallic strip in a thermostat bends with temperature change",
+      "Shrink-fitting: heating a metal collar to expand it, then cooling to tighten"
+    ],
+    "keywords": ["thermal-expansion", "contraction", "bimetallic", "shrink-fit"]
+  },
+  {
+    "id": 38,
+    "name": "Strong oxidants/Accelerated oxidation",
+    "description": "Replace common air with oxygen-enriched air. Replace enriched air with pure oxygen. Expose air or oxygen to ionizing radiation. Use ionized oxygen (ozone). Replace ozonized (or ionized) oxygen with ozone.",
+    "sub_principles": [
+      "Replace common air with oxygen-enriched air",
+      "Replace enriched air with pure oxygen",
+      "Expose air or oxygen to ionizing radiation",
+      "Use ionized oxygen (ozone)"
+    ],
+    "examples": [
+      "Oxygen-enriched air used in steel-making blast furnaces for higher temperatures",
+      "Ozone water treatment for purification"
+    ],
+    "keywords": ["oxidation", "oxygen", "ozone", "enriched-air", "ionize"]
+  },
+  {
+    "id": 39,
+    "name": "Inert atmosphere",
+    "description": "Replace a normal environment with an inert one. Add neutral parts or inert additives to an object.",
+    "sub_principles": [
+      "Replace a normal environment with an inert one",
+      "Add neutral parts or inert additives to an object",
+      "Carry out the process in a vacuum"
+    ],
+    "examples": [
+      "Welding in an argon atmosphere to prevent oxidation",
+      "Nitrogen-filled food packaging to extend shelf life"
+    ],
+    "keywords": ["inert", "vacuum", "neutral", "argon", "nitrogen"]
+  },
+  {
+    "id": 40,
+    "name": "Composite materials",
+    "description": "Change from uniform to composite (multiple) materials.",
+    "sub_principles": [
+      "Change from uniform to composite (multiple) materials",
+      "Replace a homogeneous material with a composite one"
+    ],
+    "examples": [
+      "Carbon fiber reinforced plastic for lightweight strength in aircraft",
+      "Reinforced concrete combines steel rebar with concrete"
+    ],
+    "keywords": ["composite", "multi-material", "reinforced", "laminate", "hybrid"]
+  }
+]
