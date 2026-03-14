@@ -5,7 +5,7 @@ def test_default_config():
     from triz_ai.config import Settings
 
     s = Settings()
-    assert s.llm.default_model == "openrouter/stepfun/step-3.5-flash:free"
+    assert s.llm.default_model == "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
     assert s.embeddings.model == "openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free"
     assert s.embeddings.dimensions == 768
     assert s.evolution.review_threshold == 0.7

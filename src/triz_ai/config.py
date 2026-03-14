@@ -11,7 +11,7 @@ load_dotenv()
 
 
 class LLMConfig(BaseModel):
-    default_model: str = "openrouter/stepfun/step-3.5-flash:free"
+    default_model: str = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
     api_base: str | None = None  # Custom API base URL (e.g., litellm proxy)
     api_key: str | None = None  # Custom API key (overrides env var)
 

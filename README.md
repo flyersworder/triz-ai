@@ -83,7 +83,7 @@ Config lives at `~/.triz-ai/config.yaml`:
 
 ```yaml
 llm:
-  default_model: openrouter/stepfun/step-3.5-flash:free
+  default_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
 
 embeddings:
   model: openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free
