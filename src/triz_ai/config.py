@@ -12,11 +12,15 @@ load_dotenv()
 
 class LLMConfig(BaseModel):
     default_model: str = "openrouter/stepfun/step-3.5-flash:free"
+    api_base: str | None = None  # Custom API base URL (e.g., litellm proxy)
+    api_key: str | None = None  # Custom API key (overrides env var)
 
 
 class EmbeddingsConfig(BaseModel):
     model: str = "openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free"
     dimensions: int = 768
+    api_base: str | None = None  # Custom API base URL for embeddings
+    api_key: str | None = None  # Custom API key for embeddings
 
 
 class DatabaseConfig(BaseModel):

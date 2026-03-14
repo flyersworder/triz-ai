@@ -98,6 +98,21 @@ evolution:
 
 Any [litellm-supported model string](https://docs.litellm.ai/docs/providers) works — just change the model and set the corresponding API key.
 
+### Using a custom LLM gateway (e.g., company litellm proxy)
+
+```yaml
+llm:
+  default_model: gpt-4o
+  api_base: https://llm-proxy.internal/v1
+  api_key: your-proxy-token
+
+embeddings:
+  model: text-embedding-3-small
+  dimensions: 768
+  api_base: https://llm-proxy.internal/v1
+  api_key: your-proxy-token
+```
+
 ## Development
 
 ```bash

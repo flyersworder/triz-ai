@@ -56,8 +56,12 @@ class LLMClient:
     def __init__(self, model: str | None = None):
         config = load_config()
         self.model = model or config.llm.default_model
+        self.api_base = config.llm.api_base
+        self.api_key = config.llm.api_key
         self.embedding_model = config.embeddings.model
         self.embedding_dimensions = config.embeddings.dimensions
+        self.embedding_api_base = config.embeddings.api_base
+        self.embedding_api_key = config.embeddings.api_key
 
     def _complete(
         self,
@@ -76,10 +80,16 @@ class LLMClient:
         ]
 
         try:
+            kwargs: dict = {}
+            if self.api_base:
+                kwargs["api_base"] = self.api_base
+            if self.api_key:
+                kwargs["api_key"] = self.api_key
             response = litellm.completion(
                 model=self.model,
                 messages=messages,
                 response_format={"type": "json_object"},
+                **kwargs,
             )
             raw = response.choices[0].message.content
             data = json.loads(raw)
@@ -144,10 +154,16 @@ class LLMClient:
 
     def get_embedding(self, text: str) -> list[float]:
         """Get embedding vector for text."""
+        kwargs: dict = {}
+        if self.embedding_api_base:
+            kwargs["api_base"] = self.embedding_api_base
+        if self.embedding_api_key:
+            kwargs["api_key"] = self.embedding_api_key
         response = litellm.embedding(
             model=self.embedding_model,
             input=[text],
             dimensions=self.embedding_dimensions,
+            **kwargs,
         )
         return response.data[0]["embedding"]
 
