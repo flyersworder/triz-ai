@@ -1,0 +1,802 @@
+[
+  {
+    "id": "US-2025055019-A1",
+    "title": "Lithium Secondary Battery",
+    "abstract": "The present disclosure relates to a lithium secondary battery with improved safety during thermal runaway. The lithium secondary battery includes a positive electrode including a positive electrode active material, a negative electrode including a negative electrode active material, and an electrolyte, and has a nominal voltage of 3.68 V or greater, and V T  represented by Equation (1) below measured after manufacturing a test module by stacking four of the lithium secondary battery fully charged by being charged to 4.35 V is 4 Ah/sec or less: Equation (1): V T =C total /t.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-31",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055064-A1",
+    "title": "Variable thermal resistors, systems, and methods for modulating heat transport",
+    "abstract": "Variable thermal resistors, systems, and methods suitable for modulating heat transport between a heat source and a heat sink based on a degree of compression of a reversibly-compressible, open-pore graphene foam within the variable thermal resistors. The variable thermal resistor is configured to controllably vary heat transport therethrough by controlling the degree of compression of the graphene foam.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-31",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054975-A1",
+    "title": "Lithium Secondary Battery",
+    "abstract": "The present disclosure relates to a lithium secondary battery with improved safety during thermal runaway. The lithium secondary battery includes a positive electrode including a positive electrode active material, a negative electrode including a negative electrode active material, and an electrolyte, and has a nominal voltage of 3.68 V or greater, and V P  represented by Equation (1) below is 4 mbar·Ah−1·sec−1 or less: Equation (1): V P =ΔP/(t max ×C).",
+    "domain": "battery technology",
+    "filing_date": "2024-10-31",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055134-A1",
+    "title": "Separator for secondary battery, manufacturing method thereof, method for manufacturing secondary battery comprising the separator and secondary battery manufactured by the method",
+    "abstract": "A separator for a secondary battery comprising a porous polymer substrate; a first layer on at least one surface of the porous polymer substrate, wherein the first layer includes inorganic particles and a nonparticulate acrylic polymer having a glass transition temperature of 15° C. or less, wherein the nonparticulate acrylic polymer connects and fixes the inorganic particles; and a second layer on an upper surface of the first layer, wherein the second layer includes a particulate acrylic polymer having a glass transition temperature of 20°° C. to 50° C. The separator for a secondary battery has good adhesion with the electrode and can solve the resistance problem in the presence of the inorganic particles.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-31",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054342-A1",
+    "title": "Methods for remotely diagnosing faults in powertrain of electric vehicles",
+    "abstract": "The disclosure provides a method for remotely diagnosing faults in a powertrain of an electric vehicle. The method can comprise collecting real-time data from the powertrain of the electric vehicle; transmitting the real-time data to a cloud platform; ranking a feature importance on the real-time data using a random forest model; optimizing hyperparameters of the random forest model using a simulated annealing algorithm; deploying the optimized random forest model on the cloud platform for real-time fault classification and diagnosis; and using the cloud platform to provide real-time fault alerts and diagnostic reports for the powertrain of the electric vehicle.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-31",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054957-A1",
+    "title": "Secondary battery and electric device",
+    "abstract": "The present application provides a secondary battery including a negative electrode plate which includes a negative electrode current collector and a negative electrode film that is formed on at least one surface of the negative electrode current collector, has a first surface away from the negative electrode current collector and a second surface disposed opposite to the first surface, and has a thickness denoted as H. A region from the second surface of the negative electrode film to the thickness of 0.3 H is denoted as a first region, and a region from the first surface of the negative electrode film to the thickness of 0.3 H is denoted as a second region. The first region includes a first active material including a first carbon-based material, the second region includes a second active material including a second carbon-based material. The first carbon-based material has a pore structure.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-31",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055113-A1",
+    "title": "Battery pack and vehicle including same",
+    "abstract": "A battery pack includes: a plurality of battery modules; a pack housing in which the plurality of battery modules are accommodated; and an energy consumer accommodated inside the pack housing, connected to at least one of the plurality of battery modules, and configured to convert electrical energy stored in the battery module into thermal energy as a temperature inside the pack housing increases and dissipate the thermal energy through at least one of the pack housing and a heat sink.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-30",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055063-A1",
+    "title": "Thermal management assembly, battery, and electric apparatus",
+    "abstract": "A thermal management assembly, a battery, and an electric apparatus are disclosed. The thermal management assembly includes a base plate and a cover plate, the cover plate covers and closes the base plate to form a flow channel, the flow channel is adapted for accommodating a heat regulation medium, the cover plate includes a plurality of fins and connecting portions each connected to adjacent two fins, the plurality of fins extend in a first direction and are spaced apart in a second direction, at least some of the plurality of fins are formed as hollow structures each including a cavity, the flow channel includes the cavity, and the connecting portion and the corresponding adjacent two fins form a placement slot, where the first direction intersects with the second direction. The thermal management assembly can effectively meet thermal management requirements of the battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-30",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055043-A1",
+    "title": "Prismatic secondary battery and assembled battery using the same",
+    "abstract": "A flat-shaped winding electrode body in which a positive electrode plate and a negative electrode plate are wound with a separator interposed therebetween includes a positive electrode tab portion and a negative electrode tab portion at one end in a direction in which a winding axis of the winding electrode body extends. Two pieces of the flat-shaped winding electrode body are housed in a prismatic outer body so that the winding axis of each piece is disposed in a direction perpendicular to a sealing plate, and the positive electrode tab portion and the negative electrode tab portion are located on one end of the winding electrode body closer to the sealing plate than the other end.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-30",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054974-A1",
+    "title": "Positive electrode active material and lithium secondary battery comprising the same",
+    "abstract": "The present invention relates to a positive electrode active material having improved electrical characteristics by adjusting an aspect ratio gradient of primary particles included in a secondary particle, a positive electrode including the positive electrode active material, and a lithium secondary battery using the positive electrode.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-30",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055046-A1",
+    "title": "Electrode assembly and battery",
+    "abstract": "Provided are an electrode assembly and a battery. The electrode assembly includes a positive electrode piece formed by winding, including a positive electrode current collector and a functional layer, where the positive electrode current collector includes a first surface and a second surface which are parallel and opposite to each other, and the first and second surfaces of the positive electrode current collector are each provided with a functional layer; a length of the functional layer is the same as that of the positive electrode current collector; the functional layer includes a positive electrode active material layer, and a protective layer which is arranged between the positive electrode current collector and the positive electrode active material layer, and a length of the protective layer is smaller than or equal to that of the positive electrode active material layer; the protective layer includes a conductive material and a binder.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-30",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055126-A1",
+    "title": "System and method for fire detection and mitigation for energy storage systems",
+    "abstract": "A system includes a battery rack including a frame configured to support a battery tray, the frame including: an inlet fluidly coupled a fluid supply; and a set of columns fluidly coupled to the inlet, each column including perforations arranged on the column and facing an interior of the battery rack, and each column defining a channel configured to circulate fluid from the inlet to the perforations. The system also includes: a valve interposed between the fluid supply and the inlet; a sensor configured to generate a signal representing ambient condition proximal the battery rack; and a controller configured to trigger the valve to transition from a closed state to an open state in response to detecting a precursor condition to a fire event based on the signal.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055035-A1",
+    "title": "Lithium-ion battery and apparatus",
+    "abstract": "The present application provides a lithium-ion battery and an apparatus, the lithium-ion battery includes an electrode assembly and an electrolyte. The electrode assembly includes a positive electrode sheet, a negative electrode sheet and a separation film. The positive active material in the positive electrode sheet includes Li x1 Co y1 M 1-y1 O 2-z1 Q z1 , 0.5≤x1≤1.2, 0.8≤y1&lt;1.0, 0≤z1≤0.1, and M is selected from one of Al, Ti, Zr, Y, and Mg, and Q is selected from one or more of F, Cl, and S. The electrolyte contains an additive A and an additive B, the additive A is a polynitrile six-membered nitrogen-heterocyclic compound with a relatively low oxidation potential, and the additive B is an aliphatic dinitrile or polynitrile compound with a relatively high oxidation potential. The lithium-ion battery of the present application has superb cycle performance and storage performance, especially under high-temperature and high-voltage conditions.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055049-A1",
+    "title": "Battery module and power system",
+    "abstract": "A power system includes a battery module and a battery ECU. The battery module includes multiple battery stacks. Each of multiple battery stacks includes multiple battery cells, multiple detectors which independently detect physical values of the multiple battery cells, respectively, and multiple individual communicators which wirelessly output detection results of the multiple detectors. Each of the multiple individual communicators communicates a radio signal wirelessly to and from a general monitor. The multiple battery stacks and the general monitor are accommodated in a storage space in a housing having electromagnetic shielding performance. A shield is also accommodated in the storage space while facing a communication hole formed on the housing.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025050727-A1",
+    "title": "Thermal management component and system, and vehicle",
+    "abstract": "A thermal management component is provided, including a first substrate ( 111 ) and a second substrate ( 112 ). The first substrate ( 111 ) is provided with at least seven interfaces. The first substrate ( 111 ) is provided with at least seven flow channels. The at least seven flow channels communicate with the at least seven interfaces. The first substrate ( 111 ) is provided with a control valve. The control valve is configured to control communication between the at least seven flow channels to control communication between the at least seven interfaces. The second substrate ( 112 ) is disposed on a first side of the first substrate ( 111 ). The second substrate ( 112 ) is provided with through holes corresponding to the interfaces disposed on the first side of the first substrate ( 111 ). The interfaces disposed on the first side of the first substrate ( 111 ) respectively pass through the corresponding through holes. A thermal management system and a vehicle are further disclosed.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055039-A1",
+    "title": "Method of preparing lithium secondary battery",
+    "abstract": "A method of preparing a lithium secondary battery is provided which may effectively perform pre-lithiation, wherein, a closed square band-shaped lithium foil having an opening formed at a center thereof is prepared during the preparation of the lithium secondary battery, and a negative electrode is disposed in the opening of the lithium foil, but pre-lithiation of the negative electrode may be performed without a separate pre-lithiation process by disposing the negative electrode and the lithium foil so as not to overlap with each other and disposing a negative electrode tab so as to be in contact with the lithium foil.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055069-A1",
+    "title": "Thermal management component, battery, and electric apparatus",
+    "abstract": "A thermal management component, a battery, and an electric apparatus are provided. The thermal management component includes a first wall; a second wall spaced apart from the first wall, where an accommodating space is present between the first wall and the second wall; and a support member, where the support member is disposed in the accommodating space oblique to an extension direction of the first wall or the second wall. In this way, the thermal management component can be compressed and undergo slight deformation, thereby reducing the impact of swelling of the battery cell on heat conduction between the battery cell and the thermal management component.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025051181-A1",
+    "title": "Precursor for lithium secondary battery positive electrode active materials, method for producing precursor for lithium secondary battery positive electrode active materials, and method for producing lithium composite metal compound",
+    "abstract": "A precursor for lithium secondary battery positive electrode active materials containing at least nickel, in which the following formula (1) is satisfied. \n       0.20 ≤Dmin/Dmax   (1)\n \n     (in the formula (1), Dmin is a minimum particle diameter (μm) in a cumulative particle size distribution curve obtained by measuring the precursor for lithium secondary battery positive electrode active materials with a laser diffraction-type particle size distribution measuring instrument, and Dmax is a maximum particle diameter (μm) in the cumulative particle size distribution curve obtained by the measurement with the laser diffraction-type particle size distribution measuring instrument.)",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054992-A1",
+    "title": "Black metallic nanorod arrays and method of manufacturing thereof",
+    "abstract": "A device, e.g., a current collector and/or a lithium-ion or lithium-metal battery, is disclosed. The device includes a metallic substrate and a plurality of nanorod arrays arranged on the substrate. The plurality of nanorod arrays are porous metallic nanostructures and appear black in color. The plurality of nanorod arrays comprise titanium according to an example. The metallic substrate comprises a metal foil according to an example.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055048-A1",
+    "title": "Mobile Energy Supply System With Battery Modules, Battery Module and Method for Operating a Mobile Energy Supply System",
+    "abstract": "A mobile, in particular portable, energy supply system having battery modules which can be connected in series in a controllable manner in order to provide different voltages at a power supply connection of the energy supply system, and a control unit for controlling the battery modules, wherein each battery module has an input connection and an output connection, a battery unit for providing a module voltage and switching elements, in particular power electronic ones. The switching elements are designed to selectively switch the module voltage for the provision of energy to the input and output connection, wherein a heat-transferring coupling between the switching elements and the battery unit is provided to transfer operationally generated heat loss of the switching elements specifically from these to the battery unit. A battery module for an energy supply system and a method for operating such an energy supply system are also related.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-29",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055065-A1",
+    "title": "Power storage module",
+    "abstract": "A power storage module includes: a plurality of power storage devices arranged in a first direction; and a separator provided between two adjacent power storage devices and insulating the two power storage devices from each other. The power storage device includes an exterior can that have an opening, a sealing plate that blocks the opening, and a joint part between the exterior can and the sealing plate. The separator includes a contact area that abuts a surface of the exterior can facing the first direction and a separation area that overlaps the joint part as viewed in the first direction and concaved with respect to the contact area in a direction away from the exterior can.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055120-A1",
+    "title": "Apparatus for mitigation of thermal event propagation for battery systems",
+    "abstract": "Apparatus for mitigating propagation of thermal events between battery cells within a battery module assembly ( 10 ) is provided. The apparatus comprises one or more of several features that function to prevent a runaway thermal event within one battery cell ( 48 ) from triggering a fire or other thermal event within another battery cell within the battery module assembly ( 10 ). The apparatus may comprise one or more of: (i) a compressive wrap ( 88 ) applied to a battery cell ( 48 ); (ii) a layered barrier material ( 104 ) positioned between adjacent battery cells ( 48 ); (iii) silicone rubber supports ( 94 ) positioned adjacent the battery terminals ( 62. 64 ), (iv) a light-weight, fire-resistant housing composite panel, and (v) rupturable diaphragms ( 36 ) configured to vent gases and ejecta from a battery cell undergoing a thermal event.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055080-A1",
+    "title": "Battery",
+    "abstract": "Provided is a battery, which relates to the field of battery cell packaging technology and is used for solving the technical problems of low packaging efficiency and poor packaging effect. The battery includes a battery cell and a packaging structure covered around the periphery of the battery cell, the packaging structure includes a first packaging sheet and a second packaging sheet, which are attached to first and second peripheral surfaces of the battery cell respectively, the first peripheral surface intersects with the second peripheral surface, and the first peripheral surface is arranged with a positive tab and a negative tab; the second packaging sheet has a bonding area and a non-bonding area which are adjacent to each other, the non-bonding area is located at the edge of the second packaging sheet close to the first packaging sheet and can be close to or away from the second peripheral surface.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055111-A1",
+    "title": "Electrical device, electrical system, and battery pack",
+    "abstract": "An electrical system includes a first type power tool; a second type power tool; a first battery pack comprising a first mounting portion; and a second battery pack comprising a second mounting portion. The second mounting portion is different from the first mounting portion. The first type power tool comprises a battery pack mounting portion configured to detachably engage with the first mounting portion. The second type power tool comprises a battery pack mounting part configured to detachably engage with the second mounting portion and to be non-engaged with the first mounting portion. The weight of the first battery pack is greater than or equal to 3.6 kg. The weight of the first battery pack is greater than the weight of the second battery pack. The capacity of the first battery pack is greater than the capacity of the second battery pack",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054991-A1",
+    "title": "Laminated battery cell and lithium-ion battery",
+    "abstract": "The present application provides a laminated battery cell and a lithium-ion battery, where the laminated battery cell includes an electrode sheet assembly and a protection assembly, where the protection assembly is located on the surface of the outer electrode sheet of the electrode sheet assembly; the electrode sheet assembly includes at least one functional electrode sheet, which includes a first current collector, a first protective layer and a first active layer, the first protective layer being located between the first current collector and the first active layer; the protection assembly includes a second current collector and a second protective layer that is away from the electrode sheet assembly; the first protective layer and the second protective layer each independently include a conductive particle and a binder, preventing the lithium-ion battery from internal short circuit during mechanical abuse, and making the lithium-ion battery has excellent safety performance.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055152-A1",
+    "title": "Protection board and battery",
+    "abstract": "Provided are a protection board and a battery. The protection board includes an access board, a diverter board, a rigid board, and at least one connection board. The rigid board, the diverter board and the connection board are all connected to the access board. The rigid board and the access board are stacked to each other. The diverter board is located on one side of the access board and is bent around the rigid board, and at least one connection board is located at one end of the access board along its extension direction. The present application provides a protection board with small size and a battery with large capacity.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055042-A1",
+    "title": "Battery",
+    "abstract": "A battery disclosed herein includes: an exterior body including a bottom wall and an opening facing the bottom wall; a sealing plate sealing the opening of the exterior body; and one or a plurality of wound electrode bodies, in which a band-shaped positive electrode including a positive electrode active material layer and a band-shaped negative electrode including a negative electrode active material layer are laminated via a band-shaped separator and are wound around a winding axis. A length of the positive electrode active material layer is 15 cm or more in a winding axis direction of the wound electrode body. A plurality of winding stop tapes are attached to an outer surface of the wound electrode body at intervals in the winding axis direction.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055067-A1",
+    "title": "Battery and power consuming device",
+    "abstract": "Provided a battery and a power consuming device. The battery includes: a case; a plurality of columns of battery cells accommodated inside the case, wherein each of the columns of battery cells comprises a plurality of battery cells arranged in a first direction, the plurality of columns of battery cells are arranged in a second direction, the second direction is perpendicular to the first direction, each of the battery cells includes a first wall, and electrode terminals are arranged on the first wall; and connecting strips, wherein the connecting strips extend in the second direction and are connected to the first walls of the plurality of battery cells of the plurality of columns of battery cells arranged in the second direction. The technical solutions of the embodiments of the present application can increase the structural strength and energy density of the battery, thereby improving the performance of the battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054943-A1",
+    "title": "Anode electrode composition of li-ion battery cell",
+    "abstract": "In an embodiment, a Li-ion battery cell comprises an anode electrode with an electrode coating that (1) comprises Si-comprising active material particles, (2) exhibits an areal capacity loading in the range of about 3 mAh/cm 2  to about 12 mAh/cm 2 , (3) exhibits a volumetric capacity in the range from about 600 mAh/cc to about 1800 mAh/cc in a charged state of the cell, (4) comprises conductive additive material particles, and (5) comprises a polymer binder that is configured to bind the Si-comprising active material particles and the conductive additive material particles together to stabilize the anode electrode against volume expansion during the one or more charge-discharge cycles of the battery cell while maintaining the electrical connection between the metal current collector and the Si-comprising active material particles.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055055-A1",
+    "title": "Battery apparatus",
+    "abstract": "Discussed is a battery module including a plurality of pouch-type secondary batteries arranged in parallel to each other, each pouch type secondary battery comprising an electrode assembly, a receiving portion configured to receive the electrode assembly and a pouch exterior, a cooling plate arranged under the plurality of pouch-type secondary batteries to accommodate the plurality of pouch-type secondary batteries, and a thermally conductive adhesive between the plurality of pouch-type secondary batteries and the cooling plate. The cooling plate includes a first recess to receive a portion of the pouch exterior and a second recess to receive a portion of the thermally conductive adhesive.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-28",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025050973-A1",
+    "title": "Endless track conveyance machines having a torque assist system for enhancing performance and a battery temperaure assist",
+    "abstract": "Conveyance vehicles such as snow bikes and snowmobiles having an endless track system driven by a combustion engine are enhanced in performance with a torque assist system. The torque assist system includes an electric motor that is coupled to drive the track in parallel with the original internal combustion engine through either its own track drive, or through the drive system of the engine. The motor can be a spindle drive motor or hub motor. Torque assist is generated through a torque assist throttle input coupled to a motor controller. A battery temperature assist system diverts heated cooling fluid from the engine cooling system to heat the battery through its own heat exchanger. The controller is coupled to a processing device such as a smart phone that executes apps configured to provide parametric data to the controller and to receive parametric data from the controller through a user interface.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-27",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055044-A1",
+    "title": "Methods and apparatus of self-charging battery devices",
+    "abstract": "The entire lifecycle of conventional batteries including lithium-ion batteries—from mining, through manufacturing, to usage—presents significant environmental challenges, including habitat destruction, water and air pollution, resource depletion, and contributions to global warming. This invention disclosure employs a self-charging battery technique based on parametric amplification, a principle first demonstrated by L. Mandelstam and N. Papalexi in 1934, and conceptually supported by Ilya Prigogine&#39;s Nobel Prize-winning work in 1977. The parametric amplification process allows the battery device being charged continuously during its life time, and significantly reduces or avoids the environmental pollutions of conventional batteries. Moreover, the features of the self-charging battery devices include long battery life, no off-duty charging time, and safer operation.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-27",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046961-A1",
+    "title": "Lithium battery cell and manufacturing method thereof",
+    "abstract": "A lithium battery cell includes an upper cover module, a first battery electrode group, a second battery electrode group, and a plurality of first electrode connection straps. The first electrode connection straps are stacked together. A first end of the first electrode connection straps is welded to a first tab, a second end of the first electrode connection straps is welded to a second tab, and a middle part of the first electrode connection straps is welded to a first electrode terminal. An even number of first bending parts are formed between the middle part and the first end, and an even number of second bending parts are formed between the middle part and the second end, and the first bending parts and the second bending parts are symmetrical to each other. A lithium battery cell manufacturing method is also disclosed therein.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025047107-A1",
+    "title": "Charging device, battery pack, external device, and data transmission system",
+    "abstract": "This disclosure relates to the field of electric tool technologies, and specifically discloses a charging device, a battery pack, an external device, and a data transmission system. The charging device includes at least a first digital communication module, a second digital communication module, and a first digital signal terminal and a second digital signal terminal respectively connected to the first digital communication module and the second digital communication module. When the charging device is connected to the battery pack, the charging device can perform digital communication with the battery pack through at least one of the digital communication terminals.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046936-A1",
+    "title": "Electrical device, electrical system, and battery pack",
+    "abstract": "An electrical device including: a device housing; and a battery pack mounting portion arranged on the device housing and configured to detachably engage with a first battery pack or a second battery pack. The battery pack mounting portion includes a pair of first guiding portions and a pair of second guiding portions. The first guiding portions are configured to guide the first battery pack to engage with the electrical device in an engaging direction. The second guiding portions are configured to guide the second battery pack to engage with the electrical device in the engaging direction. The first guiding portions and the second guiding portions are independent of each other. In a width direction perpendicular to the engaging direction, the pair of first guiding portions are located on two sides of the pair of second guiding portions.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046907-A1",
+    "title": "Heat radiator assembly, batter pack, and vehicle",
+    "abstract": "A vehicle is provided with a battery pack comprising a heat radiator assembly. The heat radiator assembly comprises a first heat radiator, a second heat radiator, a third heat radiator, and at least one fourth heat radiator. The third heat radiator is coupled between the first heat radiator and the second heat radiator. The third heat radiator is separately communicated with the first heat radiator and the second heat radiator; the at least one fourth heat radiator is coupled between the first heat radiator and the second heat radiator; the at least one fourth heat radiator and the third heat radiator are arranged side by side between the first heat radiator and the second heat radiator; the first heat radiator and the second heat radiator are both stamping plate-type heat radiators; and the fourth heat radiator is a harmonica tube-type heat radiator.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054989-A1",
+    "title": "Positive electrode plate and electrochemical device",
+    "abstract": "The present application relates to a positive electrode plate and an electrochemical device. The positive electrode plate comprises a metal current collector, a positive active material layer and a safety coating disposed between the metal current collector and the positive active material layer, the safety coating comprising a polymer matrix, a conductive material and an inorganic filler wherein the polymer matrix is a fluorinated polyolefin and/or chlorinated polyolefin polymer matrix, wherein based on the total weight of the safety coating, the polymer matrix is present in a weight percentage of 35-75% by weight, the conductive material is present in a weight percentage of 5-25% by weight and the inorganic filler is present in a weight percentage of 10-60% by weight, and wherein the metal current collector has an elongation at break δ fulfilling 0.8%≤δ≤4%.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046814-A1",
+    "title": "Positive Electrode Active Material for Secondary Battery, Method of Preparing the Same, and Lithium Secondary Battery Including the Positive Electrode Active Material",
+    "abstract": "A positive electrode active material for a secondary battery includes a lithium composite transition metal oxide comprising nickel (Ni), cobalt (Co), and manganese (Mn), and a coating layer formed on surfaces of the lithium composite transition metal oxide, wherein, in the lithium composite transition metal oxide, an amount of the nickel (Ni) in a total amount of transition metals is 60 mol % or more, and an amount of the manganese (Mn) is greater than an amount of the cobalt (Co), and the coating layer comprises a compound represented by Formula 1: \n       Li a M 1   b O c    [Formula 1]\n \n     wherein, M1 includes aluminum (Al) and at least one selected from the group consisting of boron (B), silicon (Si), titanium (Ti), and phosphorus (P), and 1≤a≤4, 1≤b≤8, and 1≤c≤20.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025042683-A1",
+    "title": "Automatic replacement apparatus and method for feed material",
+    "abstract": "An automatic replacement apparatus for a feed material includes a discharge unit discharging a feed material to the outside, a pair of feed units disposed to be adjacent to the discharge unit and having a feed roll around which the feed material is wound, and a pair of material joint units respectively provided in the pair of feed units connecting a front end of a first feed material waiting in a first feed unit, one of the pair of feed units, and an end of a second feed material being transferred from a second feed unit, the other of the pair of feed units, to the discharge unit in a butt joint manner.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046962-A1",
+    "title": "Secondary battery",
+    "abstract": "Disclosed is a secondary battery capable of a sufficient pressing force during welding between the terminal and the current collector plate to induce a strong bonding force, the secondary battery including an electrode assembly having first and second electrode tabs exposed on respective sides, a first current collection part electrically coupled to the first electrode tab, and including an edge part welded to the first electrode tab, and a central part, a case accommodating the electrode assembly and the first current collection part, a first cap plate sealing a side opening of the case, a first terminal mechanically and electrically coupled to the first current collection part, and exposed to an exterior of the first cap plate, and a support between the central part of the first current collection part and the electrode assembly, wherein the central part protrudes further toward the first cap plate than the edge part.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054963-A1",
+    "title": "Secondary battery, and battery module, battery pack, and electrical device including the same",
+    "abstract": "The present application provides a secondary battery, and providing a battery module, a battery pack, and a powder device comprising the same. The secondary battery includes a positive electrode plate and a non-aqueous electrolytic solution, in which the positive electrode plate includes a positive electrode active material having a core-shell structure, the positive electrode active material includes an core and a shell covering the core, the core includes Li 1+x Mn 1−y A y P 1−z R z O 4 , the shell includes a first coating layer covering the core and a second coating layer covering the first coating layer, the non-aqueous electrolytic solution includes a first additive one or more selected from the compounds shown in formulae 1-A to 1-D. The secondary battery of the present application can have a relatively high energy density, and also a good rate performance, cycling performance, storage performance and safety performance.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046881-A1",
+    "title": "Oxidation protected separator",
+    "abstract": "A battery separator for a lead/acid battery is resistant to oxidation arising from the use of water or acid containing contaminants, for example chromium (Cr), manganese (Mn), titanium (Ti), copper (Cu), and the like. The separator is a microporous membrane including a rubber. The rubber is no more than about 12% by weight of the separator. The rubber may be rubber latex, tire crumb, and combinations thereof. The rubber may be impregnated into the microporous membrane. The microporous membrane may be a microporous sheet of polyolefin, polyvinyl chloride, phenol-formaldehyde resins, cross-linked rubber, or nonwoven fibers. A method for preventing the oxidation and/or extending battery life of the separator is also included.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-25",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046947-A1",
+    "title": "Separator and device containing same",
+    "abstract": "A separator includes a porous substrate and a porous coating. The porous coating is disposed on at least one surface of the porous substrate. The porous coating includes inorganic particles and a binder. The binder includes a first binder. The first binder includes a metal element. The separator of this application is excellent in thermal safety stability and mechanical stability, mainly manifested in that, when a rupture hole is generated on the separator by thermally puncturing the separator by using a round needle with a diameter of R heated to 500° C., a maximum value of a distance between any two points on an edge of the rupture hole is r in a case that the two points are connected to form a line and the distance between the two points is calculated, satisfying: 400 μm≤R≤1000 μm, and 0.9≤r/R≤5.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-24",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046972-A1",
+    "title": "Battery and electronic device",
+    "abstract": "A battery and an electronic device. The battery includes a battery cell, a housing, an insulating member and a connecting sheet, where the housing is provided with an accommodating cavity, and the battery cell is disposed in the accommodating cavity; a side wall of the housing is provided with a notch, the insulating member is mounted at the notch, and the insulating member is provided with a mounting hole; the connecting sheet is disposed on the insulating member and is provided with a protruding part, the protruding part penetrates through the mounting hole and extends to inside of the housing, and the protruding part is electrically connected with a tab assembly of the battery cell. The electronic device includes the battery. Capacity density of the battery is improved without changing the size of the battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-24",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055034-A1",
+    "title": "Electrolyte solution and battery including the same",
+    "abstract": "Disclosed are an electrolyte solution and a battery including the same. In the electrolyte solution provided in the present disclosure, a nitrogen-containing heterocyclic compound containing a sulfonate group or a sulfone group is a dual-function additive, where there is a lone pair on its N atom; after a small amount of the compound is added to the electrolyte solution, relatively weak Lewis basicity is presented; and the compound can form a complex (for example, a six-ligand complex) with another component (for example, PFs) in the electrolyte solution. Therefore, acidity and reactivity of the electrolyte solution are reduced; increase of a free acid in the electrolyte solution is inhibited; and lithium deposition at a negative electrode of a high-voltage battery may be inhibited while the high-temperature cycling performance, normal-temperature cycling performance, low-temperature discharge performance, and rate performance of the battery are improved.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-24",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055056-A1",
+    "title": "Method for heating power battery, apparatus for heating power battery, electronic device, system for heating power battery, and storage medium",
+    "abstract": "A method for heating a power battery ( 1 ), an apparatus for heating a power battery ( 1 ), an electronic device, a system for heating a power battery ( 1 ), and a storage medium. The heating method includes: acquiring a current state parameter value of the power battery ( 1 ); and heating the power battery ( 1 ) using a corresponding heating mode based on the current state parameter value. After the temperature of the power battery ( 1 ) rises, the discharge capacity of the power battery ( 1 ) increases, and charging can be achieved.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-24",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025052824-A1",
+    "title": "Battery management system",
+    "abstract": "A BMS for managing a battery assembly includes: a BMU that manages the battery assembly; a plurality of CMUs that monitor the battery assembly; and a setting circuit. The BMU wirelessly transmits, to the plurality of CMUs, a first signal including identification information of one CMU among the plurality of CMUs. Each of the plurality of CMUs includes identification information identifying itself, receives the first signal transmitted by the BMU, and outputs a second signal on condition that the first signal received matches the identification information. The setting circuit generates and outputs correspondence information that associates (i) position information of the one CMU, among the plurality of CMUs, that output the second signal with (ii) the identification information included in the first signal transmitted by the BMU.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-24",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046853-A1",
+    "title": "Jelly roll and battery",
+    "abstract": "A jelly roll includes a first electrode plate and a second electrode plate that are disposed in a stacked manner. The tail end of the first electrode plate is a first foil uncoating region; the tail end of the second electrode plate is a second foil uncoating region; and the jelly roll includes a first bending region disposed at an outermost side of the jelly roll, the tail end of the first electrode plate and the tail end of the second electrode plate are both located in the first bending region, and neither of projections, in a thickness direction of the jelly roll, of the first foil uncoating region and the second foil uncoating region exceeds the first bending region. The present disclosure solves problems of being unable to ensure both safety and an energy density of a battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046805-A1",
+    "title": "Cathode active material, method of preparing the same, and lithium secondary battery including cathode including the same",
+    "abstract": "A cathode active material includes\n         a core having a compound represented by Formula 2-2 or 2-3, as follows:       \n\n       Li 1−x″ Na x″ Zr β″ W γ″ Ni 1−β″ Co y″ Al z″ O 2 , and   (Formula 2-3)\n \n       Li 1−x′″ Na x′″ Zr β′″ W γ′″ Ni 1−β′″−γ′″−y′″ Co y′″ O 2;    (Formula 2-3)\n         wherein in Formula 2-2,\n           0&lt;x″≤0.01, 0&lt;β″≤0.005, 0&lt;γ″≤0.005, 0&lt;y″≤0.2, and 0&lt;z″≤0.1, and   \n           wherein in Formula 2-3,\n           0&lt;x′″≤0.01, 0&lt;β′″≤0.005, 0&lt;γ′″&lt;0.005, and 0&lt;y′″&lt;0.2; and   \n           a coating layer having a phosphorus-containing compound disposed on the surface of the core, wherein the phosphorus-containing compound comprises a compound represented by Formula 3, as follows:       \n\n       Li a P b O c ,   (Formula 3)\n         in Formula 3, 0&lt;a≤3, 0&lt;b≤1, and 0&lt;c≤4.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055078-A1",
+    "title": "Devices, systems, and methods for controlling vent gases and ejecta from thermal runaway events in energy storage systems",
+    "abstract": "The present disclosure relates to materials and systems to manage thermal runaway issues in battery modules. In exemplary embodiments, a battery module includes battery cells separated by spacer elements. To mitigate thermal runaway issues, spacer elements may be extended to the interior surface of the enclosure. A seal is formed between the spacer elements and the interior wall to form a thermal barrier between adjacent battery cells.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025042220-A1",
+    "title": "Vehicle air conditioning system, heat management system and control method therefor, and vehicle",
+    "abstract": "A vehicle air conditioning system includes a first passenger compartment heating loop and a first battery pack heat exchange loop. The first passenger compartment heating loop and the first battery pack heat exchange loop share a compressor and an out-vehicle condenser. The first passenger compartment heating loop further includes an in-vehicle condenser, the first battery pack heat exchange loop further includes a heat conducting component connected to a power battery. The power battery is connected to a self-heating circuit used for self-heating the power battery; and an outlet of the compressor is in communication with an inlet of the in-vehicle condenser. An outlet of the in-vehicle condenser is in communication with an inlet of the out-vehicle condenser, and an outlet of the out-vehicle condenser is in communication with an inlet of the compressor.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046787-A1",
+    "title": "Sulfur-carbon composite, preparation method thereof, positive electrode for lithium secondary battery and lithium second",
+    "abstract": "Discussed is a sulfur-carbon composite including a porous carbon material; and sulfur, wherein the sulfur is present in at least a part of an inside of the porous carbon material and on a surface of the porous carbon material, a preparation method thereof, a positive electrode for a lithium secondary battery including the same, and a lithium secondary battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046904-A1",
+    "title": "Battery heating system and electric vehicle",
+    "abstract": "A battery heating system includes: a power battery pack including a first battery assembly and a second battery assembly connected to each other at a connection point, buck-boost inverters connected in parallel to form a first bus terminal and a second bus terminal, and a controller connected to a control terminal of the inverter bridge and configured to control self-heating of the first battery assembly and the second battery assembly. A center line is led out at the connection point. Each buck-boost inverters includes an inverter bridge and an inductor. The first bus terminal is connected to a positive electrode of the power battery pack. The second bus terminal is connected to a negative electrode of the power battery pack. A first terminal of the inductor is connected to a midpoint of the inverter bridge. A second terminal of the inductor is connected to the center line.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025042287-A1",
+    "title": "Device and method for charging electric vehicle with different charging standards",
+    "abstract": "A charging control device mounted inside an electric vehicle, the charging control device including a communication channel configured to be connected with an EVSE (electric vehicle supply equipment), a controller configured to be connected with the communication channel, and an internal power protection unit connected with a battery of the electric vehicle, wherein the communication channel is based on a protocol of supporting a power line communication (PLC) or a controller area network (CAN), wherein the controller includes a task unit, the task unit operating based on a charging mode of a charging standard.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025048012-A1",
+    "title": "System for charging an ear-worn electronic device",
+    "abstract": "A system includes a hearing device comprising a rechargeable power source, power management circuitry, and a first charging interface comprising a first cathode contact and a first anode contact spaced apart from the first cathode contact. A charging module comprises a second charging interface configured to detachably couple with the first charging interface of the hearing device. The second charging interface comprises a second anode contact having a contact surface and a displaceable second cathode contact. An arrangement is configured to displace at least a portion of the second cathode contact above the contact surface to facilitate electrical contact between the first and second cathode contacts prior to electrical contact between the first and second anode contacts. Charging circuitry of the charging module is coupled to the second charging interface and configured to charge the rechargeable power source of the hearing device.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046887-A1",
+    "title": "Battery management system",
+    "abstract": "A BMS for managing a battery assembly includes: a BMU that manages the battery assembly and includes a communication antenna; and one or more CMUs that monitor the battery assembly and each include a communication antenna that communicates with the communication antenna. A communication antenna group including the communication antenna and one or more communication antennas is arranged in a straight line. The BMS further includes a conductor that covers at least part of the communication antenna group. The conductor includes a recess that extends in the alignment direction of the communication antenna group and is recessed in a direction away from the communication antenna group in a cross-section orthogonal to the alignment direction.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046918-A1",
+    "title": "Battery and method for preparing the same",
+    "abstract": "A battery includes a battery cell and a packaging body, an edge of at least one side of the packaging body is provided with a sealing region to seal and wrap the battery cell body in the packaging body, and the packaging body includes a heat sealing layer; and in the sealing region, a side, away from the battery cell body, of the heat sealing layer is an outer sealing side, a side, close to the battery cell body, of the heat sealing layer is an inner sealing side, and a crystallinity of the outer sealing side is greater than a crystallinity of the inner sealing side. The battery includes the packaging body with a high packaging strength and a strong resistance to bending, which may more effectively block water vapor from entering a battery, and also improves safety performance and a service life of a battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046802-A1",
+    "title": "Battery",
+    "abstract": "The battery of the present disclosure includes: a positive electrode; a negative electrode; and a solid electrolyte layer located between the positive electrode and the negative electrode. The positive electrode contains, as a positive electrode active material, a metal oxide containing lithium, and the negative electrode includes a negative electrode current collector and a negative electrode active material layer located between the negative electrode current collector and the solid electrolyte layer. The negative electrode active material layer contains, as a negative electrode active material, silicon with lithium pre-stored therein. The atomic ratio of lithium to silicon in the negative electrode active material layer in a fully charged state is less than or equal to 3.5.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046781-A1",
+    "title": "Battery and production method for battery",
+    "abstract": "The production method for a battery of the present disclosure includes: depositing silicon on a negative electrode current collector to produce a negative electrode; producing a laminated body including the negative electrode, a solid electrolyte layer, and a positive electrode in this order; and charging the laminated body to cause metallic lithium to precipitate in the negative electrode. \n     The battery of the present disclosure includes a positive electrode, a negative electrode, and a solid electrolyte layer located between the positive electrode and the negative electrode. The positive electrode contains a positive electrode active material containing lithium. The negative electrode contains a negative electrode active material containing metallic lithium and silicon. The ratio Ns/P of the charge capacity Ns of the silicon per unit area of the negative electrode to the charge capacity P per unit area of the positive electrode satisfies 0.3≤Ns/P≤0.96.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046964-A1",
+    "title": "Battery pack and combination of a power tool and the battery pack",
+    "abstract": "A battery pack includes a housing, a cell assembly, a cell support member, a first sensor, and a second sensor. The cell assembly is disposed in the housing; and the cell support member is at least configured to support the cell assembly. The cell assembly includes a plurality of cells which are sheet-shaped, the plurality of cells are stacked, and a cell among the plurality of cells includes an encapsulation member configured to encapsulate the cell and a tab disposed at at least one end of the cell assembly and protruding from the cell. The first sensor is configured to detect a temperature of the cell and is disposed on a side of the tab facing towards the cell support member. The second sensor is configured to detect a parameter related to leakage of the cell and is disposed in the cell assembly.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046786-A1",
+    "title": "Secondary battery, manufacturing method therefor, and device containing secondary battery",
+    "abstract": "The present application relates to a secondary battery, a manufacturing method therefor, and a device containing the secondary battery. A negative electrode plate of the secondary battery of the present application comprises a negative electrode current collector and a negative electrode film layer, wherein the negative electrode film layer comprises a first negative electrode film layer and a second negative electrode film layer, the first negative electrode film layer is arranged on at least one surface of the negative electrode current collector and comprises a first negative electrode active material, the second negative electrode film layer is arranged on the first negative electrode film layer and comprises a second negative electrode active material, the first negative electrode active material comprises artificial graphite, the second negative electrode active material comprises natural graphite, and the compacted density of the negative electrode film layer is less than or equal to 1.6 g/cm 3 .",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046963-A1",
+    "title": "Battery and method of manufacturing same",
+    "abstract": "A battery according to the present disclosure includes: a power-generation element including a battery cell including an electrode layer, a counter-electrode layer, and a separator located between the electrode layer and the counter-electrode layer, and an electrode current collector laminated on the electrode layer; and a first core member, the electrode current collector includes an electrode terminal portion protruding outside the area of the electrode layer, and the electrode terminal portion is wound around the first core member.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025047228-A1",
+    "title": "Method and device for restoration of a battery&#39;s energy parameters",
+    "abstract": "A device for restoring energy parameters of a battery is provided. The device includes a supporting frame, a controller, and a battery container configured to receive the battery therein, the battery container being operably coupled to a controlling inverter and a motor comprising a motor reductor. The controlling inverter is configured to regulate a rotational speed of the motor. The motor reductor is configured to facilitate rotation of the battery container. Methods of restoring energy parameters of a battery are also provided.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-23",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046950-A1",
+    "title": "Separator and device containing the same",
+    "abstract": "A separator includes a porous substrate and a porous coating. The porous coating is disposed on at least one surface of the porous substrate. The porous coating includes inorganic particles and a binder. The separator of this application exhibits excellent thermal safety stability and mechanical stability, mainly manifested in that the Modulus of the separator at temperature T is P, satisfying: 100° C.≤T≤180° C., and 10 8  Pa≤P≤10 9  Pa.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-22",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054956-A1",
+    "title": "Anode material, preparation method thereof, and lithium ion battery",
+    "abstract": "Relating to the field of anode material, an anode material, a preparation method thereof and a lithium ion battery provided. The anode material includes an aggregate, the aggregate comprises a carbon material and a silicon material, there is an anion present in the aggregate, and the anion accounts a mass content of 0.001 wt % to 0.5 wt % in the anode material. The anode material, preparation method thereof, and lithium ion battery provided improve initial Coulombic efficiency of a silicon anode material, and reduce production cost.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-22",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025051166-A1",
+    "title": "Anode material, preparation method thereof, and lithium ion battery",
+    "abstract": "Relating to the field of anode material, an anode material, a preparation method thereof and a lithium ion battery provided. The anode material includes an aggregate, and the aggregate includes a carbon material and a silicon-based material, where the anode material has a porosity W of ≤2.5%, and particles with a pore diameter of &gt;50 nm in the anode material has a quantity proportion P of ≤1%. The porosity of the anode material is obtained by the following test method: a pore volume ΔV of the anode material is tested by using a micro-pores size distribution method; and a true density P of the anode material is tested, and the porosity W of the anode material is calculated to be W=ΔV/(ΔV+1/P). The anode material effectively isolates electrolyte, prevents structure of the anode material from collapsing, and improves cycle performance of the battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-22",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025054995-A1",
+    "title": "Electrode plate and battery",
+    "abstract": "Disclosed are an electrode plate and a battery. The electrode plate includes a current collector, a tab, and an adhesive paper; the tab is disposed in the tab welding region the electrode plate is divided into a plurality of planar regions and curved surface regions that are alternately disposed; the adhesive paper covers the tab welding region, partially covers a planar region, crosses over an adjacent curved surface region on one side, and partially covers an adjacent planar region; and a projection of the adhesive paper on the adjacent planar region has a dimension L1, and 0&lt;L1≤10 mm. The electrode plate in the present disclosure can solve a problem of poor flatness near a tab, and can solve a lithium deposition problem caused by the poor flatness near the tab.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-22",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046906-A1",
+    "title": "Battery self-heating device and method, and vehicle",
+    "abstract": "A battery self-heating device, comprising: a bridge arm converter, an energy storage element, an inductor and a controller. The controller is configured to control, in a preset state, the connection and disconnection of the bridge arm converter, such that a first power battery and a second power battery are respectively charged/discharged by means of the inductor, and each form a freewheeling circuit by means of the energy storage element, so as to realize the continuous heating of the first power battery and the second power battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-22",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046846-A1",
+    "title": "Electrolytic reduction system and method of vanadium electrolyte",
+    "abstract": "Disclosed are an electrolytic reduction system of a vanadium electrolyte and a method for producing the electrolyte. The electrolytic reduction system includes a separating device and an electrolytic tank. The separating device is configured to separate a mixture consisting of a vanadium pentoxide (V 2 O 5 ) solid and a sulfate acid solution, thereby obtaining a vanadium solution from a liquid discharging port of the separating device and a vanadium solid from a solid discharging port. The vanadium solution includes pentavalent vanadium ions. The electrolytic tank connects to the liquid discharging port of the separating device to contain the vanadium solution. In the method for producing the vanadium electrolyte, other chemical reagents are unnecessarily to be added into the mixture, and the vanadium solution is subjected to an electrolytic reduction process, such that the pentavalent vanadium ions are reduced to tetravalent vanadium ions and trivalent vanadium ions in the electrolytic tank.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-22",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025042308-A1",
+    "title": "Method, system, storage medium, and electronic device for controlling self-heating of power battery",
+    "abstract": "A method includes: acquiring actual temperature rise data of the power battery in a self-heating process of the power battery; acquiring preset calibrated temperature rise data corresponding to a self-heating current of the power battery; and controlling the self-heating of the power battery based on the actual temperature rise data and the preset calibrated temperature rise data. Since the self-heating of the power battery is controlled based on the actual temperature rise data and the preset calibrated temperature rise data in the present application, when there is a large difference between the actual temperature rise data and the preset calibrated temperature rise data, it can be determined that the temperature rise of the power battery is abnormal. In this case, a corresponding strategy can be adopted to ensure normal operation of the self-heating of the power battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-22",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046813-A1",
+    "title": "Positive electrode material, and positive electrode plate and battery including positive electrode material",
+    "abstract": "Disclosed are a positive electrode material, and a positive electrode plate and a battery including the positive electrode material. The positive electrode material has a special phase structure distinct from that of a conventional lithium cobalt oxide material. The positive electrode material may present a plurality of small charging and discharging platforms in a charging and discharging process. Compared with a conventional high-voltage lithium cobalt oxide material, the positive electrode material exhibits the following advantage in terms of electrochemical performance: under a condition that a charge-discharge cut-off voltage and a charge and discharge rate remain the same, the positive electrode material has higher gram capacity performance and cycling performance. Specifically, compared with an undoped compound that belongs to a P63mc space group and has an O2 phase packed structure, the compound has higher gram capacity and better cycling performance due to an effect of element potassium.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-21",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055072-A1",
+    "title": "Battery pack cooling system capable of preventing propagation of thermal runaway of battery pack and working method thereof",
+    "abstract": "A battery pack cooling system includes at least a cooling fluid including a plurality of cooling fluid circulation pipelines and at least an electronic water pump, a refrigeration element, a heat exchange element, a thermal runaway sensing element, and a fluid diversion assembly. The electronic water pump is configured to be communicatively connected to a controller of a vehicle and is arranged on the pipelines. the refrigeration element communicates with the cooling fluid circulation pipelines. the heat exchange element communicates with the pipelines. The thermal runaway sensing element is configured to be communicatively connected to the controller. The fluid diversion assembly includes a fluid guide channel and a fluid diversion valve. The fluid diversion valve is set as a multi-way solenoid valve, and has at least two interfaces configured to communicate with the pipelines, and at least one interface communicating with one end of the fluid guide channel.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-21",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046922-A1",
+    "title": "Rechargeable battery",
+    "abstract": "A rechargeable battery according to an embodiment of the present invention includes: an electrode assembly in which a separator is disposed between a first electrode and a second electrode; a case having an opening on one side and accommodating the electrode assembly; and a cap assembly coupled to the opening so as to seal the case. The cap assembly includes: a cap plate coupled to the opening and provided with a terminal hole; a terminal plate disposed inside the terminal hole; and an insulating material, and also includes a sealing portion which covers a circumferential portion on the terminal hole side of the cap plate and a circumferential portion of the terminal plate so as to form a seal between the cap plate and the terminal plate.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-21",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046865-A1",
+    "title": "Method for Suppressing Metal Propagation in Solid Electrolytes",
+    "abstract": "A method is disclosed for suppressing propagation of a metal in a solid state electrolyte during cycling of an electrochemical device including the solid state electrolyte and an electrode comprising the metal. One method comprises forming the solid state electrolyte such that the solid state electrolyte has a structure comprising a plurality of grains of a metal-ion conductive material and a grain boundary phase located at some or all of grain boundaries between the grains, wherein the grain boundary phase suppresses propagation of the metal in the solid state electrolyte during cycling. Another method comprises forming the solid state electrolyte such that the solid state electrolyte is a single crystal.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-21",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055066-A1",
+    "title": "Ink Compositions",
+    "abstract": "This disclosure includes an ink composition that includes a polymer containing a polypyrrole and an organic solvent, in which the composition is a solution and the polymer is in an amount of from about 1% to 70% by weight of the composition. This disclosure also relates to a printing process using such an ink composition and a product containing such an ink composition.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-21",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025055156-A1",
+    "title": "Electrode plate, electrode assembly, battery cell, battery, and electrical apparatus",
+    "abstract": "Some embodiments of the present application provide an electrode plate, an electrode assembly, a battery cell, a battery, and an electrical apparatus. The electrode plate includes a current collector and an active material layer coated on the surface of the current collector. The current collector includes a coating region coated with the active material layer and a tab region not coated with the active material layer. The tab region is provided with a stress barrier structure spaced apart from the coating region. The stress barrier structure is configured to reduce the stress transmitted to the junction of the tab region and the coating region when the tab region is deformed.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-21",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046864-A1",
+    "title": "Solid-state secondary battery and manufacturing method thereof",
+    "abstract": "An all-solid-state secondary battery having a higher level of safety than a conventional lithium-ion secondary battery using an electrolyte solution, specifically, a thin-film-type solid-state secondary battery, and a manufacturing method thereof are provided. As a solid electrolyte, a mixed material obtained by co-evaporation of SiO and an organic complex of lithium is used. That is, a solid electrolyte layer formed using a mixed material of an inorganic material and an organic material is used in a solid-state secondary battery. The ratio of oxygen to silicon in the solid electrolyte layer is higher than 1 and lower than 2.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-21",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046966-A1",
+    "title": "Battery and electronic device",
+    "abstract": "Provided are a battery and an electronic device. The battery includes a battery cell, a connecting member, and a protection board assembly. The battery cell includes a battery cell body and two tabs connected to the battery cell body. The connecting member includes two connecting tabs and a connecting portion connecting the two connecting tabs, where one of the connecting tabs is connected to and electrically conducted with one of the tabs, to form a composite tab; the composite tab and the other one of the tabs are both connected to the protection board assembly to form a first loop; and the other one of the connecting tabs and the other one of the tabs are both connected to the protection board assembly to form a second loop.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-21",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046872-A1",
+    "title": "Chemically inert additives for electrochemical cells",
+    "abstract": "A safe electrolyte comprising a liquefied gas solvent that will transition from a liquid state to a gas state (“gas off”) at a pressure of 100 kPa and a temperature of 293.15 K is disclosed. The electrolyte is a mixture of a compressed gas solvent and a salt, and includes a hydrocarbon solvent of a sufficient concentration to promote solubility of the salt into the compressed gas solvent without phase separation. The molar ratio of the hydrocarbon solvent to the compressed gas solvent is in a range of 10:90 to 90:10. The hydrocarbon solvent may be selected to lower the global warming potential (GWP) of the electrolyte by at least 10%. This safe electrolyte can be used to manufacture an electrochemical energy storage device.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-19",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046782-A1",
+    "title": "Binder, and electrode and lithium secondary battery comprising same",
+    "abstract": "A binder, an electrode and a lithium secondary battery comprising the same are described, wherein the binder includes a first block including a polymer containing functional groups substitutable with lithium ions and a second block. The second block may include a polymer containing oxygen atoms in the main chain. With such a binder, it is possible to prevent the agglomeration of the slurry for preparing the electrode, thereby preventing the occurrence of cracks on the surface of the electrode and improving the life characteristics of the lithium secondary battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025042307-A1",
+    "title": "Battery self-heating control method and system, and electric vehicle",
+    "abstract": "A battery self-heating control method includes: in a first period of each of control periods, configuring a conduction state of an upper bridge arm assembly and a conduction state of a lower bridge arm assembly to be a self-heating state, and in the self-heating state, alternately charging and discharging a first battery pack and/or a second battery pack to heat the battery pack by a current on a second connecting wire between a motor and the battery pack.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046909-A1",
+    "title": "Battery module including cooling member, and battery pack and energy storage system including the same",
+    "abstract": "A battery module reduces the risk of secondary ignition or explosion and increases durability against external impacts. The battery module includes a plurality of secondary batteries respectively having a gas venting portion for discharging a gas generated therein to the outside at a predetermined pressure and arranged in a front and rear direction in two rows; and a cooling member including a body portion interposed between two rows of the plurality of secondary batteries and having a size corresponding to left and right sides of the plurality of secondary batteries, and a gas discharge portion provided to at least one of an upper portion and a lower portion of the body portion and having a gas discharge passage elongated from a front end to a rear end of the body portion.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046785-A1",
+    "title": "Cathode active material for lithium secondary battery, manufacturing method thereof, and lithium secondary battery comprising same",
+    "abstract": "A positive electrode active material for a lithium secondary battery including a carbon material impregnated with catalyst particles, and a sulfur-carbon composite, a preparation method thereof, and a positive electrode for a lithium secondary battery, and the lithium secondary battery including the same.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046822-A1",
+    "title": "Negative electrode composition, negative electrode slurry, negative electrode plate, and secondary battery and electrical device containing same",
+    "abstract": "This application discloses a negative electrode composition, a negative electrode slurry, a negative electrode plate, a secondary battery, and an electrical device containing the secondary battery. The negative electrode composition includes a negative active material and a plasticizer. The plasticizer includes a polyether polyol. The negative electrode composition of this application can effectively reduce the risk of cracking of the negative electrode film layer, improve electrolyte wettability of the negative electrode plate, and in turn, improve the energy density, cycle performance, and C-rate performance of the secondary battery.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025047118-A1",
+    "title": "Battery system and controlling method of the same",
+    "abstract": "The present disclosure provides a battery system and a controlling method of the same. The battery system includes a plurality of rechargeable battery packs, and includes a first battery pack that is rechargeable, a second battery pack that is rechargeable independently of the first battery pack, a first switching element that switches the first battery pack between at least a charging node and a discharging node, a second switching element that switches the second battery pack between at least the charging node and the discharging node, and a controller that controls switching states of the first switching element and the second switching element based on usage states and states of charge of the first battery pack and the second battery pack, and thus it is possible to effectively charge a high capacity and high output battery pack.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046910-A1",
+    "title": "Battery rack and energy storage device comprising battery rack",
+    "abstract": "A battery rack includes a plurality of battery modules including at least one battery cell and a module case configured to accommodate the at least one battery cell and including a fire extinguishing unit capable of supplying a fire extinguishing agent into the module case when thermal runaway or fire occurs in the at least one battery cell; a rack case configured to accommodate the plurality of battery modules; and a drainage guide unit provided to the rack case and configured to guide the fire extinguishing agent used when the thermal runaway or fire occurs to be drained.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025038298-A1",
+    "title": "Modular battery assembly for battery powered equipment",
+    "abstract": "A battery pack includes a housing defining an upper portion and a lower portion, a first protector portion coupled to a first corner of the housing, a second protector portion coupled to a second corner of the housing, a plurality of battery cells disposed within the housing, and a mating feature including a plurality of ports electrically connected to the plurality of battery cells and structured to supply power from the plurality of battery cells through the ports.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046894-A1",
+    "title": "Battery pack, electric apparatus, detection method of battery pack, and computer storage medium",
+    "abstract": "A battery pack includes: a cell module, including at least one cell; a first collection module, including at least one first collection unit, the first collection unit being disposed within the cell, and being configured to collect first operational data of the cell; a data processing module, connected to the first collection unit, configured to perform thermal runaway detection on the cell based on the first operational data to obtain a first detection result; a second collection module, disposed outside the cell module, configured to be activated when the first detection result indicates that any one of the cell has a thermal runaway risk, and collect second operational data of the cell after activation; the data processing module is further connected to the second collection module, and further configured to perform secondary detection based on the second operational data to determine whether the cell has a thermal runaway risk.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046893-A1",
+    "title": "Device and method for manufacturing device",
+    "abstract": "A device of the present disclosure includes: a power-generation element including at least one battery cell and having a first main surface, a second main surface opposite to the first main surface, and a side surface connecting the first main surface and the second main surface; a first structure being in contact with the side surface and having a component electrochemically connected to one or more of the at least one battery cell at the side surface; and a second structure having a first member which is located near the first main surface of the power-generation element and which covers the first main surface and the first structure, the first member of the second structure has, at a region covering the first structure, an inclined structure which becomes progressively thicker with distance from the side surface.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025038280-A1",
+    "title": "Battery cell, battery and electricity-consuming device",
+    "abstract": "A battery cell, a battery and an electricity-consuming device are provided by the present application. The battery cell includes a casing and at least one integrated circuit member. The casing includes an accommodating chamber. The integrated circuit member includes a detecting element that is configured to detect a working condition of the battery cell, and the integrated circuit member is arranged inside or outside the accommodating chamber.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-18",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046973-A1",
+    "title": "Battery cell, battery and electricity-consuming device",
+    "abstract": "A battery cell, a battery and an electricity-consuming device are provided by the present application. The battery cell includes a casing, an electrode assembly, a detecting assembly and a protecting structure. The casing includes an accommodating chamber; the electrode assembly is accommodated in the accommodating chamber, the detecting assembly is connected to the casing and configured to detect a working condition of the battery cell; and the protecting structure covers at least a portion of a surface of the detecting assembly.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025038169-A1",
+    "title": "Multilayer electrode for secondary battery and fabrication method thereof",
+    "abstract": "The present invention provides a fabrication method of a multilayer electrode for a secondary battery including: (a) preparing two or more electrode slurries each containing an electrode active material, a binder, and a solvent and heating at least one electrode slurry selected from the prepared two or more electrode slurries to a temperature lower than a boiling point (T b ) of the solvent contained in the selected electrode slurry; (b) coating the two or more electrode slurries on a current collector; and (c) cooling the coated two or more electrode slurries.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025036184-A1",
+    "title": "Method and electronic device for improving use of multiple batteries",
+    "abstract": "An electronic device including: a first housing; a second housing configured to be movable relative to the first housing; a first battery provided in the first housing; a second battery provided in the second housing; a memory; and at least one processor operatively connected to the first battery, the second battery, and the memory, wherein instructions, when executed by the at least one processor, cause the electronic device to: monitor a state of the first battery, a state of the second battery, and a state of the electronic device; determine whether or not the state of the first battery or the state of the second battery meets configured conditions; and determine a battery to be preferentially used as one of the first battery or the second battery, based on whether or not the state of the first battery or the state of the second battery meets the configured conditions.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025038281-A1",
+    "title": "Battery cell inspection device and battery cell inspection system including the same",
+    "abstract": "The present invention relates to a battery cell of a secondary battery, and more particularly, to a battery cell inspection device and system for deciding whether a battery cell is good or bad based on a bent degree of a bend formed on one side surface of the battery cell.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046968-A1",
+    "title": "Secondary battery",
+    "abstract": "A secondary battery including: an electrode assembly including a negative electrode tab and a positive electrode tab at opposite ends thereof in a longitudinal direction; a case accommodating the electrode assembly, both ends of the case in the longitudinal direction being open; a pair of cap plates respectively coupled to the open ends of the case; and a negative electrode terminal and a positive electrode terminal respectively electrically connected to the negative electrode tab and the positive electrode tab and exposed at an outside of the cap plates, respectively. A current collector is on an upper portion of the negative electrode tab or the positive electrode tab, a terminal connection part is on the current collector, and the terminal connection part passes through a plate hole in the cap plate to be electrically connected to the negative electrode terminal or the positive electrode terminal.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025038166-A1",
+    "title": "Battery cell, battery, and electrical device",
+    "abstract": "A battery cell, a battery, and an electrical device are described. The battery cell includes an electrode assembly. The electrode assembly is wound along a winding direction to form a jelly-roll structure containing a roll core cavity in a central region. The battery cell further includes a gel-state central column packed in the roll core cavity and formed by coagulation. The central roll core cavity formed by winding the electrode assembly is packed with the gel material that coagulates to form a gel-state central column. In this way, the central column can support the electrode assembly after coagulating in shape, thereby improving the deformation resistance of the electrode assembly, and reducing the risk of central collapse of the electrode assembly. In addition, when the electrode assembly is squeezed, the central column can serve as an elastic cushion to some extent.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025035560-A1",
+    "title": "Method, apparatus, and system for inspecting cathode electrode plate of composite material tape",
+    "abstract": "Method, apparatus, and system for inspecting a cathode electrode plate of a composite material tape are provided. The method includes: using a camera apparatus to photograph a composite material tape being transported on a laminator to obtain an inspection image covering the composite material tape, where the inspection image includes a cathode electrode plate body region; extracting the cathode electrode plate body region from the inspection image; and inspecting the cathode electrode plate body region to determine a metal leakage defect existing in the cathode electrode plate body region. In the technical solution of the embodiments of this application, an inspection can be performed on a composite material tape being transported on a laminator, so that a metal leakage defect existing on a cathode electrode plate can be detected in real time in the production process of a laminated cell assembly.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025038167-A1",
+    "title": "Apparatus for manufacturing an electrode for an all-solid-state battery",
+    "abstract": "An apparatus for manufacturing an electrode for an all-solid-state battery includes a plurality of pairs of first rollers configured to compress a mixture including a solid electrolyte and an active material to discharge an electrode sheet. The apparatus also includes at least one pair of second rollers that are spaced apart from the plurality of pairs of first rollers by a certain distance and that is configured to receive the electrode sheet from the plurality of pairs of first rollers and to compress the electrode sheet to discharge the electrode.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025046800-A1",
+    "title": "Negative electrode plate, method for preparing the same, secondary battery, battery module, battery pack and electrical device",
+    "abstract": "The present application provides a negative electrode plate for a secondary battery, a method for preparing the same, and a secondary battery including the negative electrode plate, a battery module, a battery pack, and an electrical device. The negative electrode plate in the present application includes a current collector and an active material layer disposed on at least one surface of the current collector, wherein the active material layer includes: a first graphite layer disposed on at least one surface of the current collector, a lithium titanate layer disposed on the surface of the first graphite layer, and a second graphite layer disposed on the surface of the lithium titanate layer; and the first graphite layer has an OI value of greater than or equal to 20.0, and the second graphite layer has an OI value of less than or equal to 15.0.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-17",
+    "source": "google_patents"
+  },
+  {
+    "id": "US-2025038215-A1",
+    "title": "Positive Electrode for Lithium Secondary Battery Including Insulating Layer Having Excellent Wet Adhesion and Lithium Secondary Battery Including the Same",
+    "abstract": "A positive electrode for a lithium secondary battery includes an insulating layer having excellent wet adhesion provide an advantage in that migration of lithium ions in an overlay region of the electrode can be blocked to suppress capacity expression due to the insulating layer having excellent wet adhesion in a liquid electrolyte.",
+    "domain": "battery technology",
+    "filing_date": "2024-10-16",
+    "source": "google_patents"
+  }
+]

@@ -32,8 +32,8 @@ Or export directly: `export OPENROUTER_API_KEY="your-key"`
 # Initialize the database
 uv run triz-ai init
 
-# Ingest sample patents
-uv run triz-ai ingest tests/fixtures/sample_patents/
+# Ingest the seed dataset (100 real battery patents from Google Patents)
+uv run triz-ai ingest data/patents/battery_patents.json
 
 # Analyze a technical problem
 uv run triz-ai analyze "How to make an EV battery charge faster without overheating"
