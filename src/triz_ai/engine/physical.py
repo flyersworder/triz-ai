@@ -14,6 +14,7 @@ def analyze_physical(
     ideal_final_result: str | None,
     llm_client: LLMClient,
     store: PatentStore | None = None,
+    research_tools: list | None = None,
 ) -> AnalysisResult:
     """Physical contradiction analysis pipeline.
 
@@ -25,7 +26,9 @@ def analyze_physical(
     result = llm_client.extract_physical_contradiction(problem_text)
 
     # Patent search (vector-only, no contradiction-specific bonuses)
-    patent_examples = search_patents(problem_text, llm_client, store)
+    patent_examples = search_patents(
+        problem_text, llm_client, store, research_tools=research_tools
+    )
 
     # Generate solution directions
     solution_directions = []

@@ -14,6 +14,7 @@ def analyze_trimming(
     ideal_final_result: str | None,
     llm_client: LLMClient,
     store: PatentStore | None = None,
+    research_tools: list | None = None,
 ) -> AnalysisResult:
     """Trimming analysis pipeline.
 
@@ -25,7 +26,9 @@ def analyze_trimming(
     """
     result = llm_client.analyze_trimming(problem_text)
 
-    patent_examples = search_patents(problem_text, llm_client, store)
+    patent_examples = search_patents(
+        problem_text, llm_client, store, research_tools=research_tools
+    )
 
     # Generate solution directions
     solution_directions = []

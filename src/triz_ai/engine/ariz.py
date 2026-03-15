@@ -41,6 +41,7 @@ class StructuredProblemModel(BaseModel):
     ideal_final_result: str
     resource_inventory: ResourceInventory
     recommended_tools: list[str]
+    recommended_research_tools: list[str] = []
     reasoning: str
 
 
@@ -136,19 +137,36 @@ def _get_pipeline_fn(method: str):
     return pipelines[method]
 
 
+def _select_research_tools(research_tools, problem_model):
+    """Select research tools based on LLM recommendations.
+
+    If LLM recommends specific tools, use those. Otherwise use all available.
+    """
+    if not research_tools:
+        return None
+    recommended = problem_model.recommended_research_tools
+    if recommended:
+        available = {t.name: t for t in research_tools}
+        selected = [available[name] for name in recommended if name in available]
+        if selected:
+            return selected
+    return research_tools  # fallback: use all
+
+
 def _run_tools(
     tools: list[str],
     problem_text: str,
     ifr: str,
     llm_client,
     store,
+    research_tools=None,
 ) -> list[AnalysisResult]:
     """Run multiple TRIZ pipelines in parallel using ThreadPoolExecutor."""
     results: list[AnalysisResult] = []
 
     def _run_one(method: str) -> AnalysisResult:
         pipeline_fn = _get_pipeline_fn(method)
-        return pipeline_fn(problem_text, ifr, llm_client, store)
+        return pipeline_fn(problem_text, ifr, llm_client, store, research_tools=research_tools)
 
     with ThreadPoolExecutor(max_workers=len(tools)) as executor:
         future_to_method = {executor.submit(_run_one, m): m for m in tools}
@@ -173,6 +191,7 @@ def orchestrate_deep(
     store,
     deep_model: str | None = None,
     reasoning_effort: str | None = None,
+    research_tools: list | None = None,
 ) -> DeepAnalysisResult:
     """Run the full ARIZ-85C deep analysis: 3 passes with escape hatch.
 
@@ -187,15 +206,26 @@ def orchestrate_deep(
         reasoning_effort: Optional reasoning effort (low/medium/high) for
             Passes 1 & 3. Passed to litellm which translates across providers.
     """
+    # Build research tool descriptions for the prompt
+    research_tool_descriptions = None
+    if research_tools:
+        research_tool_descriptions = [
+            {"name": t.name, "description": t.description} for t in research_tools
+        ]
+
     # Pass 1: Deep reformulation (uses deep_model if provided)
     problem_model = llm_client.deep_reformulate(
         problem_text,
         model=deep_model,
         reasoning_effort=reasoning_effort,
+        research_tool_descriptions=research_tool_descriptions,
     )
 
     # Tool selection
     tools = _select_tools(problem_model)
+
+    # Select research tools based on LLM recommendation
+    selected_research_tools = _select_research_tools(research_tools, problem_model)
 
     # Pass 2: Multi-tool research (parallel, uses base model)
     tool_results = _run_tools(
@@ -204,6 +234,7 @@ def orchestrate_deep(
         problem_model.ideal_final_result,
         llm_client,
         store,
+        research_tools=selected_research_tools,
     )
 
     # Pass 3: Verify + synthesize (uses deep_model if provided)
@@ -236,6 +267,7 @@ def orchestrate_deep(
             swapped_model.ideal_final_result,
             llm_client,
             store,
+            research_tools=selected_research_tools,
         )
 
         # Re-run Pass 3

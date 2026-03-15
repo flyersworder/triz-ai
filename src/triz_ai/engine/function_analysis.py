@@ -14,6 +14,7 @@ def analyze_functions(
     ideal_final_result: str | None,
     llm_client: LLMClient,
     store: PatentStore | None = None,
+    research_tools: list | None = None,
 ) -> AnalysisResult:
     """Function analysis pipeline.
 
@@ -25,7 +26,9 @@ def analyze_functions(
     """
     result = llm_client.analyze_functions(problem_text)
 
-    patent_examples = search_patents(problem_text, llm_client, store)
+    patent_examples = search_patents(
+        problem_text, llm_client, store, research_tools=research_tools
+    )
 
     # Build solution directions from recommendations
     solution_directions = []

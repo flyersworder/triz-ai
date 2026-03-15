@@ -227,8 +227,57 @@ class TestOrchestrateDeep:
                 "test",
                 model="reasoning-model",
                 reasoning_effort="high",
+                research_tool_descriptions=None,
             )
             # Pass 3
             call_kwargs = mock_llm.verify_and_synthesize.call_args[1]
             assert call_kwargs["model"] == "reasoning-model"
             assert call_kwargs["reasoning_effort"] == "high"
+
+    def test_research_tools_passed_to_run_tools(self, mock_llm, store):
+        """Research tools should be forwarded to _run_tools."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(name="test", description="Test", fn=lambda q: [])
+        with self._patch_run_tools() as mock_run:
+            orchestrate_deep("test", mock_llm, store, research_tools=[tool])
+            call_kwargs = mock_run.call_args[1]
+            assert call_kwargs.get("research_tools") == [tool]
+
+    def test_llm_selects_research_tools(self, mock_llm, store):
+        """LLM-recommended research tools should be filtered."""
+        from triz_ai.tools import ResearchTool
+
+        model = _make_problem_model()
+        model.recommended_research_tools = ["arxiv"]
+        mock_llm.deep_reformulate.return_value = model
+        arxiv = ResearchTool(name="arxiv", description="Arxiv", fn=lambda q: [])
+        web = ResearchTool(name="web", description="Web", fn=lambda q: [])
+        with self._patch_run_tools() as mock_run:
+            orchestrate_deep("test", mock_llm, store, research_tools=[arxiv, web])
+            selected = mock_run.call_args[1].get("research_tools", [])
+            assert len(selected) == 1
+            assert selected[0].name == "arxiv"
+
+    def test_no_recommendation_uses_all_tools(self, mock_llm, store):
+        """Without LLM recommendation, all research tools should be used."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(name="test", description="Test", fn=lambda q: [])
+        with self._patch_run_tools() as mock_run:
+            orchestrate_deep("test", mock_llm, store, research_tools=[tool])
+            selected = mock_run.call_args[1].get("research_tools", [])
+            assert len(selected) == 1
+
+    def test_research_tool_descriptions_in_prompt(self, mock_llm, store):
+        """Research tool descriptions should be passed to deep_reformulate."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(name="bq", description="BigQuery patents", fn=lambda q: [])
+        with self._patch_run_tools():
+            orchestrate_deep("test", mock_llm, store, research_tools=[tool])
+            call_kwargs = mock_llm.deep_reformulate.call_args[1]
+            descs = call_kwargs.get("research_tool_descriptions")
+            assert descs is not None
+            assert len(descs) == 1
+            assert descs[0]["name"] == "bq"

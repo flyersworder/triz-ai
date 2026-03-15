@@ -496,17 +496,21 @@ class LLMClient:
         problem_text: str,
         model: str | None = None,
         reasoning_effort: str | None = None,
+        research_tool_descriptions: list[dict] | None = None,
     ):
         """Deep ARIZ-85C reformulation (Pass 1).
 
         Args:
             model: Optional model override for this pass (e.g. a reasoning model).
             reasoning_effort: Optional effort level (low/medium/high).
+            research_tool_descriptions: Optional list of {"name", "description"} dicts
+                for available research tools. Included in prompt so LLM can recommend
+                which to use.
         """
         from triz_ai.engine.ariz import StructuredProblemModel
 
         return self._complete(
-            deep_reformulation_prompt(),
+            deep_reformulation_prompt(research_tool_descriptions=research_tool_descriptions),
             problem_text,
             StructuredProblemModel,
             model=model,

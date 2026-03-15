@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-03-15
+
+### Added
+
+- **Pluggable research tools interface**: New `ResearchTool` dataclass lets developers pass additional research tools (web search, BigQuery, Arxiv, etc.) to supplement the built-in patent DB search
+- Research tools thread through `route()` and `orchestrate_deep()` into all 6 pipelines via `search_patents()`
+- In normal mode, all research tools run automatically; in deep mode, the LLM selects which tools to use based on their descriptions
+- Results are deduplicated by title and tagged with a `source` field; tool failures are logged and skipped
+- `ResearchTool` exported from top-level `triz_ai` package for easy access
+
+### Changed
+
+- **Version**: Bumped to 0.10.0
+
 ## [0.9.0] - 2026-03-15
 
 ### Added

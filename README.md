@@ -138,6 +138,35 @@ triz-ai analyze "problem" --deep \
 | `--deep-model` | Pass 1 & 3 | Reasoning model for reformulation + synthesis |
 | `--reasoning-effort` | Pass 1 & 3 | `low`/`medium`/`high` — litellm translates across providers |
 
+## Research Tools (Programmatic API)
+
+Pass additional research tools to supplement the built-in patent DB search:
+
+```python
+from triz_ai import ResearchTool
+from triz_ai.engine.router import route
+from triz_ai.llm.client import LLMClient
+
+# Define a research tool
+google_patents = ResearchTool(
+    name="google_patents",
+    description="Search Google Patents for prior art. Best for recent filings.",
+    fn=lambda query: [  # Replace with real API call
+        {"title": f"Patent about {query}", "abstract": "...", "url": "..."}
+    ],
+)
+
+# Normal mode: all tools run automatically
+result = route("battery energy density", LLMClient(), research_tools=[google_patents])
+
+# Deep mode: LLM selects which tools to use
+from triz_ai.engine.ariz import orchestrate_deep
+result = orchestrate_deep("battery problem", LLMClient(), store=None,
+                          research_tools=[google_patents])
+```
+
+Each tool's `fn` receives a search query string and returns a list of dicts with at least `"title"` and `"abstract"`. Optional fields: `"id"`, `"assignee"`, `"filing_date"`, `"url"`, `"matched_principles"`.
+
 ## Project Structure
 
 ```

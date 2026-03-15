@@ -212,3 +212,14 @@ class TestRouter:
             mock_llm.analyze_root_cause.assert_called_once()
             # But classify was only called once (no re-classify after failed RCA)
             assert mock_llm.classify_problem.call_count == 1
+
+    def test_research_tools_passed_to_pipeline(self, mock_llm, store):
+        """Research tools should be forwarded to the pipeline."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(name="test", description="test", fn=lambda q: [])
+        with self._patch_pipeline("technical_contradiction") as mock_get:
+            route("test", mock_llm, store, research_tools=[tool])
+            pipeline_fn = mock_get.return_value
+            call_kwargs = pipeline_fn.call_args[1]
+            assert call_kwargs.get("research_tools") == [tool]

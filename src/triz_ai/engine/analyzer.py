@@ -44,6 +44,7 @@ def analyze_contradiction(
     ideal_final_result: str | None,
     llm_client: LLMClient,
     store: PatentStore | None = None,
+    research_tools: list | None = None,
 ) -> AnalysisResult:
     """Technical contradiction analysis pipeline.
 
@@ -91,6 +92,7 @@ def analyze_contradiction(
         principle_ids=[p["id"] for p in recommended_principles],
         improving_param=contradiction.improving_param,
         worsening_param=contradiction.worsening_param,
+        research_tools=research_tools,
     )
 
     # Step 5: Generate solution directions
@@ -139,51 +141,78 @@ def search_patents(
     principle_ids: list[int] | None = None,
     improving_param: int | None = None,
     worsening_param: int | None = None,
+    research_tools: list | None = None,
 ) -> list[dict]:
-    """Search patent store for relevant examples."""
-    if store is None:
-        return []
+    """Search patent store and research tools for relevant examples."""
+    patent_examples: list[dict] = []
 
-    try:
-        query_embedding = llm_client.get_embedding(problem_text)
-        if principle_ids and improving_param and worsening_param:
-            results = store.search_patents_hybrid(
-                query_embedding,
-                principle_ids=principle_ids,
-                improving_param=improving_param,
-                worsening_param=worsening_param,
-                limit=5,
-            )
-        else:
-            results = store.search_patents(query_embedding, limit=5)
+    # 1. Local DB search (existing logic)
+    if store is not None:
+        try:
+            query_embedding = llm_client.get_embedding(problem_text)
+            if principle_ids and improving_param and worsening_param:
+                results = store.search_patents_hybrid(
+                    query_embedding,
+                    principle_ids=principle_ids,
+                    improving_param=improving_param,
+                    worsening_param=worsening_param,
+                    limit=5,
+                )
+            else:
+                results = store.search_patents(query_embedding, limit=5)
 
-        all_principles_map = {p.id: p for p in load_principles()}
-        patent_examples = []
-        for patent, _score in results:
-            matched_principles = []
-            if principle_ids:
-                classification = store.get_classification(patent.id)
-                if classification:
-                    overlap = set(principle_ids) & set(classification.principle_ids)
-                    matched_principles = [
-                        all_principles_map[pid].name
-                        for pid in overlap
-                        if pid in all_principles_map
-                    ]
-            patent_examples.append(
-                {
-                    "id": patent.id,
-                    "title": patent.title,
-                    "abstract": patent.abstract or "",
-                    "assignee": patent.assignee,
-                    "filing_date": patent.filing_date,
-                    "matched_principles": matched_principles,
-                }
-            )
-        return patent_examples
-    except Exception:
-        logger.warning("Patent search failed, continuing without examples")
-        return []
+            all_principles_map = {p.id: p for p in load_principles()}
+            for patent, _score in results:
+                matched_principles = []
+                if principle_ids:
+                    classification = store.get_classification(patent.id)
+                    if classification:
+                        overlap = set(principle_ids) & set(classification.principle_ids)
+                        matched_principles = [
+                            all_principles_map[pid].name
+                            for pid in overlap
+                            if pid in all_principles_map
+                        ]
+                patent_examples.append(
+                    {
+                        "id": patent.id,
+                        "title": patent.title,
+                        "abstract": patent.abstract or "",
+                        "assignee": patent.assignee,
+                        "filing_date": patent.filing_date,
+                        "matched_principles": matched_principles,
+                    }
+                )
+        except Exception:
+            logger.warning("Patent search failed, continuing without examples")
+
+    # 2. Research tools
+    if research_tools:
+        seen_titles = {p["title"].lower() for p in patent_examples}
+        for tool in research_tools:
+            try:
+                tool_results = tool.fn(problem_text)
+                for item in tool_results:
+                    title = item.get("title", "")
+                    if not title or title.lower() in seen_titles:
+                        continue
+                    seen_titles.add(title.lower())
+                    patent_examples.append(
+                        {
+                            "id": item.get("id", ""),
+                            "title": title,
+                            "abstract": item.get("abstract", ""),
+                            "assignee": item.get("assignee"),
+                            "filing_date": item.get("filing_date"),
+                            "url": item.get("url"),
+                            "matched_principles": item.get("matched_principles", []),
+                            "source": tool.name,
+                        }
+                    )
+            except Exception:
+                logger.warning("Research tool '%s' failed, skipping", tool.name)
+
+    return patent_examples
 
 
 def analyze(

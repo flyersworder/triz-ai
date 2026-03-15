@@ -14,6 +14,7 @@ def analyze_trends(
     ideal_final_result: str | None,
     llm_client: LLMClient,
     store: PatentStore | None = None,
+    research_tools: list | None = None,
 ) -> AnalysisResult:
     """Trends + system operator analysis pipeline.
 
@@ -25,7 +26,9 @@ def analyze_trends(
     """
     result = llm_client.analyze_trends(problem_text)
 
-    patent_examples = search_patents(problem_text, llm_client, store)
+    patent_examples = search_patents(
+        problem_text, llm_client, store, research_tools=research_tools
+    )
 
     # Generate solution directions from predictions
     solution_directions = []

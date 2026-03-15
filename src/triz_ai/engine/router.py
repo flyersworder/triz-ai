@@ -56,6 +56,7 @@ def route(
     store: PatentStore | None = None,
     method: str | None = None,
     router_model: str | None = None,
+    research_tools: list | None = None,
 ) -> AnalysisResult:
     """Route a problem to the appropriate TRIZ analysis pipeline.
 
@@ -112,7 +113,9 @@ def route(
 
     # Step 5: Dispatch
     pipeline = _get_pipeline(primary_method)
-    result = pipeline(problem_text, ideal_final_result, llm_client, store)
+    result = pipeline(
+        problem_text, ideal_final_result, llm_client, store, research_tools=research_tools
+    )
 
     # Step 6: Attach metadata
     result.method_confidence = method_confidence

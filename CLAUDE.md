@@ -40,6 +40,16 @@ IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates
 - Pass 2 pipelines always use `default_model` (via `--model`); Passes 1 & 3 use `deep_model` (falls back to `default_model`)
 - `reasoning_effort` accepts `low|medium|high`; litellm translates across providers (Anthropic, OpenAI o-series, DeepSeek R1, etc.)
 
+### Pluggable Research Tools
+
+`ResearchTool` dataclass (`tools.py`) lets developers pass additional research tools (web search, BigQuery, Arxiv, etc.) to supplement the built-in patent DB search. Threaded through `route()` / `orchestrate_deep()` → all 6 pipelines → `search_patents()`.
+
+- **Normal mode**: all research tools run automatically alongside local DB search
+- **Deep mode**: LLM selects which research tools to use via `recommended_research_tools` field in `StructuredProblemModel`; falls back to using all if no recommendation
+- Results are deduplicated by title (case-insensitive); each result gets a `source` field with the tool name
+- Tool failures are logged and skipped — they never block analysis
+- No CLI changes; research tools are passed programmatically via `route(research_tools=[...])` or `orchestrate_deep(research_tools=[...])`
+
 ## Key Constraints
 
 - **6 TRIZ analysis methods** — technical contradiction, physical contradiction, Su-Field, function analysis, trimming, trends. Router auto-classifies; `--method` forces one.

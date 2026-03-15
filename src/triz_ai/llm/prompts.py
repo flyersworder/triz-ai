@@ -432,11 +432,11 @@ def trends_analysis_prompt() -> str:
 # --- Deep ARIZ-85C prompts ---
 
 
-def deep_reformulation_prompt() -> str:
+def deep_reformulation_prompt(research_tool_descriptions=None) -> str:
     """System prompt implementing ARIZ Parts 1-3 (problem reformulation,
     contradiction intensification, and IFR formulation) in one LLM pass."""
     params = _parameters_list()
-    return (
+    prompt = (
         "You are a TRIZ expert performing deep ARIZ-85C analysis (Parts 1-3).\n\n"
         "Given a problem description, perform the following steps:\n\n"
         "1. **Reformulate the problem** to reveal hidden contradictions. Strip away "
@@ -484,6 +484,17 @@ def deep_reformulation_prompt() -> str:
         '"recommended_tools": ["<method1>", "<method2>"], '
         '"reasoning": "<reasoning behind reformulation>"}'
     )
+    if research_tool_descriptions:
+        tools_text = "\n".join(
+            f"- {t['name']}: {t['description']}" for t in research_tool_descriptions
+        )
+        prompt += (
+            "\n\nAvailable research tools for finding prior art:\n"
+            f"{tools_text}\n\n"
+            "Recommend which research tools to use for this problem. "
+            'Add "recommended_research_tools": ["name1", ...] to your response.'
+        )
+    return prompt
 
 
 def solution_verification_prompt() -> str:
