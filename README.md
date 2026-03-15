@@ -7,7 +7,8 @@ AI-powered TRIZ innovation engine — analyze technical problems, classify paten
 `triz-ai` combines [TRIZ](https://en.wikipedia.org/wiki/TRIZ) (Theory of Inventive Problem Solving) with AI and real patent data. It goes beyond static TRIZ tools by using AI to discover candidate new principles from modern patents, continuing Altshuller's original work.
 
 - **Patent-grounded** — every suggestion is backed by real patent evidence
-- **Evolving principles** — discovers candidate new principles from modern patents
+- **50 engineering parameters** — extends Altshuller's 39 with modern domains (security, sustainability, scalability, etc.)
+- **Evolving principles & parameters** — discovers candidate new principles and parameters from modern patents
 - **Provider-agnostic** — works with OpenRouter, Ollama, Anthropic, OpenAI, and 100+ providers via litellm
 - **Zero infrastructure** — local SQLite database with built-in vector search
 
@@ -47,6 +48,14 @@ uv run triz-ai discover --domain "battery technology"
 # Run evolution pipeline to find candidate new principles
 uv run triz-ai evolve
 uv run triz-ai evolve --review  # interactive accept/reject
+
+# Discover candidate new engineering parameters
+uv run triz-ai evolve --parameters
+uv run triz-ai evolve --parameters --review
+
+# Seed the contradiction matrix for modern parameters (40-50)
+uv run triz-ai matrix seed
+uv run triz-ai matrix stats
 ```
 
 ## Commands
@@ -56,9 +65,11 @@ uv run triz-ai evolve --review  # interactive accept/reject
 | `analyze` | Full TRIZ pipeline: extract contradiction → matrix lookup → patent search → solution directions |
 | `classify` | Classify a patent by TRIZ principles (accepts file, text, or stdin) |
 | `discover` | Find underused principles in a domain and generate novel ideas |
-| `evolve` | Discover candidate new TRIZ principles from patent clusters |
+| `evolve` | Discover candidate new TRIZ principles (`--parameters` for parameters) |
 | `ingest` | Load patents from .txt, .pdf, or .json files |
 | `init` | Initialize (or recreate with `--force`) the patent database |
+| `matrix seed` | LLM-seed missing contradiction matrix cells for params 40-50 |
+| `matrix stats` | Show matrix fill rate and patent observation statistics |
 
 All commands support `--format text|json|markdown` and `--model` to override the LLM model.
 
@@ -68,13 +79,13 @@ All commands support `--format text|json|markdown` and `--model` to override the
 src/triz_ai/
   cli.py              # Typer CLI entry point
   config.py            # Config loading (~/.triz-ai/config.yaml)
-  knowledge/           # 40 principles, 39 parameters, 39x39 matrix
+  knowledge/           # 40 principles, 50 parameters, contradiction matrix
   engine/              # analyzer, classifier, generator, evaluator
   patents/             # SQLite + sqlite-vec store, ingestion pipeline
-  evolution/           # Candidate principle discovery + review
+  evolution/           # Candidate principle & parameter discovery + review
   llm/                 # litellm wrapper with pydantic validation
 data/triz/             # Static TRIZ JSON data files
-tests/                 # 53 unit tests
+tests/                 # 72 unit tests
 ```
 
 ## Configuration

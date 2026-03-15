@@ -9,7 +9,7 @@ from triz_ai.knowledge.principles import load_principles
 
 
 def _parameters_list() -> str:
-    """Compact list of all 39 parameters: 'ID. Name' per line."""
+    """Compact list of all 50 parameters: 'ID. Name' per line."""
     return "\n".join(f"{p.id}. {p.name}" for p in load_parameters())
 
 
@@ -47,7 +47,7 @@ def extract_contradiction_prompt() -> str:
         "Map both to the closest parameters from this list:\n\n"
         f"{params}\n\n"
         "Respond with JSON:\n"
-        '{"improving_param": <int 1-39>, "worsening_param": <int 1-39>, '
+        '{"improving_param": <int 1-50>, "worsening_param": <int 1-50>, '
         '"reasoning": "<brief explanation of the contradiction>"}'
     )
 
@@ -59,12 +59,12 @@ def classify_patent_prompt() -> str:
         "You are a TRIZ expert analyzing patents.\n\n"
         "Identify which TRIZ inventive principles this patent employs, "
         "what technical contradiction it resolves (using engineering parameter "
-        "IDs 1-39), and your confidence.\n\n"
+        "IDs 1-50), and your confidence.\n\n"
         "TRIZ Inventive Principles:\n"
         f"{principles}\n\n"
         "Respond with JSON:\n"
         '{"principle_ids": [<int>], '
-        '"contradiction": {"improving": <int 1-39>, "worsening": <int 1-39>}, '
+        '"contradiction": {"improving": <int 1-50>, "worsening": <int 1-50>}, '
         '"confidence": <float 0.0-1.0>, '
         '"reasoning": "<brief explanation>"}'
     )
@@ -105,6 +105,26 @@ def propose_candidate_principle_prompt() -> str:
     )
 
 
+def propose_candidate_parameter_prompt() -> str:
+    """System prompt for proposing candidate new engineering parameters."""
+    params = _parameters_list()
+    return (
+        "You are a TRIZ methodology researcher. The following patents involve "
+        "technical contradictions that do NOT map well to any of the existing "
+        "engineering parameters listed below.\n\n"
+        "Existing TRIZ Engineering Parameters (do NOT duplicate these):\n"
+        f"{params}\n\n"
+        "Analyze the shared contradiction pattern in the patents and propose a "
+        "candidate NEW engineering parameter that captures the dimension of "
+        "improvement or degradation these patents have in common.\n\n"
+        "Respond with JSON:\n"
+        '{"name": "<concise parameter name>", '
+        '"description": "<what the parameter measures and when it applies>", '
+        '"how_it_differs": "<specifically how it differs from the closest existing parameters>", '
+        '"confidence": <float 0.0-1.0>}'
+    )
+
+
 def cluster_patents_prompt() -> str:
     """System prompt for LLM-based patent clustering."""
     return (
@@ -119,4 +139,40 @@ def cluster_patents_prompt() -> str:
         '{"clusters": [[0, 1, 2], [3, 4, 5]], '
         '"cluster_descriptions": ["description of shared pattern 1", '
         '"description of shared pattern 2"]}'
+    )
+
+
+def seed_matrix_prompt(
+    improving_param_id: int,
+    improving_param_name: str,
+    worsening_params: list[dict],
+    example_rows: list[str],
+) -> str:
+    """System prompt for LLM-seeding missing contradiction matrix cells."""
+    params = _parameters_list()
+    principles = _principles_compact()
+    examples = "\n".join(example_rows)
+    worsening_list = "\n".join(f"- {wp['id']}. {wp['name']}" for wp in worsening_params)
+
+    return (
+        "You are a TRIZ (Theory of Inventive Problem Solving) expert.\n\n"
+        "Your task is to suggest the most applicable TRIZ inventive principles "
+        "for each (improving, worsening) parameter pair in the contradiction matrix.\n\n"
+        "TRIZ Engineering Parameters (1-50):\n"
+        f"{params}\n\n"
+        "TRIZ Inventive Principles (1-40):\n"
+        f"{principles}\n\n"
+        "Here are example rows from the existing matrix to demonstrate the format:\n"
+        f"{examples}\n\n"
+        f"Now fill in the matrix cells for improving parameter "
+        f"{improving_param_id} ({improving_param_name}) against each of these "
+        f"worsening parameters:\n{worsening_list}\n\n"
+        "Rules:\n"
+        "- Suggest up to 4 principle IDs (1-40) per cell\n"
+        "- Choose principles that best resolve the contradiction between improving "
+        "and worsening parameters\n"
+        "- If no principles apply well, use an empty list\n\n"
+        "Respond with JSON:\n"
+        '{"entries": [{"improving": <int>, "worsening": <int>, '
+        '"principles": [<int>, ...]}]}'
     )

@@ -85,6 +85,24 @@ class TestClassifier:
         assert stored is not None
         assert stored.principle_ids == [1, 14, 35]
 
+    def test_classify_auto_records_observations(self, mock_llm, store):
+        """Classification should auto-record matrix observations."""
+        store.insert_patent(Patent(id="P2", title="Test Patent"))
+        classify(
+            "A battery with segmented cells...",
+            patent_id="P2",
+            llm_client=mock_llm,
+            store=store,
+        )
+        # Check that observations were recorded for each principle
+        # mock_llm returns principle_ids=[1, 14, 35] with contradiction improving=9, worsening=1
+        obs = store.get_matrix_observations(min_count=1)
+        assert (9, 1) in obs
+        principle_ids_in_obs = [pid for pid, _, _ in obs[(9, 1)]]
+        assert 1 in principle_ids_in_obs
+        assert 14 in principle_ids_in_obs
+        assert 35 in principle_ids_in_obs
+
 
 class TestGenerator:
     def test_discover_with_data(self, mock_llm, store):

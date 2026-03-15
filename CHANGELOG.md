@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-03-15
+
+### Added
+
+- **Hybrid matrix extension**: LLM-seeds missing contradiction matrix cells for parameters 40-50, boosting fill rate from 59.4% to 95.7% (~890 new cells)
+- **`triz-ai matrix seed`**: One-time batch operation to populate missing matrix cells via LLM; `--force` to re-seed all 40-50 cells
+- **`triz-ai matrix stats`**: Show matrix fill rate, patent observation counts, and top observed parameter pairs
+- **Patent-observed matrix refinement**: Classifications now auto-record matrix observations; over time, empirical data from ≥3 patents refines/overrides LLM-seeded entries
+- **`lookup_with_observations()`**: Merged lookup that scores principles by observation count with a bonus for static-matrix agreement, falling back to static-only when no store is available
+- **`matrix_observations` DB table**: Stores (improving, worsening, principle_id, patent_id, confidence) associations from classified patents
+- **`seed_matrix_prompt()`**: TRIZ-aware prompt template for matrix seeding with parameter lists, principle lists, and example rows
+
+### Changed
+
+- **Analyzer**: Now uses `lookup_with_observations()` for principle recommendations, merging static matrix with patent data when a store is available
+- **Classifier**: Automatically records matrix observations on every classification that has a store and patent_id
+
 ## [0.3.0] - 2026-03-14
 
 ### Added
@@ -56,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.4.0]: https://github.com/flyersworder/triz-ai/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/flyersworder/triz-ai/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/flyersworder/triz-ai/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/flyersworder/triz-ai/releases/tag/v0.1.0

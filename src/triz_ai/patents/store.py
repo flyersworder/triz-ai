@@ -33,6 +33,18 @@ class Classification(BaseModel):
     classified_at: str | None = None
 
 
+class CandidateParameter(BaseModel):
+    """Candidate new engineering parameter from evolution pipeline."""
+
+    id: str
+    name: str
+    description: str | None = None
+    evidence_patent_ids: list[str] = []
+    confidence: float = 0.0
+    status: str = "pending_review"
+    created_at: str | None = None
+
+
 class CandidatePrinciple(BaseModel):
     """Candidate new TRIZ principle from evolution pipeline."""
 
@@ -64,6 +76,16 @@ CREATE TABLE IF NOT EXISTS classifications (
     classified_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS candidate_parameters (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    evidence_patent_ids JSON,
+    confidence REAL,
+    status TEXT DEFAULT 'pending_review',
+    created_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS candidate_principles (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -72,6 +94,16 @@ CREATE TABLE IF NOT EXISTS candidate_principles (
     confidence REAL,
     status TEXT DEFAULT 'pending_review',
     created_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS matrix_observations (
+    improving_param INTEGER NOT NULL,
+    worsening_param INTEGER NOT NULL,
+    principle_id INTEGER NOT NULL,
+    patent_id TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    observed_at TEXT,
+    PRIMARY KEY (improving_param, worsening_param, principle_id, patent_id)
 );
 """
 
@@ -290,6 +322,53 @@ class PatentStore:
             results.append((patent, classification))
         return results
 
+    # --- Candidate Parameters ---
+
+    def insert_candidate_parameter(self, candidate: CandidateParameter) -> None:
+        """Insert a candidate parameter."""
+        conn = self._get_conn()
+        created_at = candidate.created_at or datetime.now(UTC).isoformat()
+        conn.execute(
+            "INSERT OR REPLACE INTO candidate_parameters "
+            "(id, name, description, evidence_patent_ids, confidence, status, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                candidate.id,
+                candidate.name,
+                candidate.description,
+                json.dumps(candidate.evidence_patent_ids),
+                candidate.confidence,
+                candidate.status,
+                created_at,
+            ),
+        )
+        conn.commit()
+
+    def get_pending_candidate_parameters(self) -> list[CandidateParameter]:
+        """Get candidate parameters pending review."""
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT * FROM candidate_parameters WHERE status = 'pending_review'"
+        ).fetchall()
+        return [
+            CandidateParameter(
+                **{
+                    **dict(row),
+                    "evidence_patent_ids": json.loads(dict(row)["evidence_patent_ids"]),
+                }
+            )
+            for row in rows
+        ]
+
+    def update_candidate_parameter_status(self, candidate_id: str, status: str) -> None:
+        """Update status of a candidate parameter."""
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE candidate_parameters SET status = ? WHERE id = ?",
+            (status, candidate_id),
+        )
+        conn.commit()
+
     # --- Candidate Principles ---
 
     def insert_candidate_principle(self, candidate: CandidatePrinciple) -> None:
@@ -336,3 +415,49 @@ class PatentStore:
             (status, candidate_id),
         )
         conn.commit()
+
+    # --- Matrix Observations ---
+
+    def insert_matrix_observation(
+        self,
+        improving: int,
+        worsening: int,
+        principle_id: int,
+        patent_id: str,
+        confidence: float,
+    ) -> None:
+        """Insert or replace a matrix observation."""
+        conn = self._get_conn()
+        observed_at = datetime.now(UTC).isoformat()
+        conn.execute(
+            "INSERT OR REPLACE INTO matrix_observations "
+            "(improving_param, worsening_param, principle_id, patent_id, confidence, observed_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (improving, worsening, principle_id, patent_id, confidence, observed_at),
+        )
+        conn.commit()
+
+    def get_matrix_observations(
+        self, min_count: int = 3
+    ) -> dict[tuple[int, int], list[tuple[int, int, float]]]:
+        """Get aggregated matrix observations filtered by minimum count.
+
+        Returns dict mapping (improving_param, worsening_param) to list of
+        (principle_id, count, avg_confidence) tuples, sorted by count descending.
+        """
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT improving_param, worsening_param, principle_id, "
+            "COUNT(*) as cnt, AVG(confidence) as avg_conf "
+            "FROM matrix_observations "
+            "GROUP BY improving_param, worsening_param, principle_id "
+            "HAVING cnt >= ? "
+            "ORDER BY improving_param, worsening_param, cnt DESC",
+            (min_count,),
+        ).fetchall()
+        result: dict[tuple[int, int], list[tuple[int, int, float]]] = {}
+        for row in rows:
+            key = (row["improving_param"], row["worsening_param"])
+            entry = (row["principle_id"], row["cnt"], row["avg_conf"])
+            result.setdefault(key, []).append(entry)
+        return result

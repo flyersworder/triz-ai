@@ -6,7 +6,7 @@
 
 ### What makes this different
 
-- **Evolving principles** — Existing TRIZ+AI tools (AutoTRIZ, TRIZ Agents) use the static 40 principles. `triz-ai` uses AI to discover candidate new principles from modern patents, continuing Altshuller's original work.
+- **Evolving principles and parameters** — Existing TRIZ+AI tools (AutoTRIZ, TRIZ Agents) use the static 40 principles and 39 parameters. `triz-ai` extends parameters to 50 (adding modern domains like security, sustainability, scalability) and uses AI to discover candidate new principles and parameters from modern patents, continuing Altshuller's original work.
 - **Patent-grounded** — Every suggestion is backed by real patent evidence, not just LLM generation.
 - **Open-source CLI** — Existing tools are academic papers. This is usable software anyone can `pip install`.
 
@@ -27,8 +27,9 @@ triz-ai/
 │       ├── knowledge/
 │       │   ├── __init__.py
 │       │   ├── principles.py       # 40 TRIZ principles as structured data
-│       │   ├── contradictions.py   # 39x39 contradiction matrix
-│       │   └── parameters.py       # 39 engineering parameters
+│       │   ├── contradictions.py   # Contradiction matrix (39x39 core, extensible)
+│       │   ├── matrix_builder.py   # LLM-seeds missing matrix cells (params 40-50)
+│       │   └── parameters.py       # 50 engineering parameters
 │       ├── engine/
 │       │   ├── __init__.py
 │       │   ├── analyzer.py         # Problem -> contradiction -> principles
@@ -45,12 +46,13 @@ triz-ai/
 │       │   └── review.py           # Human review queue for candidates
 │       └── llm/
 │           ├── __init__.py
-│           └── client.py           # litellm wrapper (completions + embeddings)
+│           ├── client.py           # litellm wrapper (completions + embeddings)
+│           └── prompts.py          # Prompt templates with TRIZ context injection
 ├── data/
 │   └── triz/                       # Static TRIZ knowledge (JSON)
 │       ├── principles.json         # 40 principles with sub-principles
-│       ├── parameters.json         # 39 engineering parameters
-│       └── matrix.json             # 39x39 contradiction matrix
+│       ├── parameters.json         # 50 engineering parameters (1-39 classic + 40-50 modern)
+│       └── matrix.json             # Contradiction matrix (covers params 1-39)
 ├── tests/
 ├── pyproject.toml
 └── README.md
@@ -90,21 +92,25 @@ class Principle(BaseModel):
 
 Source data in `data/triz/principles.json`, loaded into pydantic models at runtime.
 
-### Engineering Parameters (39)
+### Engineering Parameters (50)
 
 ```python
 class Parameter(BaseModel):
-    id: int              # 1-39
+    id: int              # 1-50
     name: str            # e.g., "Weight of moving object"
     description: str
 ```
 
-### Contradiction Matrix (39x39)
+Parameters 1-39 are Altshuller's original set. Parameters 40-50 are modern extensions inspired by Mann's Matrix 2010, covering domains like function efficiency (40), harmful emissions (42), security (44), safety (45), sustainability (46), scalability (49), and aesthetics (50).
+
+### Contradiction Matrix
 
 - Asymmetric matrix: improving param A while worsening B != improving B while worsening A
-- Stored as full 39x39 JSON matrix
+- Core matrix covers parameters 1-39 (stored as JSON, ~1455 cells at 98% fill rate)
 - Each cell contains up to 4 recommended principle IDs
 - Loaded as `dict[tuple[int, int], list[int]]` mapping `(improving, worsening) -> [principle_ids]`
+- **Hybrid extension for params 40-50**: Missing cells (~968) can be LLM-seeded via `triz-ai matrix seed`, then refined over time by patent-observed data
+- `lookup_with_observations()` merges static matrix entries with patent observations (≥3 supporting patents required), scoring by observation count with a bonus for static-matrix agreement
 
 ### Candidate Principles (evolution output)
 
@@ -120,6 +126,20 @@ class CandidatePrinciple(BaseModel):
 
 Accepted candidates are promoted alongside the original 40.
 
+### Candidate Parameters (parameter evolution output)
+
+```python
+class CandidateParameter(BaseModel):
+    id: str              # "P1", "P2", ...
+    name: str
+    description: str
+    evidence: list[str]  # Patent IDs supporting this
+    confidence: float
+    status: str          # pending_review | accepted | rejected
+```
+
+Discovered when patents have contradictions that don't map well to the existing 50 parameters.
+
 ## CLI Commands
 
 ### First-run workflow
@@ -131,7 +151,7 @@ Commands that query patents (`analyze`, `classify`, `discover`, `evolve`) requir
 The flagship command. Full TRIZ pipeline:
 
 1. LLM extracts the technical contradiction (improving vs worsening parameter)
-2. Maps to closest engineering parameters from the 39
+2. Maps to closest engineering parameters from the 50
 3. Looks up contradiction matrix -> recommended principles
 4. Searches patent store for examples of those principles applied
 5. Returns: contradiction, principles, patent examples, suggested solution directions
@@ -164,6 +184,25 @@ The evolution pipeline (semi-automated):
 - Minimum 3 patents must share a pattern for the LLM to propose a candidate principle
 - Candidates are added to the review queue
 - `triz-ai evolve --review` for interactive accept/reject
+
+#### Parameter evolution
+
+`triz-ai evolve --parameters` runs a parallel pipeline for discovering candidate new engineering parameters:
+
+- Same classify → filter → cluster → propose flow as principle evolution
+- Focuses on contradictions that map poorly to existing parameters (rather than principles)
+- Proposes candidate parameters (IDs "P1", "P2", ...) stored in `candidate_parameters` table
+- `triz-ai evolve --parameters --review` for interactive accept/reject
+
+### `triz-ai matrix seed` / `triz-ai matrix stats`
+
+Matrix management commands:
+
+- `triz-ai matrix seed` — LLM-seeds missing contradiction matrix cells (params 40-50 × all params). Batches by improving parameter with a progress bar. Validates principle IDs (1-40, max 4 per cell).
+- `triz-ai matrix seed --force` — Re-seeds all cells involving params 40-50, overwriting existing entries.
+- `triz-ai matrix stats` — Shows fill rate, patent observation counts, and top observed parameter pairs.
+
+Classification automatically records matrix observations: each `classify` call inserts (improving, worsening, principle_id, patent_id, confidence) into `matrix_observations`. Over time, these observations refine the LLM-seeded entries — `lookup_with_observations()` merges both sources, requiring ≥3 patent observations to influence results.
 
 ### `triz-ai ingest <source>`
 
@@ -212,7 +251,7 @@ CREATE TABLE classifications (
     PRIMARY KEY (patent_id)
 );
 
--- Evolution pipeline output
+-- Evolution pipeline output: candidate principles
 CREATE TABLE candidate_principles (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -222,6 +261,28 @@ CREATE TABLE candidate_principles (
     status TEXT DEFAULT 'pending_review',
     created_at TEXT
 );
+
+-- Evolution pipeline output: candidate parameters
+CREATE TABLE candidate_parameters (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    evidence_patent_ids JSON,
+    confidence REAL,
+    status TEXT DEFAULT 'pending_review',
+    created_at TEXT
+);
+
+-- Patent-observed matrix refinement: principle-contradiction associations from classified patents
+CREATE TABLE matrix_observations (
+    improving_param INTEGER NOT NULL,
+    worsening_param INTEGER NOT NULL,
+    principle_id INTEGER NOT NULL,
+    patent_id TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    observed_at TEXT,
+    PRIMARY KEY (improving_param, worsening_param, principle_id, patent_id)
+);
 ```
 
 ## LLM Integration
@@ -230,12 +291,14 @@ CREATE TABLE candidate_principles (
 
 `llm/client.py` wraps litellm to provide a unified interface for both completions and embeddings. litellm supports 100+ providers through a single `completion()` and `embedding()` API — switching providers is just changing the model string.
 
-Four core LLM interactions:
+Six core LLM interactions:
 
 1. **extract_contradiction**(problem_text) -> `{improving_param, worsening_param, reasoning}`
 2. **classify_patent**(patent_text) -> `{principle_ids, contradiction, confidence, reasoning}`
 3. **generate_ideas**(domain, underused_principles, existing_patents) -> `{ideas: [...]}`
 4. **propose_candidate_principle**(patent_cluster) -> `{name, description, how_it_differs, confidence}`
+5. **propose_candidate_parameter**(patent_cluster) -> `{name, description, how_it_differs, confidence}`
+6. **seed_matrix_row**(improving, worsening_params) -> `{entries: [{improving, worsening, principles}]}` — fills missing contradiction matrix cells
 
 Embeddings:
 
@@ -249,7 +312,7 @@ Embeddings:
 - JSON output schemas for reliable parsing
 - Few-shot examples for consistency
 - TRIZ knowledge injected into prompt rather than relying on LLM training data — ensures accuracy and includes evolved principles
-- Token budget: only inject the relevant matrix row/column (not full 39x39), relevant principles (not all 40), and parameter descriptions for the identified contradiction. Keeps system prompts under ~2K tokens.
+- Token budget: only inject the relevant matrix row/column, relevant principles (not all 40), and parameter descriptions for the identified contradiction. Keeps system prompts under ~2K tokens.
 
 ### Model selection
 

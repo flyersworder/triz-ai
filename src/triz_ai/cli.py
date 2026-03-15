@@ -214,22 +214,66 @@ def discover(
 
 @app.command()
 def evolve(
-    review: bool = typer.Option(False, help="Interactive review of candidate principles"),
+    review: bool = typer.Option(False, help="Interactive review of candidates"),
+    parameters: bool = typer.Option(
+        False, help="Discover candidate parameters instead of principles"
+    ),
     model: str = typer.Option(None, help="LLM model string (overrides config)"),
     format: str = typer.Option("text", help="Output format: text, json, markdown"),
 ) -> None:
-    """Discover candidate new TRIZ principles from patents."""
+    """Discover candidate new TRIZ principles or parameters from patents."""
     store = _get_store()
 
     if review:
-        from triz_ai.evolution.review import interactive_review
+        if parameters:
+            from triz_ai.evolution.review import interactive_parameter_review
 
-        interactive_review(store=store)
+            interactive_parameter_review(store=store)
+        else:
+            from triz_ai.evolution.review import interactive_review
+
+            interactive_review(store=store)
+        return
+
+    llm_client = _get_llm_client(model)
+
+    if parameters:
+        from triz_ai.evolution.pipeline import run_parameter_evolution
+
+        try:
+            candidates = run_parameter_evolution(llm_client=llm_client, store=store)
+        except Exception as e:
+            console.print(f"[red]Parameter evolution failed: {e}[/red]")
+            raise typer.Exit(1) from None
+
+        if format != "text":
+            _output(
+                {"candidates": [c.model_dump() for c in candidates]},
+                format,
+            )
+            return
+
+        if not candidates:
+            console.print("[yellow]No new candidate parameters discovered.[/yellow]")
+            return
+
+        table = Table(title="New Candidate Parameters")
+        table.add_column("ID", style="cyan")
+        table.add_column("Name", style="bold")
+        table.add_column("Confidence", justify="right")
+        table.add_column("Evidence")
+        for c in candidates:
+            table.add_row(
+                c.id, c.name, f"{c.confidence:.0%}", f"{len(c.evidence_patent_ids)} patents"
+            )
+        console.print(table)
+        console.print(
+            "\nRun [cyan]triz-ai evolve --parameters --review[/cyan] "
+            "to accept or reject candidates."
+        )
         return
 
     from triz_ai.evolution.pipeline import run_evolution
-
-    llm_client = _get_llm_client(model)
 
     try:
         candidates = run_evolution(llm_client=llm_client, store=store)
@@ -304,3 +348,105 @@ def init(
     store.init_db(force=force)
     console.print("[green]Database initialized successfully.[/green]")
     store.close()
+
+
+# --- Matrix subcommands ---
+matrix_app = typer.Typer(
+    name="matrix",
+    help="Manage the TRIZ contradiction matrix.",
+    no_args_is_help=True,
+)
+app.add_typer(matrix_app, name="matrix")
+
+
+@matrix_app.command()
+def seed(
+    force: bool = typer.Option(False, help="Re-seed all cells involving params 40-50"),
+    model: str = typer.Option(None, help="LLM model string (overrides config)"),
+) -> None:
+    """LLM-seed missing contradiction matrix cells."""
+    from triz_ai.knowledge.matrix_builder import seed_matrix
+
+    llm_client = _get_llm_client(model)
+
+    try:
+        cells_added = seed_matrix(llm_client, force=force)
+    except Exception as e:
+        console.print(f"[red]Matrix seeding failed: {e}[/red]")
+        raise typer.Exit(1) from None
+
+    if cells_added == 0:
+        from triz_ai.knowledge.contradictions import load_matrix
+
+        matrix = load_matrix()
+        total_possible = 50 * 49
+        if len(matrix) >= total_possible:
+            console.print("[yellow]No missing cells to seed.[/yellow]")
+        else:
+            console.print(
+                "[yellow]No cells were seeded. LLM calls may have failed — "
+                "check your API key and rate limits.[/yellow]"
+            )
+    else:
+        console.print(f"[green]Seeded {cells_added} matrix cells.[/green]")
+
+
+@matrix_app.command()
+def stats() -> None:
+    """Show contradiction matrix fill rate and observation stats."""
+    from triz_ai.knowledge.contradictions import load_matrix
+
+    matrix = load_matrix()
+    total_possible = 50 * 49  # 50 params, excluding diagonal
+    filled = len(matrix)
+    fill_pct = filled / total_possible * 100
+
+    console.print(
+        Panel(
+            f"Total possible cells: {total_possible}\n"
+            f"Filled cells (static): {filled}\n"
+            f"Fill rate: {fill_pct:.1f}%",
+            title="[bold]Contradiction Matrix Stats[/bold]",
+            border_style="blue",
+        )
+    )
+
+    # Show observation stats if DB is available
+    try:
+        store = _get_store()
+        observations = store.get_matrix_observations(min_count=1)
+        total_obs_cells = len(observations)
+        obs_with_min3 = len(store.get_matrix_observations(min_count=3))
+
+        console.print("\n[bold]Patent Observations:[/bold]")
+        console.print(f"  Cells with observations: {total_obs_cells}")
+        console.print(f"  Cells with 3+ observations (active): {obs_with_min3}")
+
+        # Top pairs by observation count
+        if observations:
+            from triz_ai.knowledge.parameters import get_parameter
+
+            table = Table(title="Top Observed Parameter Pairs")
+            table.add_column("Improving", style="cyan")
+            table.add_column("Worsening", style="red")
+            table.add_column("Principles", style="bold")
+            table.add_column("Observations", justify="right")
+
+            # Sort pairs by total observations
+            pairs = sorted(
+                observations.items(),
+                key=lambda item: sum(count for _, count, _ in item[1]),
+                reverse=True,
+            )
+            for (imp, wor), entries in pairs[:10]:
+                imp_p = get_parameter(imp)
+                wor_p = get_parameter(wor)
+                imp_name = imp_p.name if imp_p else str(imp)
+                wor_name = wor_p.name if wor_p else str(wor)
+                total = sum(count for _, count, _ in entries)
+                prins = ", ".join(str(pid) for pid, _, _ in entries)
+                table.add_row(imp_name, wor_name, prins, str(total))
+            console.print(table)
+        store.close()
+    except Exception:
+        console.print("[dim]No patent store available for observation stats.[/dim]")

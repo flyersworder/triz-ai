@@ -62,4 +62,20 @@ def classify(
         )
         logger.info("Stored classification for patent %s", patent_id)
 
+        # Auto-record matrix observations for each principle
+        improving = classification.contradiction.get("improving")
+        worsening = classification.contradiction.get("worsening")
+        if improving and worsening:
+            for pid in classification.principle_ids:
+                try:
+                    store.insert_matrix_observation(
+                        improving=improving,
+                        worsening=worsening,
+                        principle_id=pid,
+                        patent_id=patent_id,
+                        confidence=classification.confidence,
+                    )
+                except Exception:
+                    logger.debug("Failed to record matrix observation for principle %d", pid)
+
     return result

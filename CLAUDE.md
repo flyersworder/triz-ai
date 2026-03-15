@@ -14,10 +14,11 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 ## Architecture
 
-`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/` (analyzer, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (SQLite + sqlite-vec store, ingestion) → `knowledge/` (TRIZ data from `data/triz/*.json`) → `evolution/` (candidate principle discovery).
+`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/` (analyzer, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (SQLite + sqlite-vec store, ingestion, matrix observations) → `knowledge/` (TRIZ data from `data/triz/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
 
 ## Key Constraints
 
+- **50 engineering parameters** — IDs 1-39 are Altshuller's originals, 40-50 are modern extensions (Mann's Matrix 2010). The static contradiction matrix covers 1-39; cells for 40-50 can be LLM-seeded via `triz-ai matrix seed` and refined by patent observations over time. `lookup_with_observations()` merges both sources.
 - **Contradiction matrix is asymmetric** — improving A worsening B ≠ improving B worsening A
 - **Embedding dimension is 768** — changing embedding model requires `triz-ai init --force`
 - **LLM responses validated via pydantic** — malformed → 1 retry with stricter prompt, then fail

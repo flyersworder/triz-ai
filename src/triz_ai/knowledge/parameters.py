@@ -1,4 +1,4 @@
-"""TRIZ engineering parameters — 39 parameters loaded from data/triz/parameters.json."""
+"""TRIZ engineering parameters — 50 parameters loaded from data/triz/parameters.json."""
 
 import json
 from functools import lru_cache
@@ -19,7 +19,7 @@ class Parameter(BaseModel):
 
 @lru_cache(maxsize=1)
 def load_parameters() -> list[Parameter]:
-    """Load all 39 TRIZ engineering parameters from data file."""
+    """Load all 50 TRIZ engineering parameters from data file."""
     data_file = _DATA_DIR / "parameters.json"
     with open(data_file) as f:
         data = json.load(f)

@@ -13,7 +13,9 @@ from triz_ai.llm.prompts import (
     cluster_patents_prompt,
     extract_contradiction_prompt,
     generate_ideas_prompt,
+    propose_candidate_parameter_prompt,
     propose_candidate_principle_prompt,
+    seed_matrix_prompt,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -60,6 +62,23 @@ class CandidatePrincipleProposal(BaseModel):
     description: str
     how_it_differs: str
     confidence: float
+
+
+class CandidateParameterProposal(BaseModel):
+    name: str
+    description: str
+    how_it_differs: str
+    confidence: float
+
+
+class MatrixEntry(BaseModel):
+    improving: int
+    worsening: int
+    principles: list[int]
+
+
+class MatrixSeedResult(BaseModel):
+    entries: list[MatrixEntry]
 
 
 def _friendly_error(e: Exception) -> TrizAIError:
@@ -218,6 +237,15 @@ class LLMClient:
         )
         return self._complete(generate_ideas_prompt(), user_prompt, IdeaBatch)
 
+    def propose_candidate_parameter(self, patent_cluster: list[str]) -> CandidateParameterProposal:
+        """Propose a candidate new engineering parameter from a cluster of patents."""
+        patents_text = "\n---\n".join(patent_cluster)
+        return self._complete(
+            propose_candidate_parameter_prompt(),
+            patents_text,
+            CandidateParameterProposal,
+        )
+
     def propose_candidate_principle(self, patent_cluster: list[str]) -> CandidatePrincipleProposal:
         """Propose a candidate new TRIZ principle from a cluster of patents."""
         patents_text = "\n---\n".join(patent_cluster)
@@ -226,6 +254,33 @@ class LLMClient:
             patents_text,
             CandidatePrincipleProposal,
         )
+
+    def seed_matrix_row(self, improving: int, worsening_params: list[int]) -> MatrixSeedResult:
+        """Seed missing matrix cells for an improving parameter via LLM."""
+        from triz_ai.knowledge.contradictions import load_matrix
+        from triz_ai.knowledge.parameters import get_parameter
+
+        imp_param = get_parameter(improving)
+        imp_name = imp_param.name if imp_param else f"Parameter {improving}"
+
+        wp_dicts = []
+        for wid in worsening_params:
+            wp = get_parameter(wid)
+            wp_dicts.append({"id": wid, "name": wp.name if wp else f"Parameter {wid}"})
+
+        # Build 3 example rows from existing matrix
+        matrix = load_matrix()
+        example_rows: list[str] = []
+        for (imp_id, wor_id), principles in matrix.items():
+            if len(example_rows) >= 3:
+                break
+            example_rows.append(
+                f'{{"improving": {imp_id}, "worsening": {wor_id}, "principles": {principles}}}'
+            )
+
+        prompt = seed_matrix_prompt(improving, imp_name, wp_dicts, example_rows)
+        user_msg = f"Fill matrix row for improving parameter {improving}: {imp_name}"
+        return self._complete(prompt, user_msg, MatrixSeedResult)
 
     def get_embedding(self, text: str) -> list[float]:
         """Get embedding vector for text."""

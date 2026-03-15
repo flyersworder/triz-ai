@@ -4,7 +4,7 @@ import logging
 
 from pydantic import BaseModel
 
-from triz_ai.knowledge.contradictions import load_matrix
+from triz_ai.knowledge.contradictions import lookup_with_observations
 from triz_ai.knowledge.parameters import load_parameters
 from triz_ai.knowledge.principles import load_principles
 from triz_ai.llm.client import LLMClient
@@ -55,9 +55,10 @@ def analyze(
             f"worsening={contradiction.worsening_param}"
         )
 
-    # Step 3: Lookup matrix
-    matrix = load_matrix()
-    principle_ids = matrix.get((contradiction.improving_param, contradiction.worsening_param), [])
+    # Step 3: Lookup matrix (merges static + patent observations when store available)
+    principle_ids = lookup_with_observations(
+        contradiction.improving_param, contradiction.worsening_param, store=store
+    )
 
     # Map to principle details
     all_principles = {p.id: p for p in load_principles()}

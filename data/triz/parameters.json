@@ -193,5 +193,60 @@
     "id": 39,
     "name": "Productivity",
     "description": "The number of functions or operations performed by a system per unit time. The time for a unit function or operation. The output per unit time, or the cost per unit output."
+  },
+  {
+    "id": 40,
+    "name": "Function efficiency",
+    "description": "The ratio of useful function performed to total resources consumed. How well a system converts inputs into desired outputs without waste."
+  },
+  {
+    "id": 41,
+    "name": "Noise/vibration (harmful)",
+    "description": "Undesired oscillations or sound produced by a system. Includes mechanical vibration, acoustic noise, electromagnetic interference, and signal noise."
+  },
+  {
+    "id": 42,
+    "name": "Harmful emissions",
+    "description": "Undesired outputs released by a system into the environment. Includes chemical emissions, radiation, heat waste, particulates, and pollutants."
+  },
+  {
+    "id": 43,
+    "name": "Compatibility/connectability",
+    "description": "The ability of a system to interface, integrate, or work together with other systems, standards, or environments without conflict or degradation."
+  },
+  {
+    "id": 44,
+    "name": "Security/vulnerability",
+    "description": "The extent to which a system resists unauthorized access, tampering, data breaches, or exploitation. Includes physical, cyber, and information security."
+  },
+  {
+    "id": 45,
+    "name": "Safety",
+    "description": "The extent to which a system prevents harm to users, operators, bystanders, or the environment during normal operation and foreseeable misuse."
+  },
+  {
+    "id": 46,
+    "name": "Environmental impact/sustainability",
+    "description": "The total effect of a system on natural ecosystems across its lifecycle. Includes resource depletion, carbon footprint, recyclability, and ecological disruption."
+  },
+  {
+    "id": 47,
+    "name": "Amount of information",
+    "description": "The quantity of data a system can store, process, transmit, or present. Includes bandwidth, data density, throughput, and information capacity."
+  },
+  {
+    "id": 48,
+    "name": "Controllability/responsiveness",
+    "description": "The ease and precision with which a system's behavior can be directed, adjusted, or regulated. Includes response time, feedback quality, and control granularity."
+  },
+  {
+    "id": 49,
+    "name": "Scalability",
+    "description": "The ability of a system to handle growing or shrinking workloads, sizes, or complexity without fundamental redesign or disproportionate resource increase."
+  },
+  {
+    "id": 50,
+    "name": "Aesthetics/appearance",
+    "description": "The visual, tactile, or sensory appeal of a system. Includes form factor, surface finish, color, styling, and user-perceived design quality."
   }
 ]

@@ -1,6 +1,8 @@
 """Tests for TRIZ knowledge base — principles, parameters, and contradiction matrix."""
 
-from triz_ai.knowledge.contradictions import load_matrix, lookup
+from unittest.mock import MagicMock
+
+from triz_ai.knowledge.contradictions import load_matrix, lookup, lookup_with_observations
 from triz_ai.knowledge.parameters import get_parameter, load_parameters
 from triz_ai.knowledge.principles import get_principle, load_principles
 
@@ -34,14 +36,14 @@ class TestPrinciples:
 
 
 class TestParameters:
-    def test_load_39_parameters(self):
+    def test_load_50_parameters(self):
         params = load_parameters()
-        assert len(params) == 39
+        assert len(params) == 50
 
-    def test_parameter_ids_1_to_39(self):
+    def test_parameter_ids_1_to_50(self):
         params = load_parameters()
         ids = {p.id for p in params}
-        assert ids == set(range(1, 40))
+        assert ids == set(range(1, 51))
 
     def test_parameter_has_required_fields(self):
         params = load_parameters()
@@ -113,3 +115,62 @@ class TestContradictionMatrix:
                     if forward != reverse:
                         asymmetric_count += 1
         assert asymmetric_count > 0, "Matrix appears symmetric — should be asymmetric"
+
+
+class TestLookupWithObservations:
+    def test_falls_back_to_static_without_store(self):
+        """Without a store, returns same as plain lookup."""
+        result = lookup_with_observations(1, 9)
+        expected = lookup(1, 9)
+        assert result == expected
+
+    def test_falls_back_to_static_with_no_observations(self):
+        """With a store that has no observations, returns static results."""
+        mock_store = MagicMock()
+        mock_store.get_matrix_observations.return_value = {}
+        result = lookup_with_observations(1, 9, store=mock_store)
+        expected = lookup(1, 9)
+        assert result == expected
+
+    def test_merges_static_and_observed(self):
+        """Observed principles should be merged with static ones."""
+        mock_store = MagicMock()
+        # Static lookup for (1, 9) returns some principles
+        static = lookup(1, 9)
+        assert len(static) > 0  # sanity check
+
+        # Observations: principle 5 seen 10 times, principle static[0] seen 5 times
+        mock_store.get_matrix_observations.return_value = {
+            (1, 9): [
+                (5, 10, 0.9),  # new principle, high count
+                (static[0], 5, 0.85),  # existing principle, boosted
+            ]
+        }
+        result = lookup_with_observations(1, 9, store=mock_store)
+        assert len(result) <= 4
+        # Static[0] should be boosted (count 5 + bonus 2 = 7), but principle 5 has count 10
+        assert 5 in result
+        assert static[0] in result
+
+    def test_returns_top_4_only(self):
+        """Should return at most 4 principles even with many observations."""
+        mock_store = MagicMock()
+        mock_store.get_matrix_observations.return_value = {
+            (40, 41): [
+                (1, 10, 0.9),
+                (2, 8, 0.8),
+                (3, 6, 0.7),
+                (4, 4, 0.6),
+                (5, 3, 0.5),
+            ]
+        }
+        result = lookup_with_observations(40, 41, store=mock_store)
+        assert len(result) <= 4
+
+    def test_handles_store_error_gracefully(self):
+        """If store raises, falls back to static."""
+        mock_store = MagicMock()
+        mock_store.get_matrix_observations.side_effect = Exception("DB error")
+        result = lookup_with_observations(1, 9, store=mock_store)
+        expected = lookup(1, 9)
+        assert result == expected

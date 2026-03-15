@@ -3,6 +3,7 @@
 import pytest
 
 from triz_ai.patents.store import (
+    CandidateParameter,
     CandidatePrinciple,
     Classification,
     Patent,
@@ -170,4 +171,62 @@ def test_candidate_principle_crud(store):
 
     store.update_candidate_status("C1", "accepted")
     pending = store.get_pending_candidates()
+    assert len(pending) == 0
+
+
+def test_matrix_observation_crud(store, sample_patent):
+    """Test insert and aggregation of matrix observations."""
+    store.insert_patent(sample_patent)
+
+    # Insert several observations for the same cell
+    for i in range(4):
+        store.insert_matrix_observation(
+            improving=9,
+            worsening=1,
+            principle_id=1,
+            patent_id=f"PAT{i}",
+            confidence=0.8 + i * 0.05,
+        )
+    # Add a second principle with fewer observations
+    store.insert_matrix_observation(
+        improving=9, worsening=1, principle_id=14, patent_id="PAT0", confidence=0.9
+    )
+    store.insert_matrix_observation(
+        improving=9, worsening=1, principle_id=14, patent_id="PAT1", confidence=0.85
+    )
+
+    # With min_count=3, only principle 1 should appear
+    obs = store.get_matrix_observations(min_count=3)
+    assert (9, 1) in obs
+    entries = obs[(9, 1)]
+    assert len(entries) == 1
+    assert entries[0][0] == 1  # principle_id
+    assert entries[0][1] == 4  # count
+
+    # With min_count=2, both principles should appear
+    obs2 = store.get_matrix_observations(min_count=2)
+    assert len(obs2[(9, 1)]) == 2
+
+    # Verify ordering: principle 1 (count=4) before principle 14 (count=2)
+    assert obs2[(9, 1)][0][0] == 1
+    assert obs2[(9, 1)][1][0] == 14
+
+
+def test_candidate_parameter_crud(store):
+    candidate = CandidateParameter(
+        id="P1",
+        name="Cyber Resilience",
+        description="Ability of a system to withstand and recover from cyber attacks",
+        evidence_patent_ids=["US111", "US222", "US333"],
+        confidence=0.80,
+    )
+    store.insert_candidate_parameter(candidate)
+
+    pending = store.get_pending_candidate_parameters()
+    assert len(pending) == 1
+    assert pending[0].name == "Cyber Resilience"
+    assert pending[0].evidence_patent_ids == ["US111", "US222", "US333"]
+
+    store.update_candidate_parameter_status("P1", "accepted")
+    pending = store.get_pending_candidate_parameters()
     assert len(pending) == 0
