@@ -48,7 +48,8 @@ def extract_contradiction_prompt() -> str:
         f"{params}\n\n"
         "Respond with JSON:\n"
         '{"improving_param": <int 1-50>, "worsening_param": <int 1-50>, '
-        '"reasoning": "<brief explanation of the contradiction>"}'
+        '"reasoning": "<brief explanation of the contradiction>", '
+        '"confidence": <float 0.0-1.0, how confident you are in this mapping>}'
     )
 
 
@@ -70,6 +71,23 @@ def classify_patent_prompt() -> str:
     )
 
 
+def solution_directions_prompt() -> str:
+    """System prompt for generating concrete solution directions from TRIZ analysis."""
+    return (
+        "You are a TRIZ (Theory of Inventive Problem Solving) expert helping engineers "
+        "develop concrete solution directions.\n\n"
+        "Given a technical problem, its contradiction, recommended TRIZ principles, and "
+        "related patents, generate 2-3 concrete solution directions that:\n"
+        "- Apply the recommended principles to the specific problem\n"
+        "- Are actionable and specific (not generic advice)\n"
+        "- Reference how similar problems were solved in the patents when relevant\n\n"
+        "Respond with JSON:\n"
+        '{"directions": [{"title": "<short title>", '
+        '"description": "<2-3 sentences explaining the approach>", '
+        '"principles_applied": ["<principle name>", ...]}]}'
+    )
+
+
 def generate_ideas_prompt() -> str:
     """System prompt for idea generation."""
     return (
@@ -78,11 +96,13 @@ def generate_ideas_prompt() -> str:
         "For each idea:\n"
         "- Apply a specific underused principle in a concrete, actionable way\n"
         "- Consider how existing patents in the domain might be improved or extended\n"
-        "- Be specific and technical, not generic\n\n"
+        "- Be specific and technical, not generic\n"
+        "- If inspired by a specific patent, include its ID as source_patent_id\n\n"
         "Respond with JSON:\n"
         '{"ideas": [{"idea": "<concrete technical description>", '
         '"principle_id": <int>, '
-        '"reasoning": "<why this principle creates novelty here>"}]}'
+        '"reasoning": "<why this principle creates novelty here>", '
+        '"source_patent_id": "<patent ID or null>"}]}'
     )
 
 

@@ -23,6 +23,7 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 - **Embedding dimension is 768** — changing embedding model requires `triz-ai init --force`
 - **LLM responses validated via pydantic** — malformed → 1 retry with stricter prompt, then fail
 - **Auto-init** — `analyze` and other commands work without running `init` first; `init` is only needed with `--force` to reset the database
+- **Hybrid patent search** — `analyze` uses `search_patents_hybrid()` which combines vector similarity with principle overlap bonus (0.3/principle, cap 0.6) and contradiction match bonus (0.4 exact, 0.2 partial). Fetches 4x candidates then re-ranks.
 - **No DB migrations** — schema changes require `triz-ai init --force`
 - **Token budget** — only inject relevant matrix rows/principles into prompts, not full dataset
 

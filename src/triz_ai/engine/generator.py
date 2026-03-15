@@ -83,7 +83,14 @@ def discover(
         ]
 
     # Step 4: Generate ideas (limit underused to top 10 for token budget)
-    existing_titles = [patent.title for patent, _ in classified[:10]]
+    existing_titles = []
+    for patent, _ in classified[:10]:
+        label = patent.title
+        if patent.assignee:
+            label = f"{patent.title} ({patent.assignee}) [ID: {patent.id}]"
+        else:
+            label = f"{patent.title} [ID: {patent.id}]"
+        existing_titles.append(label)
     ideas = []
     if underused:
         try:

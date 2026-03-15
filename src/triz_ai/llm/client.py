@@ -16,6 +16,7 @@ from triz_ai.llm.prompts import (
     propose_candidate_parameter_prompt,
     propose_candidate_principle_prompt,
     seed_matrix_prompt,
+    solution_directions_prompt,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -38,6 +39,7 @@ class ExtractedContradiction(BaseModel):
     improving_param: int
     worsening_param: int
     reasoning: str
+    confidence: float = 1.0
 
 
 class PatentClassification(BaseModel):
@@ -51,10 +53,21 @@ class Idea(BaseModel):
     idea: str
     principle_id: int
     reasoning: str
+    source_patent_id: str | None = None
 
 
 class IdeaBatch(BaseModel):
     ideas: list[Idea]
+
+
+class SolutionDirection(BaseModel):
+    title: str
+    description: str
+    principles_applied: list[str]
+
+
+class SolutionDirectionBatch(BaseModel):
+    directions: list[SolutionDirection]
 
 
 class CandidatePrincipleProposal(BaseModel):
@@ -241,6 +254,33 @@ class LLMClient:
             model=self.classify_model,
             max_tokens=1024,
         )
+
+    def generate_solution_directions(
+        self,
+        problem_text: str,
+        improving_param: str,
+        worsening_param: str,
+        principles: list[dict],
+        patent_examples: list[dict],
+    ) -> SolutionDirectionBatch:
+        """Generate concrete solution directions from TRIZ analysis."""
+        principles_text = "\n".join(f"- {p['name']}: {p['description']}" for p in principles)
+        patents_text = ""
+        if patent_examples:
+            patent_lines = []
+            for pe in patent_examples[:5]:
+                assignee = pe.get("assignee") or "Unknown"
+                patent_lines.append(f"- {pe['title']} ({assignee})")
+            patents_text = "\n\nRelated patents:\n" + "\n".join(patent_lines)
+
+        user_prompt = (
+            f"Problem: {problem_text}\n\n"
+            f"Contradiction: Improving '{improving_param}' worsens '{worsening_param}'\n\n"
+            f"Recommended TRIZ principles:\n{principles_text}"
+            f"{patents_text}\n\n"
+            "Generate 2-3 concrete solution directions."
+        )
+        return self._complete(solution_directions_prompt(), user_prompt, SolutionDirectionBatch)
 
     def generate_ideas(
         self,

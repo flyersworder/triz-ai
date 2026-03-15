@@ -20,8 +20,10 @@ class AnalysisResult(BaseModel):
     improving_param: dict  # {"id": int, "name": str}
     worsening_param: dict  # {"id": int, "name": str}
     reasoning: str
+    contradiction_confidence: float = 1.0
     recommended_principles: list[dict]  # [{"id": int, "name": str, "description": str}]
-    patent_examples: list[dict]  # [{"id": str, "title": str, "abstract": str}]
+    patent_examples: list[dict]
+    solution_directions: list[dict] = []
 
 
 def analyze(
@@ -70,24 +72,66 @@ def analyze(
                 {"id": p.id, "name": p.name, "description": p.description}
             )
 
-    # Step 4: Search patents (if store available)
+    # Step 4: Hybrid patent search (if store available)
     patent_examples = []
+    recommended_principle_ids = [p["id"] for p in recommended_principles]
     if store is not None:
         try:
             query_embedding = llm_client.get_embedding(problem_text)
-            results = store.search_patents(query_embedding, limit=5)
-            patent_examples = [
-                {"id": p.id, "title": p.title, "abstract": p.abstract or ""}
-                for p, _distance in results
-            ]
+            results = store.search_patents_hybrid(
+                query_embedding,
+                principle_ids=recommended_principle_ids,
+                improving_param=contradiction.improving_param,
+                worsening_param=contradiction.worsening_param,
+                limit=5,
+            )
+            # Enrich with assignee, filing_date, matched_principles
+            all_principles_map = {p.id: p for p in load_principles()}
+            for patent, _score in results:
+                matched_principles = []
+                classification = store.get_classification(patent.id)
+                if classification:
+                    overlap = set(recommended_principle_ids) & set(classification.principle_ids)
+                    matched_principles = [
+                        all_principles_map[pid].name
+                        for pid in overlap
+                        if pid in all_principles_map
+                    ]
+                patent_examples.append(
+                    {
+                        "id": patent.id,
+                        "title": patent.title,
+                        "abstract": patent.abstract or "",
+                        "assignee": patent.assignee,
+                        "filing_date": patent.filing_date,
+                        "matched_principles": matched_principles,
+                    }
+                )
         except Exception:
             logger.warning("Patent search failed, continuing without examples")
+
+    # Step 5: Generate solution directions
+    solution_directions = []
+    if recommended_principles:
+        try:
+            directions = llm_client.generate_solution_directions(
+                problem_text,
+                improving_param=improving.name,
+                worsening_param=worsening.name,
+                principles=recommended_principles,
+                patent_examples=patent_examples,
+            )
+            solution_directions = [d.model_dump() for d in directions.directions]
+        except Exception:
+            logger.warning("Solution direction generation failed, continuing without")
 
     return AnalysisResult(
         problem=problem_text,
         improving_param={"id": improving.id, "name": improving.name},
         worsening_param={"id": worsening.id, "name": worsening.name},
         reasoning=contradiction.reasoning,
+        contradiction_confidence=contradiction.confidence,
         recommended_principles=recommended_principles,
         patent_examples=patent_examples,
+        solution_directions=solution_directions,
     )

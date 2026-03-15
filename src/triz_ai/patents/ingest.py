@@ -84,6 +84,7 @@ def _ingest_json(path: Path) -> list[Patent]:
             claims=item.get("claims"),
             domain=item.get("domain"),
             filing_date=item.get("filing_date"),
+            assignee=item.get("assignee"),
             source=item.get("source", "curated"),
         )
         patents.append(patent)

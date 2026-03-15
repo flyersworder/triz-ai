@@ -81,10 +81,17 @@ def analyze(
     # Rich text output
     console.print(Panel(problem, title="[bold]Problem[/bold]", border_style="blue"))
 
+    conf = result.contradiction_confidence
+    conf_str = f" [dim](confidence: {conf:.0%})[/dim]"
     console.print(
         f"\n[bold]Contradiction:[/bold] Improving [cyan]{result.improving_param['name']}[/cyan] "
-        f"worsens [red]{result.worsening_param['name']}[/red]"
+        f"worsens [red]{result.worsening_param['name']}[/red]{conf_str}"
     )
+    if conf < 0.5:
+        console.print(
+            "[yellow]Low confidence — consider rephrasing your problem "
+            "as 'improve X without worsening Y'.[/yellow]"
+        )
     console.print(f"[dim]{result.reasoning}[/dim]\n")
 
     if result.recommended_principles:
@@ -97,14 +104,32 @@ def analyze(
         console.print(table)
 
     if result.patent_examples:
-        console.print("\n[bold]Related Patents:[/bold]")
+        patent_table = Table(title="Related Patents")
+        patent_table.add_column("ID", style="cyan")
+        patent_table.add_column("Assignee", style="bold")
+        patent_table.add_column("Title")
+        patent_table.add_column("Matched Principles", style="green")
         for p in result.patent_examples:
-            console.print(f"  • [cyan]{p['id']}[/cyan] — {p['title']}")
+            assignee = p.get("assignee") or "—"
+            matched = ", ".join(p.get("matched_principles", [])) or "—"
+            patent_table.add_row(p["id"], assignee, p["title"], matched)
+            if p.get("filing_date"):
+                patent_table.add_row("", f"[dim]Filed: {p['filing_date']}[/dim]", "", "")
+        console.print(patent_table)
     else:
         console.print(
             "\n[dim]Tip: run [cyan]triz-ai ingest <file>[/cyan] "
             "to get patent-backed examples.[/dim]"
         )
+
+    if result.solution_directions:
+        console.print("\n[bold]Solution Directions:[/bold]")
+        for i, d in enumerate(result.solution_directions, 1):
+            principles_str = ", ".join(d.get("principles_applied", []))
+            console.print(f"\n  [cyan]{i}.[/cyan] [bold]{d['title']}[/bold]")
+            console.print(f"     {d['description']}")
+            if principles_str:
+                console.print(f"     [dim]Applies: {principles_str}[/dim]")
 
 
 @app.command()
@@ -164,8 +189,10 @@ def discover(
         table.add_column("Principle", style="cyan")
         table.add_column("Idea", style="bold")
         table.add_column("Reasoning")
+        table.add_column("Source Patent", style="dim")
         for idea in result.ideas:
-            table.add_row(str(idea["principle_id"]), idea["idea"], idea["reasoning"])
+            source = idea.get("source_patent_id") or "—"
+            table.add_row(str(idea["principle_id"]), idea["idea"], idea["reasoning"], source)
         console.print(table)
 
 

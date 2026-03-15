@@ -13,6 +13,8 @@ from triz_ai.llm.client import (
     Idea,
     IdeaBatch,
     PatentClassification,
+    SolutionDirection,
+    SolutionDirectionBatch,
 )
 from triz_ai.patents.store import Classification, Patent, PatentStore
 
@@ -46,6 +48,16 @@ def mock_llm():
                 idea="Use segmented battery cells",
                 principle_id=1,
                 reasoning="Segmentation improves thermal management",
+                source_patent_id="US123456",
+            )
+        ]
+    )
+    client.generate_solution_directions.return_value = SolutionDirectionBatch(
+        directions=[
+            SolutionDirection(
+                title="Segmented lightweight frame",
+                description="Apply segmentation to the car frame to reduce weight.",
+                principles_applied=["Segmentation", "Spheroidality — Curvature"],
             )
         ]
     )
@@ -65,6 +77,40 @@ class TestAnalyzer:
     def test_analyze_without_store(self, mock_llm):
         result = analyze("Make a lighter faster car", llm_client=mock_llm, store=None)
         assert result.patent_examples == []
+
+    def test_analyze_solution_directions(self, mock_llm, store):
+        result = analyze("Make a lighter faster car", llm_client=mock_llm, store=store)
+        assert len(result.solution_directions) == 1
+        assert result.solution_directions[0]["title"] == "Segmented lightweight frame"
+        assert "Segmentation" in result.solution_directions[0]["principles_applied"]
+        mock_llm.generate_solution_directions.assert_called_once()
+
+    def test_analyze_enriched_patents(self, mock_llm, store):
+        """Patent examples should include assignee, filing_date, matched_principles."""
+        # Add a patent with classification and embedding
+        store.insert_patent(
+            Patent(
+                id="P1",
+                title="Lightweight car frame",
+                assignee="Tesla Inc",
+                filing_date="2024-06-01",
+            ),
+            embedding=[0.1] * 768,
+        )
+        store.insert_classification(
+            Classification(
+                patent_id="P1",
+                principle_ids=[1, 14],
+                contradiction={"improving": 9, "worsening": 1},
+                confidence=0.9,
+            )
+        )
+        result = analyze("Make a lighter faster car", llm_client=mock_llm, store=store)
+        if result.patent_examples:
+            pe = result.patent_examples[0]
+            assert "assignee" in pe
+            assert "filing_date" in pe
+            assert "matched_principles" in pe
 
 
 class TestClassifier:

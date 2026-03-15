@@ -10,7 +10,9 @@ AI-powered TRIZ innovation engine — analyze technical problems, classify paten
 
 `triz-ai` combines [TRIZ](https://en.wikipedia.org/wiki/TRIZ) (Theory of Inventive Problem Solving) with AI and real patent data. It goes beyond static TRIZ tools by using AI to discover candidate new principles from modern patents, continuing Altshuller's original work.
 
-- **Patent-grounded** — every suggestion is backed by real patent evidence
+- **Patent-grounded** — every suggestion is backed by real patent evidence, with assignee and filing date
+- **Hybrid search** — finds relevant patents using both vector similarity and TRIZ principle/contradiction matching
+- **Solution directions** — generates concrete, actionable solution approaches, not just abstract principles
 - **50 engineering parameters** — extends Altshuller's 39 with modern domains (security, sustainability, scalability, etc.)
 - **Evolving principles & parameters** — discovers candidate new principles and parameters from modern patents
 - **Provider-agnostic** — works with OpenRouter, Ollama, Anthropic, OpenAI, and 100+ providers via litellm
@@ -41,7 +43,9 @@ Or use a `.env` file: `echo 'OPENROUTER_API_KEY=your-key' > .env`
 
 ```bash
 # Analyze a technical problem (works immediately — no setup needed)
-triz-ai analyze "How to make an EV battery charge faster without overheating"
+triz-ai analyze "How to increase SiC MOSFET switching speed without increasing EMI"
+# → Identifies contradiction, recommends TRIZ principles, finds related patents
+#   with assignees, and generates concrete solution directions
 
 # For patent-backed examples, ingest patent data
 triz-ai ingest data/patents/battery_patents.json
@@ -65,8 +69,8 @@ triz-ai matrix stats
 
 | Command | Description |
 |---------|-------------|
-| `analyze` | Full TRIZ pipeline: extract contradiction → matrix lookup → patent search → solution directions |
-| `discover` | Find underused principles in a domain and generate novel ideas |
+| `analyze` | Full TRIZ pipeline: contradiction → matrix → hybrid patent search → solution directions |
+| `discover` | Find underused principles in a domain and generate patent-grounded ideas |
 | `evolve` | Discover candidate new TRIZ principles (`--parameters` for parameters) |
 | `ingest` | Ingest and auto-classify patents from .txt, .pdf, or .json files |
 | `init` | Reset the patent database (only needed with `--force`) |
@@ -87,7 +91,7 @@ src/triz_ai/
   patents/             # SQLite + sqlite-vec store, ingestion pipeline
   evolution/           # Candidate principle & parameter discovery + review
   llm/                 # litellm wrapper with pydantic validation
-tests/                 # 72 unit tests
+tests/                 # 82 unit tests
 ```
 
 ## Configuration

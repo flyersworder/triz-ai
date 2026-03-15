@@ -152,8 +152,8 @@ The flagship command. Full TRIZ pipeline:
 1. LLM extracts the technical contradiction (improving vs worsening parameter)
 2. Maps to closest engineering parameters from the 50
 3. Looks up contradiction matrix -> recommended principles
-4. Searches patent store for examples of those principles applied
-5. Returns: contradiction, principles, patent examples, suggested solution directions
+4. Hybrid patent search: combines vector similarity with a principle overlap bonus (patents sharing recommended principles ranked higher) and a contradiction match bonus (patents with matching improving/worsening parameters ranked highest)
+5. LLM generates solution directions grounded in the retrieved patent examples and recommended principles
 
 ### `triz-ai discover --domain "battery technology"`
 
@@ -225,6 +225,7 @@ CREATE TABLE patents (
     claims TEXT,
     domain TEXT,
     filing_date TEXT,
+    assignee TEXT,
     source TEXT  -- "curated" | "uspto" | "google_patents"
 );
 

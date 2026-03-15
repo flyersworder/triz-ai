@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-03-15
+
+### Added
+
+- **Patent assignee field**: `assignee` column in patents table and Patent model — engineers see which companies solved similar problems
+- **Hybrid patent search**: `search_patents_hybrid()` combines vector similarity with TRIZ principle overlap and contradiction matching for more relevant patent results
+- **Solution directions**: `analyze` now generates 2-3 concrete, actionable solution directions that apply recommended TRIZ principles to the user's specific problem
+- **Enriched patent examples**: `analyze` output now includes assignee, filing date, and matched TRIZ principles for each patent
+- **Source patent in ideas**: `discover` ideas now reference the patent that inspired them via `source_patent_id`
+
+### Changed
+
+- **Analyze pipeline**: Uses hybrid search instead of pure vector similarity; adds a solution directions LLM call after patent search
+- **Discover pipeline**: Passes patent titles, assignees, and IDs as context to idea generation prompt
+- **CLI**: Patent examples in `analyze` rendered as Rich table (ID, Assignee, Title, Matched Principles); solution directions shown as numbered list; discover ideas table includes Source Patent column
+- **Seed dataset**: `battery_patents.json` now includes `assignee` field (null for existing entries)
+
+### Note
+
+- Existing users need `triz-ai init --force` to pick up the new `assignee` column (no DB migrations)
+
 ## [0.6.0] - 2026-03-15
 
 ### Added
@@ -102,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.7.0]: https://github.com/flyersworder/triz-ai/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/flyersworder/triz-ai/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/flyersworder/triz-ai/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/flyersworder/triz-ai/compare/v0.3.0...v0.4.0

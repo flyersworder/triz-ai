@@ -20,6 +20,7 @@ class Patent(BaseModel):
     claims: str | None = None
     domain: str | None = None
     filing_date: str | None = None
+    assignee: str | None = None
     source: str = "curated"
 
 
@@ -65,6 +66,7 @@ CREATE TABLE IF NOT EXISTS patents (
     claims TEXT,
     domain TEXT,
     filing_date TEXT,
+    assignee TEXT,
     source TEXT
 );
 
@@ -171,8 +173,8 @@ class PatentStore:
         conn = self._get_conn()
         conn.execute(
             "INSERT OR REPLACE INTO patents "
-            "(id, title, abstract, claims, domain, filing_date, source) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "(id, title, abstract, claims, domain, filing_date, assignee, source) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 patent.id,
                 patent.title,
@@ -180,6 +182,7 @@ class PatentStore:
                 patent.claims,
                 patent.domain,
                 patent.filing_date,
+                patent.assignee,
                 patent.source,
             ),
         )
@@ -231,6 +234,78 @@ class PatentStore:
             distance = row_dict.pop("distance")
             results.append((Patent(**row_dict), distance))
         return results
+
+    def search_patents_hybrid(
+        self,
+        query_embedding: list[float],
+        principle_ids: list[int] | None = None,
+        improving_param: int | None = None,
+        worsening_param: int | None = None,
+        limit: int = 5,
+    ) -> list[tuple[Patent, float]]:
+        """Hybrid patent search combining vector similarity with TRIZ matching.
+
+        Scoring formula:
+          hybrid_score = (1 - distance) + principle_bonus + contradiction_bonus
+        - principle_bonus: 0.3 per overlapping principle (capped at 0.6)
+        - contradiction_bonus: 0.4 exact match; 0.2 partial match
+
+        Fetches more candidates from vector search, scores them, and returns top `limit`.
+        """
+        import struct
+
+        conn = self._get_conn()
+        # Fetch more candidates than needed for re-ranking
+        candidate_count = max(limit * 4, 20)
+        embedding_bytes = struct.pack(f"{len(query_embedding)}f", *query_embedding)
+        rows = conn.execute(
+            """
+            SELECT p.*, pe.distance
+            FROM patent_embeddings pe
+            JOIN patents p ON p.id = pe.patent_id
+            WHERE pe.embedding MATCH ? AND k = ?
+            ORDER BY pe.distance
+            """,
+            (embedding_bytes, candidate_count),
+        ).fetchall()
+
+        if not rows:
+            return []
+
+        principle_ids_set = set(principle_ids or [])
+        scored: list[tuple[Patent, float]] = []
+
+        for row in rows:
+            row_dict = dict(row)
+            distance = row_dict.pop("distance")
+            patent = Patent(**row_dict)
+
+            # Base score: vector similarity (1 - distance)
+            score = 1.0 - distance
+
+            # Boost from classification match
+            if principle_ids_set or improving_param is not None:
+                classification = self.get_classification(patent.id)
+                if classification:
+                    # Principle overlap bonus: 0.3 per overlap, capped at 0.6
+                    if principle_ids_set:
+                        overlap = len(principle_ids_set & set(classification.principle_ids))
+                        score += min(overlap * 0.3, 0.6)
+
+                    # Contradiction match bonus
+                    if improving_param is not None or worsening_param is not None:
+                        c_imp = classification.contradiction.get("improving")
+                        c_wor = classification.contradiction.get("worsening")
+                        if c_imp == improving_param and c_wor == worsening_param:
+                            score += 0.4
+                        elif c_imp == improving_param or c_wor == worsening_param:
+                            score += 0.2
+
+            scored.append((patent, score))
+
+        # Sort by hybrid score descending, return top `limit`
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:limit]
 
     def get_all_patents(self) -> list[Patent]:
         """Get all patents."""
@@ -317,6 +392,7 @@ class PatentStore:
                 claims=row_dict["claims"],
                 domain=row_dict["domain"],
                 filing_date=row_dict["filing_date"],
+                assignee=row_dict.get("assignee"),
                 source=row_dict["source"],
             )
             results.append((patent, classification))
