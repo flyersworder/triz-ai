@@ -117,6 +117,7 @@ Any [litellm-supported model string](https://docs.litellm.ai/docs/providers) wor
 ```yaml
 llm:
   default_model: gpt-4o
+  classify_model: gpt-4o-mini  # smaller/cheaper model for patent classification during ingest
   api_base: https://llm-proxy.internal/v1
   api_key: your-proxy-token
 
@@ -126,6 +127,8 @@ embeddings:
   api_base: https://llm-proxy.internal/v1
   api_key: your-proxy-token
 ```
+
+You can also override the classify model per-command: `triz-ai ingest data/ --classify-model gpt-4o-mini`
 
 ## Development
 
