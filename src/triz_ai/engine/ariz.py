@@ -195,6 +195,8 @@ def orchestrate_deep(
 ) -> DeepAnalysisResult:
     """Run the full ARIZ-85C deep analysis: 3 passes with escape hatch.
 
+    Context-stage research tools run first to enrich problem_text.
+
     Pass 1: Deep reformulation → StructuredProblemModel  (deep_model)
     Pass 2: Multi-tool research (parallel)               (base model)
     Pass 3: Verify + synthesize → SolutionVerification   (deep_model)
@@ -205,6 +207,9 @@ def orchestrate_deep(
             Falls back to llm_client's default model if not set.
         reasoning_effort: Optional reasoning effort (low/medium/high) for
             Passes 1 & 3. Passed to litellm which translates across providers.
+        research_tools: Optional list of ResearchTool instances. Context-stage
+            tools enrich problem_text before Pass 1; search/enrichment-stage
+            tools run within each pipeline in Pass 2.
     """
     # Run context tools before Pass 1
     if research_tools:

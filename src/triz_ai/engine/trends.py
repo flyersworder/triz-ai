@@ -23,6 +23,7 @@ def analyze_trends(
     3. Apply system operator (subsystem/system/supersystem × past/present/future)
     4. Search patents for examples
     5. Generate predictions
+    6. Run enrichment-stage research tools
     """
     result = llm_client.analyze_trends(problem_text)
 

@@ -241,6 +241,22 @@ class TestRouter:
             # problem_text (first arg) should contain the context
             assert "100-400kHz" in call_args[0]
 
+    def test_context_tools_run_before_ifr(self, mock_llm, store):
+        """Context tools should enrich problem_text before IFR formulation."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(
+            name="web",
+            description="Web search",
+            fn=lambda q, ctx: [{"content": "Extra domain context"}],
+            stages=["context"],
+        )
+        with self._patch_pipeline("technical_contradiction"):
+            route("test problem", mock_llm, store, research_tools=[tool])
+            # IFR should receive the enriched problem text
+            ifr_call_args = mock_llm.formulate_ifr.call_args[0]
+            assert "Extra domain context" in ifr_call_args[0]
+
     def test_context_tools_no_content_no_change(self, mock_llm, store):
         """Context tools returning empty content should not modify problem text."""
         from triz_ai.tools import ResearchTool

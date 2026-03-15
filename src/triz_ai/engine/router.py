@@ -60,22 +60,15 @@ def route(
 ) -> AnalysisResult:
     """Route a problem to the appropriate TRIZ analysis pipeline.
 
-    1. Formulate IFR (always)
-    2. If --method specified, skip classification
-    3. Otherwise classify → get primary/secondary method
-    4. If confidence < 0.4, run RCA to reformulate, then re-classify
-    5. Dispatch to appropriate pipeline
-    6. Attach secondary method suggestion
+    1. Run context-stage research tools (enriches problem text for all downstream calls)
+    2. Formulate IFR (always)
+    3. If --method specified, skip classification
+    4. Otherwise classify → get primary/secondary method
+    5. If confidence < 0.4, run RCA to reformulate, then re-classify
+    6. Dispatch to appropriate pipeline
+    7. Attach secondary method suggestion
     """
-    # Step 1: Formulate IFR (always)
-    ideal_final_result = None
-    try:
-        ifr = llm_client.formulate_ifr(problem_text)
-        ideal_final_result = ifr.ideal_result
-    except Exception:
-        logger.warning("IFR formulation failed, continuing without")
-
-    # Step 1.5: Run context tools (enriches problem text for all downstream calls)
+    # Step 1: Run context tools (enriches problem text for all downstream calls)
     if research_tools:
         from triz_ai.tools import run_stage_tools
 
@@ -88,7 +81,15 @@ def route(
                     f"Additional context:\n{additional_context}\n\nProblem: {problem_text}"
                 )
 
-    # Step 2: Determine method
+    # Step 2: Formulate IFR (always, using enriched problem text)
+    ideal_final_result = None
+    try:
+        ifr = llm_client.formulate_ifr(problem_text)
+        ideal_final_result = ifr.ideal_result
+    except Exception:
+        logger.warning("IFR formulation failed, continuing without")
+
+    # Step 3: Determine method
     primary_method: str
     secondary_method: str | None = None
     method_confidence: float = 1.0

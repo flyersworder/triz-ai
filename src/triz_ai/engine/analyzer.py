@@ -18,6 +18,7 @@ class AnalysisResult(BaseModel):
 
     The result is tool-agnostic at the top level, with tool-specific data in `details`.
     For backward compatibility, contradiction-specific fields are kept but optional.
+    `enrichment` holds data from enrichment-stage research tools (empty if none).
     """
 
     problem: str
@@ -53,8 +54,9 @@ def analyze_contradiction(
     1. LLM extracts the technical contradiction
     2. Maps to engineering parameters
     3. Looks up contradiction matrix for recommended principles
-    4. Searches patent store for examples
+    4. Searches patent store for examples (search-stage research tools run here)
     5. Generates solution directions
+    6. Runs enrichment-stage research tools
     """
     # Step 1: Extract contradiction
     contradiction = llm_client.extract_contradiction(problem_text)
@@ -148,7 +150,12 @@ def search_patents(
     worsening_param: int | None = None,
     research_tools: list | None = None,
 ) -> list[dict]:
-    """Search patent store and research tools for relevant examples."""
+    """Search patent store and search-stage research tools for relevant examples.
+
+    Research tools are filtered to those with "search" in their stages.
+    Each tool receives a context dict with principle_ids, improving_param,
+    and worsening_param when available. Results are deduplicated by title.
+    """
     patent_examples: list[dict] = []
 
     # 1. Local DB search (existing logic)

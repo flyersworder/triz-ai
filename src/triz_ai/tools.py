@@ -35,6 +35,14 @@ class ResearchTool:
     fn: Callable[[str, dict], list[dict]]
     stages: list[str] = field(default_factory=lambda: ["search"])
 
+    def __post_init__(self):
+        invalid = set(self.stages) - VALID_STAGES
+        if invalid:
+            raise ValueError(
+                f"Invalid stages {invalid} for tool '{self.name}'. "
+                f"Valid stages: {', '.join(sorted(VALID_STAGES))}"
+            )
+
 
 def run_stage_tools(
     tools: list[ResearchTool] | None,
@@ -42,7 +50,10 @@ def run_stage_tools(
     query: str,
     extra_context: dict | None = None,
 ) -> list[dict]:
-    """Run all tools registered for the given stage, collecting results."""
+    """Run all tools registered for the given stage, collecting results.
+
+    Tools that fail are logged and skipped — they never block analysis.
+    """
     if not tools:
         return []
     context = {"stage": stage}

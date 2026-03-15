@@ -22,6 +22,7 @@ def analyze_physical(
     2. Recommend separation principles
     3. Search patents for examples
     4. Generate solution directions
+    5. Run enrichment-stage research tools
     """
     result = llm_client.extract_physical_contradiction(problem_text)
 

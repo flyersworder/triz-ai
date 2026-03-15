@@ -32,6 +32,23 @@ class TestResearchToolDataclass:
         )
         assert tool.stages == ["context", "enrichment"]
 
+    def test_invalid_stages_raises(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="Invalid stages"):
+            ResearchTool(name="bad", description="Bad", fn=lambda q, ctx: [], stages=["typo"])
+
+    def test_mixed_valid_invalid_stages_raises(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="Invalid stages"):
+            ResearchTool(
+                name="bad",
+                description="Bad",
+                fn=lambda q, ctx: [],
+                stages=["search", "bogus"],
+            )
+
 
 class TestRunStageTools:
     def test_filters_by_stage(self):

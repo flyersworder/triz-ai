@@ -23,6 +23,7 @@ def analyze_functions(
     3. Generate recommendations
     4. Search patents for examples
     5. Generate solution directions
+    6. Run enrichment-stage research tools
     """
     result = llm_client.analyze_functions(problem_text)
 
