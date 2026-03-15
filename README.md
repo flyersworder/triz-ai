@@ -61,6 +61,15 @@ triz-ai analyze "Reduce the BOM cost of this gate driver circuit"
 triz-ai analyze "What is the next generation of SiC packaging technology?"
 # → Routes to: trends analysis
 
+# Deep ARIZ-85C analysis — reformulates, runs multiple tools, verifies against IFR
+triz-ai analyze "How to increase SiC MOSFET switching speed without increasing EMI" --deep
+
+# Deep with a reasoning model for reformulation/synthesis, cheaper model for pipelines
+triz-ai analyze "problem" --deep \
+  --model "openrouter/nvidia/nemotron-3-super-120b-a12b:free" \
+  --deep-model "openrouter/deepseek/deepseek-r1:free" \
+  --reasoning-effort high
+
 # Force a specific method
 triz-ai analyze "How to detect delamination" --method su-field
 
@@ -82,7 +91,7 @@ triz-ai matrix stats
 
 | Command | Description |
 |---------|-------------|
-| `analyze` | Auto-routes to the best TRIZ tool (6 methods); `--method` to force one |
+| `analyze` | Auto-routes to the best TRIZ tool (6 methods); `--method` to force one; `--deep` for full ARIZ-85C |
 | `discover` | Find underused principles in a domain and generate patent-grounded ideas |
 | `evolve` | Discover candidate new TRIZ principles (`--parameters` for parameters) |
 | `ingest` | Ingest and auto-classify patents from .txt, .pdf, or .json files |
@@ -103,6 +112,32 @@ triz-ai matrix stats
 
 All commands support `--format text|json|markdown` and `--model` to override the LLM model.
 
+### Deep ARIZ-85C Analysis
+
+Use `--deep` for a full 3-pass analysis that reformulates the problem, runs multiple TRIZ tools in parallel, and verifies solutions against the Ideal Final Result:
+
+```bash
+# Basic deep analysis
+triz-ai analyze "problem" --deep
+
+# Use a reasoning model for reformulation/synthesis, cheaper model for pipelines
+triz-ai analyze "problem" --deep \
+  --deep-model "openrouter/deepseek/deepseek-r1:free" \
+  --reasoning-effort high
+
+# Mix models: cheap for Pass 2 pipelines, reasoning for Passes 1 & 3
+triz-ai analyze "problem" --deep \
+  --model "openrouter/nvidia/nemotron-3-super-120b-a12b:free" \
+  --deep-model "anthropic/claude-sonnet-4-6" \
+  --reasoning-effort medium
+```
+
+| Flag | Affects | Purpose |
+|------|---------|---------|
+| `--model` | Pass 2 (pipelines) + fallback | Base model for parallel tool research |
+| `--deep-model` | Pass 1 & 3 | Reasoning model for reformulation + synthesis |
+| `--reasoning-effort` | Pass 1 & 3 | `low`/`medium`/`high` — litellm translates across providers |
+
 ## Project Structure
 
 ```
@@ -111,11 +146,11 @@ src/triz_ai/
   config.py            # Config loading (~/.triz-ai/config.yaml)
   data/                # TRIZ JSON data (principles, parameters, matrix, separation, solutions, trends)
   knowledge/           # Loaders for all TRIZ knowledge data
-  engine/              # analyzer, router, 5 new pipelines, classifier, generator, evaluator
+  engine/              # analyzer, router, ariz orchestrator, 5 pipelines, classifier, generator, evaluator
   patents/             # SQLite + sqlite-vec store, ingestion pipeline
   evolution/           # Candidate principle & parameter discovery + review
   llm/                 # litellm wrapper with pydantic validation
-tests/                 # 124 unit tests
+tests/                 # 137 unit tests
 ```
 
 ## Configuration
@@ -126,7 +161,9 @@ Config lives at `~/.triz-ai/config.yaml`:
 llm:
   default_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
   classify_model: openrouter/nvidia/nemotron-3-nano-30b-a3b:free
-  # router_model: null  # model for problem classification (defaults to classify_model)
+  # router_model: null           # model for problem classification (defaults to classify_model)
+  # deep_model: null             # model for ARIZ deep passes 1 & 3 (defaults to default_model)
+  # reasoning_effort: null       # low/medium/high for reasoning models in deep mode
 
 embeddings:
   model: openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free
@@ -145,8 +182,10 @@ Any [litellm-supported model string](https://docs.litellm.ai/docs/providers) wor
 
 ```yaml
 llm:
-  default_model: gpt-4o
-  classify_model: gpt-4o-mini  # smaller/cheaper model for patent classification during ingest
+  default_model: gpt-4o              # base model for analysis pipelines
+  classify_model: gpt-4o-mini        # smaller model for patent classification during ingest
+  deep_model: o3                     # reasoning model for ARIZ deep passes 1 & 3
+  reasoning_effort: medium           # low/medium/high for the deep model
   api_base: https://llm-proxy.internal/v1
   api_key: your-proxy-token
 
@@ -157,7 +196,12 @@ embeddings:
   api_key: your-proxy-token
 ```
 
-You can also override the classify model per-command: `triz-ai ingest data/ --classify-model gpt-4o-mini`
+You can also override models per-command:
+
+```bash
+triz-ai ingest data/ --classify-model gpt-4o-mini
+triz-ai analyze "problem" --deep --deep-model o3 --reasoning-effort high
+```
 
 ## Development
 

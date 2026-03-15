@@ -12,6 +12,7 @@ from triz_ai.llm.prompts import (
     classify_patent_prompt,
     classify_problem_prompt,
     cluster_patents_prompt,
+    deep_reformulation_prompt,
     extract_contradiction_prompt,
     extract_physical_contradiction_prompt,
     function_analysis_prompt,
@@ -22,6 +23,7 @@ from triz_ai.llm.prompts import (
     root_cause_analysis_prompt,
     seed_matrix_prompt,
     solution_directions_prompt,
+    solution_verification_prompt,
     su_field_analysis_prompt,
     trends_analysis_prompt,
     trimming_analysis_prompt,
@@ -249,6 +251,7 @@ class LLMClient:
         retry: bool = True,
         model: str | None = None,
         max_tokens: int | None = None,
+        reasoning_effort: str | None = None,
     ) -> T:
         """Call LLM and validate response against pydantic model.
 
@@ -259,6 +262,9 @@ class LLMClient:
             model: Optional model override (defaults to self.model).
             max_tokens: Optional max output tokens (useful for structured
                 responses to avoid reserving large output windows).
+            reasoning_effort: Optional reasoning effort level for reasoning
+                models (low/medium/high). Passed to litellm which translates
+                across providers (Anthropic, OpenAI o-series, DeepSeek, etc.).
         """
         use_model = model or self.model
         messages = [
@@ -269,6 +275,8 @@ class LLMClient:
         kwargs = self._completion_kwargs()
         if max_tokens is not None:
             kwargs["max_tokens"] = max_tokens
+        if reasoning_effort is not None:
+            kwargs["reasoning_effort"] = reasoning_effort
 
         try:
             response = litellm.completion(
@@ -295,6 +303,7 @@ class LLMClient:
                     retry=False,
                     model=use_model,
                     max_tokens=max_tokens,
+                    reasoning_effort=reasoning_effort,
                 )
             raise _friendly_error(e) from e
 
@@ -480,6 +489,75 @@ class LLMClient:
             trends_analysis_prompt(),
             problem_text,
             TrendsResult,
+        )
+
+    def deep_reformulate(
+        self,
+        problem_text: str,
+        model: str | None = None,
+        reasoning_effort: str | None = None,
+    ):
+        """Deep ARIZ-85C reformulation (Pass 1).
+
+        Args:
+            model: Optional model override for this pass (e.g. a reasoning model).
+            reasoning_effort: Optional effort level (low/medium/high).
+        """
+        from triz_ai.engine.ariz import StructuredProblemModel
+
+        return self._complete(
+            deep_reformulation_prompt(),
+            problem_text,
+            StructuredProblemModel,
+            model=model,
+            max_tokens=4096,
+            reasoning_effort=reasoning_effort,
+        )
+
+    def verify_and_synthesize(
+        self,
+        problem_model,
+        candidates: list[dict],
+        model: str | None = None,
+        reasoning_effort: str | None = None,
+    ):
+        """Verify candidates against IFR and synthesize (Pass 3).
+
+        Args:
+            model: Optional model override for this pass (e.g. a reasoning model).
+            reasoning_effort: Optional effort level (low/medium/high).
+        """
+        from triz_ai.engine.ariz import SolutionVerification
+
+        # Build compact user prompt from problem model and candidates
+        candidate_summaries = []
+        for c in candidates:
+            dirs = c.get("solution_directions", [])
+            dir_titles = ", ".join(d.get("title", "") for d in dirs)
+            summary = (
+                f"Method: {c['method']}\n"
+                f"Reasoning: {c.get('reasoning', 'N/A')}\n"
+                f"Solution directions: {dir_titles}"
+            )
+            candidate_summaries.append(summary)
+
+        tc1_desc = problem_model.technical_contradiction_1.intensified_description
+        tc2_desc = problem_model.technical_contradiction_2.intensified_description
+        user_prompt = (
+            f"Problem: {problem_model.reformulated_problem}\n\n"
+            f"Ideal Final Result: {problem_model.ideal_final_result}\n\n"
+            f"Technical Contradiction 1: {tc1_desc}\n"
+            f"Technical Contradiction 2: {tc2_desc}\n\n"
+            f"Candidates:\n\n" + "\n---\n".join(candidate_summaries)
+        )
+
+        return self._complete(
+            solution_verification_prompt(),
+            user_prompt,
+            SolutionVerification,
+            model=model,
+            max_tokens=4096,
+            reasoning_effort=reasoning_effort,
         )
 
     def get_embedding(self, text: str) -> list[float]:

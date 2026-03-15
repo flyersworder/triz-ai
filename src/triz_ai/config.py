@@ -14,6 +14,8 @@ class LLMConfig(BaseModel):
     default_model: str = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
     classify_model: str = "openrouter/nvidia/nemotron-3-nano-30b-a3b:free"
     router_model: str | None = None  # Defaults to classify_model
+    deep_model: str | None = None  # Model for ARIZ deep passes 1 & 3 (defaults to default_model)
+    reasoning_effort: str | None = None  # low/medium/high for reasoning models in deep mode
     api_base: str | None = None  # Custom API base URL (e.g., litellm proxy)
     api_key: str | None = None  # Custom API key (overrides env var)
 

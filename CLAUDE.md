@@ -28,6 +28,18 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates before re-routing. `--method` flag bypasses classifier. `--router-model` overrides classification model.
 
+### Deep ARIZ-85C Mode (`--deep`)
+
+`analyze --deep` bypasses the router entirely and runs a 3-pass ARIZ-85C orchestrator (`engine/ariz.py`):
+- **Pass 1**: Single LLM call reformulates the problem deeply — identifies both TCs (intensified), physical contradiction (macro+micro), IFR, resource inventory, and recommends 2-4 tools
+- **Pass 2**: Runs selected pipelines in parallel via `ThreadPoolExecutor` (IO-bound, GIL not an issue)
+- **Pass 3**: Verifies each candidate against IFR, scores ideality, synthesizes best elements
+- **Escape hatch**: If no candidate satisfies IFR, swaps TC1↔TC2 and re-runs Passes 2-3 once
+- `--deep` and `--method` are mutually exclusive
+- `deep_model` and `reasoning_effort` are configurable in `~/.triz-ai/config.yaml` under `llm`; CLI flags `--deep-model` and `--reasoning-effort` override config
+- Pass 2 pipelines always use `default_model` (via `--model`); Passes 1 & 3 use `deep_model` (falls back to `default_model`)
+- `reasoning_effort` accepts `low|medium|high`; litellm translates across providers (Anthropic, OpenAI o-series, DeepSeek R1, etc.)
+
 ## Key Constraints
 
 - **6 TRIZ analysis methods** — technical contradiction, physical contradiction, Su-Field, function analysis, trimming, trends. Router auto-classifies; `--method` forces one.

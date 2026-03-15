@@ -65,6 +65,21 @@ def analyze(
         help="Force a specific TRIZ method: technical-contradiction, physical-contradiction, "
         "su-field, function-analysis, trimming, trends",
     ),
+    deep: bool = typer.Option(
+        False,
+        help="Deep ARIZ-85C analysis: 3-pass reformulation, multi-tool research, "
+        "and IFR verification (slower but much richer)",
+    ),
+    deep_model: str = typer.Option(
+        None,
+        help="Model for deep mode Passes 1 & 3 (overrides config deep_model). "
+        "Use a reasoning model (e.g. deepseek-r1, o3, claude-opus).",
+    ),
+    reasoning_effort: str = typer.Option(
+        None,
+        help="Reasoning effort for deep Passes 1 & 3: low, medium, high "
+        "(overrides config reasoning_effort).",
+    ),
     router_model: str = typer.Option(
         None,
         help="Model for problem classification (default: classify_model from config)",
@@ -75,14 +90,61 @@ def analyze(
 
     Auto-classifies the problem and routes to the best TRIZ tool,
     or use --method to force a specific analysis method.
+    Use --deep for full ARIZ-85C multi-tool analysis.
     """
+    if deep and method:
+        console.print(
+            "[red]Cannot use --method with --deep. Deep mode selects tools automatically.[/red]"
+        )
+        raise typer.Exit(1)
+
+    if (deep_model or reasoning_effort) and not deep:
+        console.print("[red]--deep-model and --reasoning-effort require --deep mode.[/red]")
+        raise typer.Exit(1)
+
+    valid_efforts = {"low", "medium", "high"}
+    if reasoning_effort and reasoning_effort not in valid_efforts:
+        console.print(
+            f"[red]Invalid --reasoning-effort '{reasoning_effort}'. "
+            f"Must be one of: {', '.join(sorted(valid_efforts))}[/red]"
+        )
+        raise typer.Exit(1)
+
     from triz_ai.config import load_config
-    from triz_ai.engine.router import route
 
     config = load_config()
-    effective_router_model = router_model or config.llm.router_model
     llm_client = _get_llm_client(model)
     store = _get_store()
+
+    if deep:
+        from triz_ai.engine.ariz import orchestrate_deep
+
+        # CLI flags override config; config overrides defaults
+        effective_deep_model = deep_model or config.llm.deep_model
+        effective_reasoning = reasoning_effort or config.llm.reasoning_effort
+
+        try:
+            deep_result = orchestrate_deep(
+                problem,
+                llm_client,
+                store,
+                deep_model=effective_deep_model,
+                reasoning_effort=effective_reasoning,
+            )
+        except Exception as e:
+            console.print(f"[red]Deep analysis failed: {e}[/red]")
+            raise typer.Exit(1) from None
+
+        if format != "text":
+            _output(deep_result.model_dump(), format)
+            return
+
+        _render_deep_analysis(problem, deep_result)
+        return
+
+    from triz_ai.engine.router import route
+
+    effective_router_model = router_model or config.llm.router_model
 
     try:
         result = route(
@@ -357,6 +419,108 @@ def _render_solution_directions(result) -> None:
             console.print(f"     {d['description']}")
             if principles_str:
                 console.print(f"     [dim]Applies: {principles_str}[/dim]")
+
+
+def _render_deep_analysis(problem: str, result) -> None:
+    """Render deep ARIZ-85C analysis output."""
+    pm = result.problem_model
+
+    # 1. Problem panel
+    console.print(Panel(problem, title="[bold]Problem[/bold]", border_style="blue"))
+
+    # 2. Deep Analysis Model panel
+    model_text = f"[bold]Reformulated:[/bold] {pm.reformulated_problem}\n\n"
+    tc1 = pm.technical_contradiction_1
+    tc2 = pm.technical_contradiction_2
+    model_text += (
+        f"[bold]TC1:[/bold] Improving [cyan]{tc1.improving_param_name}[/cyan] "
+        f"worsens [red]{tc1.worsening_param_name}[/red]\n"
+        f"  [dim]{tc1.intensified_description}[/dim]\n\n"
+    )
+    model_text += (
+        f"[bold]TC2:[/bold] Improving [cyan]{tc2.improving_param_name}[/cyan] "
+        f"worsens [red]{tc2.worsening_param_name}[/red]\n"
+        f"  [dim]{tc2.intensified_description}[/dim]\n\n"
+    )
+    if pm.physical_contradiction:
+        pc = pm.physical_contradiction
+        model_text += (
+            f"[bold]Physical Contradiction:[/bold] [cyan]{pc.property}[/cyan] must be "
+            f"'[green]{pc.macro_requirement}[/green]' (macro) AND "
+            f"'[red]{pc.micro_requirement}[/red]' (micro)\n\n"
+        )
+    model_text += f"[bold]IFR:[/bold] {pm.ideal_final_result}\n\n"
+    ri = pm.resource_inventory
+    model_text += (
+        f"[bold]Resources:[/bold] "
+        f"Substances: {', '.join(ri.substances)} | "
+        f"Fields: {', '.join(ri.fields)} | "
+        f"Time: {', '.join(ri.time_resources)} | "
+        f"Space: {', '.join(ri.space_resources)}"
+    )
+    console.print(
+        Panel(
+            model_text,
+            title="[bold]Deep Analysis Model[/bold]",
+            border_style="green",
+        )
+    )
+
+    # 3. Tools Used
+    tools_str = ", ".join(t.replace("_", " ").title() for t in result.tools_used)
+    console.print(f"\n[bold]Tools Used:[/bold] [cyan]{tools_str}[/cyan]\n")
+
+    # 4. Per-tool findings
+    for tool_result in result.tool_results:
+        method_label = tool_result.method.replace("_", " ").title()
+        console.print(f"\n[bold]── {method_label} ──[/bold]")
+        _render_method_details(tool_result)
+        _render_patents(tool_result)
+        _render_solution_directions(tool_result)
+
+    # 5. Verification table
+    if result.verification.verified_candidates:
+        console.print()
+        vtable = Table(title="IFR Verification")
+        vtable.add_column("Method", style="cyan")
+        vtable.add_column("Satisfies IFR", style="bold")
+        vtable.add_column("Ideality", justify="right")
+        vtable.add_column("Key Insight")
+        for vc in result.verification.verified_candidates:
+            ifr_str = "[green]Yes[/green]" if vc.satisfies_ifr else "[red]No[/red]"
+            vtable.add_row(
+                vc.method.replace("_", " ").title(),
+                ifr_str,
+                f"{vc.ideality_score:.2f}",
+                vc.key_insight,
+            )
+        console.print(vtable)
+
+    # 6. Synthesized Solutions
+    if result.verification.synthesized_solutions:
+        console.print("\n[bold]Synthesized Solutions:[/bold]")
+        for i, sol in enumerate(result.verification.synthesized_solutions, 1):
+            console.print(
+                f"\n  [cyan]{i}.[/cyan] [bold]{sol.title}[/bold] "
+                f"[dim](ideality: {sol.ideality_score:.2f})[/dim]"
+            )
+            console.print(f"     {sol.description}")
+            if sol.principles_applied:
+                console.print(f"     [dim]Applies: {', '.join(sol.principles_applied)}[/dim]")
+            if sol.supersystem_changes:
+                console.print(
+                    f"     [yellow]Supersystem changes: "
+                    f"{', '.join(sol.supersystem_changes)}[/yellow]"
+                )
+
+    # 7. Escape hatch note
+    if result.used_escape_hatch:
+        console.print(
+            "\n[yellow]Note: Initial analysis did not satisfy IFR. "
+            "TC1/TC2 were swapped and analysis was re-run (ARIZ escape hatch).[/yellow]"
+        )
+
+    console.print(f"\n[dim]{result.verification.reasoning}[/dim]")
 
 
 @app.command()

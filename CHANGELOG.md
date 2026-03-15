@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-03-15
+
+### Added
+
+- **Deep ARIZ-85C analysis (`--deep`)**: Full 3-pass orchestrator that reformulates problems deeply, runs 2-4 TRIZ tools in parallel, and verifies solutions against the Ideal Final Result
+- **Pass 1 — Deep reformulation**: Single rich LLM call identifies both technical contradictions (intensified), physical contradiction (macro + micro), IFR, resource inventory, and recommends tools
+- **Pass 2 — Multi-tool research**: 2-4 existing pipelines run in parallel via ThreadPoolExecutor; each receives the reformulated problem and IFR from Pass 1
+- **Pass 3 — Verify + synthesize**: Checks each candidate against IFR, scores ideality, synthesizes best elements, identifies supersystem changes
+- **Escape hatch**: If no candidate satisfies IFR, automatically swaps TC1/TC2 and re-runs Passes 2-3 (maximum 1 retry)
+- **ARIZ Pydantic models**: `StructuredProblemModel`, `SolutionVerification`, `DeepAnalysisResult`, and supporting models for type-safe deep analysis
+
+### Changed
+
+- **`analyze` command**: New `--deep` flag for full ARIZ-85C analysis; mutually exclusive with `--method`. `--deep-model` and `--reasoning-effort` allow using a reasoning model for Passes 1 & 3 while keeping a cheaper model for Pass 2 pipelines
+- **Version**: Bumped to 0.9.0
+
 ## [0.8.0] - 2026-03-15
 
 ### Added
@@ -147,6 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.9.0]: https://github.com/flyersworder/triz-ai/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/flyersworder/triz-ai/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/flyersworder/triz-ai/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/flyersworder/triz-ai/compare/v0.5.0...v0.6.0

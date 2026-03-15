@@ -427,3 +427,97 @@ def trends_analysis_prompt() -> str:
         '"description": "<what this stage looks like for this technology>"}], '
         '"predictions": ["<prediction 1>", "<prediction 2>", "..."]}'
     )
+
+
+# --- Deep ARIZ-85C prompts ---
+
+
+def deep_reformulation_prompt() -> str:
+    """System prompt implementing ARIZ Parts 1-3 (problem reformulation,
+    contradiction intensification, and IFR formulation) in one LLM pass."""
+    params = _parameters_list()
+    return (
+        "You are a TRIZ expert performing deep ARIZ-85C analysis (Parts 1-3).\n\n"
+        "Given a problem description, perform the following steps:\n\n"
+        "1. **Reformulate the problem** to reveal hidden contradictions. Strip away "
+        "domain jargon and restate the problem in terms of conflicting requirements.\n\n"
+        "2. **Identify TWO technical contradictions** (TC1 and TC2). TC1 is the primary "
+        "contradiction; TC2 is the reversed/alternate formulation. Intensify each to "
+        "its extreme — push the improving parameter to its maximum and observe the "
+        "worst-case worsening.\n\n"
+        "3. **Map each TC's parameters** to the engineering parameter list below "
+        "(IDs 1-50).\n\n"
+        "4. **State the physical contradiction** at both macro level (the part as a "
+        "whole must be A AND not-A) and micro level (the particles/molecules of the "
+        "part must be A AND not-A). If no physical contradiction exists, return null.\n\n"
+        "5. **Formulate the Ideal Final Result (IFR)** in TRIZ format: "
+        "'The [element] ITSELF [action] without [harm]'.\n\n"
+        "6. **Inventory available resources**: substances present in or near the system, "
+        "fields already acting, time resources (before/during/after), and space resources "
+        "(inside/outside/surface).\n\n"
+        "7. **Recommend 2-4 TRIZ tools** from: technical_contradiction, "
+        "physical_contradiction, su_field, function_analysis, trimming, trends. "
+        "Choose the tools most likely to resolve the identified contradictions.\n\n"
+        "Engineering Parameters (1-50):\n"
+        f"{params}\n\n"
+        "Respond with JSON:\n"
+        '{"original_problem": "<original>", '
+        '"reformulated_problem": "<deeper reformulation>", '
+        '"technical_contradiction_1": {'
+        '"improving_param_id": <int>, "improving_param_name": "<name>", '
+        '"worsening_param_id": <int>, "worsening_param_name": "<name>", '
+        '"intensified_description": "<TC pushed to extreme>"}, '
+        '"technical_contradiction_2": {'
+        '"improving_param_id": <int>, "improving_param_name": "<name>", '
+        '"worsening_param_id": <int>, "worsening_param_name": "<name>", '
+        '"intensified_description": "<alternate TC>"}, '
+        '"physical_contradiction": {'
+        '"property": "<prop>", '
+        '"macro_requirement": "<A>", '
+        '"micro_requirement": "<B>"} or null, '
+        '"ideal_final_result": "<IFR statement>", '
+        '"resource_inventory": {'
+        '"substances": ["<substance>", "..."], '
+        '"fields": ["<field>", "..."], '
+        '"time_resources": ["<time resource>", "..."], '
+        '"space_resources": ["<space resource>", "..."]}, '
+        '"recommended_tools": ["<method1>", "<method2>"], '
+        '"reasoning": "<reasoning behind reformulation>"}'
+    )
+
+
+def solution_verification_prompt() -> str:
+    """System prompt implementing ARIZ Part 7 (solution verification and
+    synthesis across multiple candidate solutions)."""
+    return (
+        "You are a TRIZ expert performing ARIZ-85C solution verification (Part 7).\n\n"
+        "Given the original problem, its Ideal Final Result (IFR), and a set of "
+        "candidate solutions from different TRIZ tools, perform the following:\n\n"
+        "1. **Verify each candidate** against the IFR:\n"
+        "   - Does it fully satisfy the IFR?\n"
+        "   - What gap remains between the candidate and the IFR?\n"
+        "   - Score ideality (0.0-1.0) based on:\n"
+        "     * Useful function achieved (0.0-0.4)\n"
+        "     * No harmful side effects (0.0-0.3)\n"
+        "     * Minimal resources consumed (0.0-0.3)\n\n"
+        "2. **Synthesize combined solutions** by taking the best elements from "
+        "multiple candidates. A synthesized solution may combine principles from "
+        "different methods to get closer to the IFR.\n\n"
+        "3. **Identify supersystem changes** needed — changes to the environment, "
+        "interfaces, or adjacent systems required for each synthesized solution.\n\n"
+        "Respond with JSON:\n"
+        '{"verified_candidates": [{'
+        '"method": "<method>", '
+        '"satisfies_ifr": <bool>, '
+        '"ifr_gap": "<what is missing>", '
+        '"ideality_score": <float>, '
+        '"key_insight": "<key insight>"}], '
+        '"any_satisfies_ifr": <bool>, '
+        '"synthesized_solutions": [{'
+        '"title": "<title>", '
+        '"description": "<description>", '
+        '"principles_applied": ["<principle>", "..."], '
+        '"supersystem_changes": ["<change>", "..."], '
+        '"ideality_score": <float>}], '
+        '"reasoning": "<verification reasoning>"}'
+    )
