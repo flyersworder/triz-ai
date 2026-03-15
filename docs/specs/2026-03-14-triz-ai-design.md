@@ -22,17 +22,29 @@ Portfolio/demo piece — optimized for demo-ability, publishable insights, and s
 triz-ai/
 ├── src/
 │   └── triz_ai/
-│       ├── __init__.py
+│       ├── __init__.py             # Exports ResearchTool, run_stage_tools
 │       ├── cli.py                  # CLI entry point (typer)
+│       ├── config.py               # Config loading (~/.triz-ai/config.yaml)
+│       ├── tools.py                # ResearchTool dataclass + run_stage_tools() helper
 │       ├── knowledge/
 │       │   ├── __init__.py
 │       │   ├── principles.py       # 40 TRIZ principles as structured data
 │       │   ├── contradictions.py   # Contradiction matrix (39x39 core, extensible)
 │       │   ├── matrix_builder.py   # LLM-seeds missing matrix cells (params 40-50)
-│       │   └── parameters.py       # 50 engineering parameters
+│       │   ├── parameters.py       # 50 engineering parameters
+│       │   ├── separation.py       # 4 separation principles for physical contradictions
+│       │   ├── solutions.py        # 76 standard solutions (5 classes) for Su-Field
+│       │   └── trends.py           # 8 evolution trends with stages
 │       ├── engine/
 │       │   ├── __init__.py
-│       │   ├── analyzer.py         # Problem -> contradiction -> principles
+│       │   ├── router.py           # Problem classifier + IFR + RCA + dispatch
+│       │   ├── ariz.py             # Deep ARIZ-85C 3-pass orchestrator
+│       │   ├── analyzer.py         # Technical contradiction pipeline + search_patents + run_enrichment_tools
+│       │   ├── physical.py         # Physical contradiction pipeline
+│       │   ├── su_field.py         # Su-Field analysis pipeline
+│       │   ├── function_analysis.py# Function analysis pipeline
+│       │   ├── trimming.py         # Trimming analysis pipeline
+│       │   ├── trends.py           # Evolution trends + system operator pipeline
 │       │   ├── classifier.py       # Patent text -> TRIZ principle tags
 │       │   ├── generator.py        # White space / idea generation
 │       │   └── evaluator.py        # Idea scoring against prior art
@@ -51,7 +63,10 @@ triz-ai/
 │       └── data/                   # Static TRIZ knowledge (JSON, bundled in package)
 │           ├── principles.json     # 40 principles with sub-principles
 │           ├── parameters.json     # 50 engineering parameters (1-39 classic + 40-50 modern)
-│           └── matrix.json         # Contradiction matrix (covers params 1-39)
+│           ├── matrix.json         # Contradiction matrix (covers params 1-39)
+│           ├── separation_principles.json  # 4 separation principles
+│           ├── standard_solutions.json     # 76 standard solutions (5 classes)
+│           └── evolution_trends.json       # 8 evolution trends with stages
 ├── tests/
 ├── pyproject.toml
 └── README.md
@@ -89,7 +104,7 @@ class Principle(BaseModel):
     keywords: list[str]  # For text matching
 ```
 
-Source data in `triz_ai/data/principles.json`, bundled inside the package and loaded into pydantic models at runtime.
+Source data in `triz_ai/data/principles.json`, bundled inside the package and loaded into pydantic models at runtime (all loaders use `@lru_cache`).
 
 ### Engineering Parameters (50)
 
@@ -139,6 +154,18 @@ class CandidateParameter(BaseModel):
 
 Discovered when patents have contradictions that don't map well to the existing 50 parameters.
 
+### Separation Principles (4)
+
+For resolving physical contradictions: separation in time, space, scale, and upon condition. Each has specific techniques. Stored in `separation_principles.json`.
+
+### Standard Solutions (76, 5 classes)
+
+For Su-Field analysis. Organized by class (building/destroying/measuring Su-Field models, etc.). Stored in `standard_solutions.json`.
+
+### Evolution Trends (8)
+
+For technology evolution analysis: increasing ideality, energy conductivity, dynamization, transition to micro-level, etc. Each trend has numbered stages. Stored in `evolution_trends.json`.
+
 ## CLI Commands
 
 ### First-run workflow
@@ -150,17 +177,50 @@ No setup is required. `triz-ai analyze "problem"` works immediately — the data
 The flagship command. Auto-classifies the problem and routes to the best TRIZ tool:
 
 1. **IFR formulation** — Always starts with Ideal Final Result
-2. **Problem classification** — Classifier determines the best TRIZ method (or use `--method` to force one)
-3. **Root cause analysis** — If classifier confidence < 0.4, RCA reformulates and re-classifies
-4. **Pipeline dispatch** — Routes to one of 6 specialized pipelines:
+2. **Context tools** — If research tools with `stages=["context"]` are provided, they run here and enrich `problem_text` for all downstream LLM calls
+3. **Problem classification** — Classifier determines the best TRIZ method (or use `--method` to force one)
+4. **Root cause analysis** — If classifier confidence < 0.4, RCA reformulates and re-classifies
+5. **Pipeline dispatch** — Routes to one of 6 specialized pipelines:
    - `technical_contradiction` → contradiction extraction → matrix lookup → hybrid patent search → solution directions
    - `physical_contradiction` → opposing requirements → separation principles
    - `su_field` → substance-field model → 76 standard solutions
    - `function_analysis` → component decomposition → harmful/insufficient function identification
    - `trimming` → component cost assessment → trimming candidates → function redistribution
    - `trends` → evolution trend positioning → system operator → next-stage predictions
-5. **Patent search** — All pipelines search for related patents (hybrid for contradictions, vector-only for others)
-6. **Solution directions** — LLM generates 2-3 concrete approaches
+6. **Patent search** — All pipelines search for related patents (hybrid for contradictions, vector-only for others). Research tools with `stages=["search"]` run here alongside local DB.
+7. **Solution directions** — LLM generates 2-3 concrete approaches
+8. **Enrichment** — Research tools with `stages=["enrichment"]` run after solution generation. Results stored in `AnalysisResult.enrichment`.
+
+#### Deep ARIZ-85C mode (`--deep`)
+
+`analyze --deep` bypasses the router and runs a 3-pass ARIZ-85C orchestrator:
+
+- **Pass 1** (deep_model): Deep reformulation → identifies both TCs (intensified), physical contradiction (macro+micro), IFR, resource inventory, and recommends 2-4 tools. Context-stage research tools enrich `problem_text` before this pass.
+- **Pass 2** (base model): Runs 2-4 selected pipelines in parallel via `ThreadPoolExecutor`. Search and enrichment research tools run within each pipeline.
+- **Pass 3** (deep_model): Verifies each candidate against IFR, scores ideality, synthesizes best elements.
+- **Escape hatch**: If no candidate satisfies IFR, swaps TC1↔TC2 and re-runs Passes 2-3 once.
+
+Flags: `--deep-model` for Passes 1 & 3, `--reasoning-effort` (low/medium/high), mutually exclusive with `--method`.
+
+### Research tools (programmatic API)
+
+`ResearchTool` dataclass allows developers to plug in additional data sources (web search, BigQuery, Arxiv, etc.) that participate at specific pipeline stages:
+
+```python
+@dataclass
+class ResearchTool:
+    name: str                                    # Identifier
+    description: str                             # Shown to LLM in deep mode
+    fn: Callable[[str, dict], list[dict]]         # (query, context) -> results
+    stages: list[str] = field(default_factory=lambda: ["search"])
+```
+
+Three stages:
+- **`"context"`** — Runs once before dispatch/reformulation. Returns `[{"content": "..."}]`. Text prepended to `problem_text`.
+- **`"search"`** — Runs in `search_patents()`. Returns `[{"title": "...", "abstract": "..."}]`. Results deduplicated by title, tagged with `source` field.
+- **`"enrichment"`** — Runs after solution generation. Returns `[{"title": "...", "content": "..."}]`. Stored in `AnalysisResult.enrichment`.
+
+The `fn` receives a context dict with `{"stage": str}` plus stage-specific data (e.g., `principle_ids` for search, `solution_directions` for enrichment). Tool failures are logged and skipped. In deep mode, the LLM selects which tools to use based on their descriptions and stages.
 
 ### `triz-ai discover --domain "battery technology"`
 
@@ -292,14 +352,25 @@ CREATE TABLE matrix_observations (
 
 `llm/client.py` wraps litellm to provide a unified interface for both completions and embeddings. litellm supports 100+ providers through a single `completion()` and `embedding()` API — switching providers is just changing the model string.
 
-Six core LLM interactions:
+Core LLM interactions:
 
-1. **extract_contradiction**(problem_text) -> `{improving_param, worsening_param, reasoning}`
-2. **classify_patent**(patent_text) -> `{principle_ids, contradiction, confidence, reasoning}`
-3. **generate_ideas**(domain, underused_principles, existing_patents) -> `{ideas: [...]}`
-4. **propose_candidate_principle**(patent_cluster) -> `{name, description, how_it_differs, confidence}`
-5. **propose_candidate_parameter**(patent_cluster) -> `{name, description, how_it_differs, confidence}`
-6. **seed_matrix_row**(improving, worsening_params) -> `{entries: [{improving, worsening, principles}]}` — fills missing contradiction matrix cells
+1. **formulate_ifr**(problem_text) -> `{ideal_result, reasoning}` — Ideal Final Result
+2. **classify_problem**(problem_text) -> `{primary_method, secondary_method, confidence, reformulated_problem}` — routes to pipeline
+3. **analyze_root_cause**(problem_text) -> `{root_causes, reformulated_problem}` — triggered on low confidence
+4. **extract_contradiction**(problem_text) -> `{improving_param, worsening_param, reasoning}`
+5. **extract_physical_contradiction**(problem_text) -> `{property, requirement_a, requirement_b, separation_principles}`
+6. **analyze_su_field**(problem_text) -> `{substances, field, problem_type, standard_solutions}`
+7. **analyze_functions**(problem_text) -> `{components, functions, problem_functions, recommendations}`
+8. **analyze_trimming**(problem_text) -> `{components, trimming_candidates, redistributed_functions}`
+9. **analyze_trends**(problem_text) -> `{current_stage, trend_name, next_stages, predictions}`
+10. **generate_solution_directions**(problem, params, principles, patents) -> `{directions: [...]}`
+11. **deep_reformulate**(problem_text) -> `StructuredProblemModel` — ARIZ Pass 1
+12. **verify_and_synthesize**(problem_model, candidates) -> `SolutionVerification` — ARIZ Pass 3
+13. **classify_patent**(patent_text) -> `{principle_ids, contradiction, confidence, reasoning}`
+14. **generate_ideas**(domain, underused_principles, existing_patents) -> `{ideas: [...]}`
+15. **propose_candidate_principle**(patent_cluster) -> `{name, description, how_it_differs, confidence}`
+16. **propose_candidate_parameter**(patent_cluster) -> `{name, description, how_it_differs, confidence}`
+17. **seed_matrix_row**(improving, worsening_params) -> `{entries: [{improving, worsening, principles}]}` — fills missing contradiction matrix cells
 
 Embeddings:
 
@@ -317,9 +388,12 @@ Embeddings:
 
 ### Model selection
 
-- Default: `openrouter/google/gemini-2.5-flash` (capable, affordable, via OpenRouter)
-- Configurable via config file or `--model` flag
+- Default LLM: `openrouter/nvidia/nemotron-3-super-120b-a12b:free` (capable, free via OpenRouter)
+- Default classify model: `openrouter/nvidia/nemotron-3-nano-30b-a3b:free` (smaller, for patent classification during ingest)
+- Default embeddings: `openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free` (768-dim)
+- Configurable via config file, `--model` flag, or `--classify-model` flag
 - Any litellm-supported model string works without code changes (e.g., `anthropic/claude-sonnet-4-6`, `ollama/llama3`, `openai/gpt-4o`)
+- Deep mode: `--deep-model` for Passes 1 & 3 (reasoning model), `--reasoning-effort` (low/medium/high) translated across providers by litellm
 
 ## Configuration
 
@@ -327,11 +401,15 @@ Embeddings:
 
 ```yaml
 llm:
-  default_model: openrouter/google/gemini-2.5-flash  # any litellm model string
-  classify_model: openrouter/nvidia/nemotron-3-nano-30b-a3b:free  # smaller model for patent classification
+  default_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+  classify_model: openrouter/nvidia/nemotron-3-nano-30b-a3b:free
+  router_model: null       # defaults to classify_model
+  deep_model: null         # defaults to default_model; for --deep Passes 1 & 3
+  reasoning_effort: null   # low|medium|high for deep mode
 
 embeddings:
-  model: ollama/nomic-embed-text  # any litellm embedding model string
+  model: openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free
+  dimensions: 768
 
 database:
   path: ~/.triz-ai/patents.db
