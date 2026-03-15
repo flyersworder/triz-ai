@@ -173,9 +173,13 @@ def discover(
         return
 
     # Rich text output
+    panel_text = f"Domain: [cyan]{result.domain}[/cyan]\nPatents in store: {result.total_patents}"
+    panel_text += f"\nClassified: {result.classified_patents}"
+    if result.classified_patents == 0:
+        panel_text += "\n[yellow]No classified patents yet. Run 'triz-ai evolve' first.[/yellow]"
     console.print(
         Panel(
-            f"Domain: [cyan]{result.domain}[/cyan]\nPatents analyzed: {result.total_patents}",
+            panel_text,
             title="[bold]Discovery Report[/bold]",
             border_style="green",
         )
