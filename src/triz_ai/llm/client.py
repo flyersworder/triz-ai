@@ -134,9 +134,10 @@ def _is_retryable(e: Exception) -> bool:
 
 
 class LLMClient:
-    def __init__(self, model: str | None = None):
+    def __init__(self, model: str | None = None, classify_model: str | None = None):
         config = load_config()
         self.model = model or config.llm.default_model
+        self.classify_model = classify_model or config.llm.classify_model
         self.api_base = config.llm.api_base
         self.api_key = config.llm.api_key
         self.embedding_model = config.embeddings.model
@@ -168,23 +169,35 @@ class LLMClient:
         user_prompt: str,
         response_model: type[T],
         retry: bool = True,
+        model: str | None = None,
+        max_tokens: int | None = None,
     ) -> T:
         """Call LLM and validate response against pydantic model.
 
         On malformed response, retry once with stricter prompt, then fail.
         Auth/network errors are raised immediately without retry.
+
+        Args:
+            model: Optional model override (defaults to self.model).
+            max_tokens: Optional max output tokens (useful for structured
+                responses to avoid reserving large output windows).
         """
+        use_model = model or self.model
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
+        kwargs = self._completion_kwargs()
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+
         try:
             response = litellm.completion(
-                model=self.model,
+                model=use_model,
                 messages=messages,
                 response_format={"type": "json_object"},
-                **self._completion_kwargs(),
+                **kwargs,
             )
             raw = response.choices[0].message.content
             data = json.loads(raw)
@@ -197,7 +210,14 @@ class LLMClient:
                     + "\n\nIMPORTANT: You MUST respond with valid JSON matching this exact"
                     f" schema: {response_model.model_json_schema()}"
                 )
-                return self._complete(strict_system, user_prompt, response_model, retry=False)
+                return self._complete(
+                    strict_system,
+                    user_prompt,
+                    response_model,
+                    retry=False,
+                    model=use_model,
+                    max_tokens=max_tokens,
+                )
             raise _friendly_error(e) from e
 
     def extract_contradiction(self, problem_text: str) -> ExtractedContradiction:
@@ -209,11 +229,17 @@ class LLMClient:
         )
 
     def classify_patent(self, patent_text: str) -> PatentClassification:
-        """Classify a patent by TRIZ principles."""
+        """Classify a patent by TRIZ principles.
+
+        Uses the classify_model (smaller/cheaper) instead of the default model.
+        max_tokens=1024 avoids reserving large output windows on pay-per-token models.
+        """
         return self._complete(
             classify_patent_prompt(),
             patent_text,
             PatentClassification,
+            model=self.classify_model,
+            max_tokens=1024,
         )
 
     def generate_ideas(

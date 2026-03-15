@@ -144,7 +144,7 @@ Discovered when patents have contradictions that don't map well to the existing 
 
 ### First-run workflow
 
-Commands that query patents (`analyze`, `classify`, `discover`, `evolve`) require data in the database. On first run, seed it with: `triz-ai ingest data/patents/`. The `analyze` command works without patent data (it still does TRIZ contradiction analysis) but patent examples will be empty.
+Commands that query patents (`analyze`, `discover`, `evolve`) require data in the database. On first run, seed it with: `triz-ai ingest data/patents/`. The `ingest` command automatically classifies each patent through the TRIZ lens during ingestion, so patents are ready for discovery and matrix observations immediately. The `analyze` command works without patent data (it still does TRIZ contradiction analysis) but patent examples will be empty.
 
 ### `triz-ai analyze "problem description"`
 
@@ -155,15 +155,6 @@ The flagship command. Full TRIZ pipeline:
 3. Looks up contradiction matrix -> recommended principles
 4. Searches patent store for examples of those principles applied
 5. Returns: contradiction, principles, patent examples, suggested solution directions
-
-### `triz-ai classify <source>`
-
-Accepts a file path (`.txt`, `.pdf`), a quoted text string, or `-` for stdin. Classifies a patent through TRIZ lens:
-
-- Which principle(s) does this patent employ?
-- What contradiction does it resolve?
-- Confidence score
-- Stores classification in local database
 
 ### `triz-ai discover --domain "battery technology"`
 
@@ -178,7 +169,7 @@ White space analysis:
 
 The evolution pipeline (semi-automated):
 
-- Batch-classifies unprocessed patents via `classify`
+- Patents are classified during ingestion, so no batch classify step is needed
 - Patents with classification confidence below `evolution.review_threshold` (default 0.7) are flagged as "poorly mapped"
 - Poorly-mapped patents are grouped by the LLM: their abstracts are sent to the LLM in batches with a prompt asking it to identify common inventive patterns that don't fit existing principles. This is LLM-based semantic clustering, not algorithmic clustering — simpler and more interpretable for MVP.
 - Minimum 3 patents must share a pattern for the LLM to propose a candidate principle
@@ -189,14 +180,14 @@ The evolution pipeline (semi-automated):
 
 `triz-ai evolve --parameters` runs a parallel pipeline for discovering candidate new engineering parameters:
 
-- Same classify → filter → cluster → propose flow as principle evolution
+- Same filter → cluster → propose flow as principle evolution
 - Focuses on contradictions that map poorly to existing parameters (rather than principles)
 - Proposes candidate parameters (IDs "P1", "P2", ...) stored in `candidate_parameters` table
 - `triz-ai evolve --parameters --review` for interactive accept/reject
 
-### `triz-ai matrix seed` / `triz-ai matrix stats`
+### `triz-ai matrix seed` / `triz-ai matrix stats` (power-user)
 
-Matrix management commands:
+Matrix management commands (the matrix ships pre-seeded at 95.7% fill rate, so `seed` is only needed for re-seeding):
 
 - `triz-ai matrix seed` — LLM-seeds missing contradiction matrix cells (params 40-50 × all params). Batches by improving parameter with a progress bar. Validates principle IDs (1-40, max 4 per cell).
 - `triz-ai matrix seed --force` — Re-seeds all cells involving params 40-50, overwriting existing entries.
@@ -206,10 +197,13 @@ Classification automatically records matrix observations: each `classify` call i
 
 ### `triz-ai ingest <source>`
 
-Patent data ingestion:
+Patent data ingestion with auto-classification:
 
 - Supports text files, PDFs, JSON batches
 - Embeds and stores in local database
+- Auto-classifies each patent through TRIZ lens (principle IDs, contradiction, confidence)
+- Classification failures are logged but do not block ingestion
+- Records matrix observations for each classified patent
 - Future: bulk import from USPTO/Google Patents
 
 ### Output format
@@ -327,6 +321,7 @@ Embeddings:
 ```yaml
 llm:
   default_model: openrouter/google/gemini-2.5-flash  # any litellm model string
+  classify_model: openrouter/nvidia/nemotron-3-nano-30b-a3b:free  # smaller model for patent classification
 
 embeddings:
   model: ollama/nomic-embed-text  # any litellm embedding model string

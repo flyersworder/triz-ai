@@ -25,8 +25,15 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 - **No DB migrations** — schema changes require `triz-ai init --force`
 - **Token budget** — only inject relevant matrix rows/principles into prompts, not full dataset
 
+## Models
+
+- Default LLM: `openrouter/nvidia/nemotron-3-super-120b-a12b:free`
+- Default classify model: `openrouter/nvidia/nemotron-3-nano-30b-a3b:free` (smaller model used for patent classification during ingest)
+- Default embeddings: `openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free`
+- Alternative classify model: `openrouter/google/gemini-3.1-flash-lite-preview` — not free but extremely cheap ($0.25/$1.50 per M tokens), works within OpenRouter's default free testing allowance. Use via `--classify-model` flag or `llm.classify_model` in config. `classify_patent()` sets `max_tokens=1024` to avoid reserving the full 65K output window against credits.
+
 ## References
 
 - Design spec: `docs/specs/2026-03-14-triz-ai-design.md`
-- Config: `~/.triz-ai/config.yaml` (defaults: model `openrouter/nvidia/nemotron-3-super-120b-a12b:free`, embeddings `openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free`)
+- Config: `~/.triz-ai/config.yaml`
 - API keys: `.env` file (loaded via python-dotenv) or env vars per litellm conventions (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, etc.)

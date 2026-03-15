@@ -7,6 +7,7 @@ from pathlib import Path
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from triz_ai.engine.classifier import classify
 from triz_ai.llm.client import LLMClient
 from triz_ai.patents.store import Patent, PatentStore
 
@@ -94,8 +95,9 @@ def ingest_file(
     store: PatentStore,
     llm_client: LLMClient | None = None,
     embed: bool = True,
+    auto_classify: bool = True,
     show_progress: bool = True,
-) -> list[Patent]:
+) -> tuple[list[Patent], int]:
     """Ingest a single file and store patents.
 
     Args:
@@ -103,10 +105,11 @@ def ingest_file(
         store: Patent store to save to.
         llm_client: LLM client for embeddings (created if None and embed=True).
         embed: Whether to compute and store embeddings.
+        auto_classify: Whether to classify patents during ingestion.
         show_progress: Whether to show a progress bar.
 
     Returns:
-        List of ingested patents.
+        Tuple of (list of ingested patents, number classified).
     """
     path = Path(path)
     if not path.exists():
@@ -125,11 +128,13 @@ def ingest_file(
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
-    if embed and llm_client is None:
+    if (embed or auto_classify) and llm_client is None:
         llm_client = LLMClient()
 
-    _store_patents(patents, store, llm_client, embed, show_progress)
-    return patents
+    classified_count = _store_patents(
+        patents, store, llm_client, embed, auto_classify, show_progress
+    )
+    return patents, classified_count
 
 
 def ingest_directory(
@@ -137,8 +142,9 @@ def ingest_directory(
     store: PatentStore,
     llm_client: LLMClient | None = None,
     embed: bool = True,
+    auto_classify: bool = True,
     show_progress: bool = True,
-) -> list[Patent]:
+) -> tuple[list[Patent], int]:
     """Ingest all supported files from a directory.
 
     Args:
@@ -146,16 +152,17 @@ def ingest_directory(
         store: Patent store to save to.
         llm_client: LLM client for embeddings.
         embed: Whether to compute and store embeddings.
+        auto_classify: Whether to classify patents during ingestion.
         show_progress: Whether to show a progress bar.
 
     Returns:
-        List of all ingested patents.
+        Tuple of (list of all ingested patents, number classified).
     """
     directory = Path(directory)
     if not directory.is_dir():
         raise NotADirectoryError(f"Not a directory: {directory}")
 
-    if embed and llm_client is None:
+    if (embed or auto_classify) and llm_client is None:
         llm_client = LLMClient()
 
     # Collect all patents from files first
@@ -169,10 +176,12 @@ def ingest_directory(
                 logger.exception("Failed to parse %s", file_path)
 
     # Store with progress
-    _store_patents(all_patents, store, llm_client, embed, show_progress)
+    classified_count = _store_patents(
+        all_patents, store, llm_client, embed, auto_classify, show_progress
+    )
 
     logger.info("Ingested %d patents from %s", len(all_patents), directory)
-    return all_patents
+    return all_patents, classified_count
 
 
 def _parse_file(path: Path) -> list[Patent]:
@@ -192,11 +201,18 @@ def _store_patents(
     store: PatentStore,
     llm_client: LLMClient | None,
     embed: bool,
+    auto_classify: bool,
     show_progress: bool,
-) -> None:
-    """Store patents with optional embeddings and progress bar."""
+) -> int:
+    """Store patents with optional embeddings, classification, and progress bar.
+
+    Returns:
+        Number of patents successfully classified.
+    """
     if not patents:
-        return
+        return 0
+
+    classified_count = 0
 
     if show_progress and len(patents) > 1:
         with Progress(
@@ -207,14 +223,26 @@ def _store_patents(
         ) as progress:
             task = progress.add_task("Ingesting patents...", total=len(patents))
             for patent in patents:
-                progress.update(task, description=f"Embedding {patent.id}")
+                progress.update(task, description=f"Ingesting {patent.id}")
                 embedding = _get_embedding(patent, llm_client, embed)
                 store.insert_patent(patent, embedding=embedding)
+                if auto_classify and llm_client is not None:
+                    progress.update(task, description=f"Ingesting & classifying {patent.id}")
+                    if _classify_patent(patent, llm_client, store):
+                        classified_count += 1
                 progress.advance(task)
     else:
         for patent in patents:
             embedding = _get_embedding(patent, llm_client, embed)
             store.insert_patent(patent, embedding=embedding)
+            if (
+                auto_classify
+                and llm_client is not None
+                and _classify_patent(patent, llm_client, store)
+            ):
+                classified_count += 1
+
+    return classified_count
 
 
 def _get_embedding(
@@ -229,3 +257,14 @@ def _get_embedding(
     except Exception:
         logger.warning("Failed to embed patent %s, storing without embedding", patent.id)
         return None
+
+
+def _classify_patent(patent: Patent, llm_client: LLMClient, store: PatentStore) -> bool:
+    """Classify a patent during ingestion. Returns True on success."""
+    text = f"{patent.title}\n{patent.abstract or ''}\n{patent.claims or ''}"
+    try:
+        classify(text, patent_id=patent.id, llm_client=llm_client, store=store)
+        return True
+    except Exception:
+        logger.warning("Failed to classify patent %s, skipping classification", patent.id)
+        return False

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-03-15
+
+### Added
+
+- **Separate classify model**: Classification uses a smaller, faster model (`openrouter/nvidia/nemotron-3-nano-30b-a3b:free` by default) — configurable via `llm.classify_model` in config or `--classify-model` CLI flag on `ingest`
+
+### Changed
+
+- **Auto-classify on ingest**: Patents are now automatically classified through the TRIZ lens during ingestion — no separate classify step needed. The user journey simplifies from `init → ingest → classify → analyze/discover` to `init → ingest → analyze/discover`.
+- **Removed `classify` CLI command**: Classification is now internal-only (called by `ingest` and available as an engine function). The `classify()` engine function remains for programmatic use.
+- **Simplified `evolve` pipeline**: Removed the "batch classify unclassified patents" step from both `run_evolution()` and `run_parameter_evolution()` — patents arrive pre-classified from ingestion.
+- **`matrix seed` documented as power-user command**: The matrix ships pre-seeded at 95.7% fill rate, so seeding is rarely needed.
+
 ## [0.4.0] - 2026-03-15
 
 ### Added
@@ -73,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.5.0]: https://github.com/flyersworder/triz-ai/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/flyersworder/triz-ai/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/flyersworder/triz-ai/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/flyersworder/triz-ai/compare/v0.1.0...v0.2.0

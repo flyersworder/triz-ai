@@ -33,14 +33,11 @@ Or export directly: `export OPENROUTER_API_KEY="your-key"`
 # Initialize the database
 uv run triz-ai init
 
-# Ingest the seed dataset (100 real battery patents from Google Patents)
+# Ingest the seed dataset (100 real battery patents — auto-classifies each patent)
 uv run triz-ai ingest data/patents/battery_patents.json
 
 # Analyze a technical problem
 uv run triz-ai analyze "How to make an EV battery charge faster without overheating"
-
-# Classify a patent through TRIZ lens
-uv run triz-ai classify tests/fixtures/sample_patents/battery_thermal.txt
 
 # Discover underused principles in a domain
 uv run triz-ai discover --domain "battery technology"
@@ -53,8 +50,7 @@ uv run triz-ai evolve --review  # interactive accept/reject
 uv run triz-ai evolve --parameters
 uv run triz-ai evolve --parameters --review
 
-# Seed the contradiction matrix for modern parameters (40-50)
-uv run triz-ai matrix seed
+# View matrix statistics
 uv run triz-ai matrix stats
 ```
 
@@ -63,12 +59,11 @@ uv run triz-ai matrix stats
 | Command | Description |
 |---------|-------------|
 | `analyze` | Full TRIZ pipeline: extract contradiction → matrix lookup → patent search → solution directions |
-| `classify` | Classify a patent by TRIZ principles (accepts file, text, or stdin) |
 | `discover` | Find underused principles in a domain and generate novel ideas |
 | `evolve` | Discover candidate new TRIZ principles (`--parameters` for parameters) |
-| `ingest` | Load patents from .txt, .pdf, or .json files |
+| `ingest` | Ingest and auto-classify patents from .txt, .pdf, or .json files |
 | `init` | Initialize (or recreate with `--force`) the patent database |
-| `matrix seed` | LLM-seed missing contradiction matrix cells for params 40-50 |
+| `matrix seed` | LLM-seed missing matrix cells for params 40-50 (power-user) |
 | `matrix stats` | Show matrix fill rate and patent observation statistics |
 
 All commands support `--format text|json|markdown` and `--model` to override the LLM model.
@@ -95,6 +90,7 @@ Config lives at `~/.triz-ai/config.yaml`:
 ```yaml
 llm:
   default_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+  classify_model: openrouter/nvidia/nemotron-3-nano-30b-a3b:free  # smaller model for classification
 
 embeddings:
   model: openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free

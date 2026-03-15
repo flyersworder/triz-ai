@@ -129,6 +129,15 @@ class TestGenerator:
         assert len(result.underused_principles) == 40  # all underused
 
 
+class TestCLICommands:
+    def test_classify_not_a_cli_command(self):
+        """The classify command should no longer exist in the CLI."""
+        from triz_ai.cli import app
+
+        command_names = [cmd.name for cmd in app.registered_commands]
+        assert "classify" not in command_names
+
+
 class TestEvaluator:
     def test_evaluate_with_no_store(self, mock_llm, store):
         result = evaluate("A new battery design", "battery", llm_client=mock_llm, store=store)

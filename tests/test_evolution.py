@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from triz_ai.evolution.pipeline import run_evolution
-from triz_ai.llm.client import CandidatePrincipleProposal, PatentClassification
-from triz_ai.patents.store import Patent, PatentStore
+from triz_ai.llm.client import CandidatePrincipleProposal
+from triz_ai.patents.store import Classification, Patent, PatentStore
 
 
 @pytest.fixture
@@ -21,13 +21,6 @@ def store(tmp_path):
 @pytest.fixture
 def mock_llm():
     client = MagicMock()
-    # classify_patent returns low confidence so patents are "poorly mapped"
-    client.classify_patent.return_value = PatentClassification(
-        principle_ids=[1],
-        contradiction={"improving": 1, "worsening": 2},
-        confidence=0.4,
-        reasoning="Uncertain classification",
-    )
     # cluster_patents returns one cluster with all patents
     client.cluster_patents.return_value = [[0, 1, 2]]
     # propose_candidate_principle returns a proposal
@@ -41,9 +34,17 @@ def mock_llm():
 
 
 def test_evolution_pipeline(mock_llm, store):
-    # Add unclassified patents
+    # Add pre-classified patents with low confidence (poorly mapped)
     for i in range(3):
         store.insert_patent(Patent(id=f"P{i}", title=f"Patent {i}", abstract=f"Abstract {i}"))
+        store.insert_classification(
+            Classification(
+                patent_id=f"P{i}",
+                principle_ids=[1],
+                contradiction={"improving": 1, "worsening": 2},
+                confidence=0.4,
+            )
+        )
 
     candidates = run_evolution(
         llm_client=mock_llm,
@@ -61,14 +62,41 @@ def test_evolution_pipeline(mock_llm, store):
     assert len(pending) == 1
 
 
+def test_evolution_does_not_classify(mock_llm, store):
+    """Evolution pipeline should NOT call classify_patent — classification happens at ingest."""
+    for i in range(3):
+        store.insert_patent(Patent(id=f"P{i}", title=f"Patent {i}", abstract=f"Abstract {i}"))
+        store.insert_classification(
+            Classification(
+                patent_id=f"P{i}",
+                principle_ids=[1],
+                contradiction={"improving": 1, "worsening": 2},
+                confidence=0.4,
+            )
+        )
+
+    run_evolution(llm_client=mock_llm, store=store, confidence_threshold=0.7, min_cluster_size=3)
+
+    # classify_patent should never be called by the evolution pipeline
+    mock_llm.classify_patent.assert_not_called()
+
+
 def test_evolution_not_enough_patents(mock_llm, store):
     # Only 1 patent — not enough for clustering
     store.insert_patent(Patent(id="P0", title="Solo Patent", abstract="Alone"))
+    store.insert_classification(
+        Classification(
+            patent_id="P0",
+            principle_ids=[1],
+            contradiction={"improving": 1, "worsening": 2},
+            confidence=0.4,
+        )
+    )
     candidates = run_evolution(llm_client=mock_llm, store=store, min_cluster_size=3)
     assert len(candidates) == 0
 
 
-def test_evolution_no_unclassified(mock_llm, store):
+def test_evolution_no_patents(mock_llm, store):
     # No patents at all
     candidates = run_evolution(llm_client=mock_llm, store=store)
     assert len(candidates) == 0

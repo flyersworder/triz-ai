@@ -2,9 +2,6 @@
 
 import logging
 
-from rich.progress import Progress, SpinnerColumn, TextColumn
-
-from triz_ai.engine.classifier import classify
 from triz_ai.llm.client import LLMClient
 from triz_ai.patents.store import CandidateParameter, CandidatePrinciple, PatentStore
 
@@ -20,11 +17,12 @@ def run_evolution(
     """Run the evolution pipeline to discover candidate new principles.
 
     Pipeline:
-    1. Batch classify unclassified patents
-    2. Filter classifications with confidence < threshold
-    3. Cluster poorly-mapped patent abstracts using LLM
-    4. Propose candidate principles for each cluster (min 3 patents)
-    5. Store candidates in DB
+    1. Filter classifications with confidence < threshold
+    2. Cluster poorly-mapped patent abstracts using LLM
+    3. Propose candidate principles for each cluster (min 3 patents)
+    4. Store candidates in DB
+
+    Patents are classified during ingestion, so no batch classify step is needed.
 
     Returns:
         List of newly created candidate principles.
@@ -39,26 +37,7 @@ def run_evolution(
         store.init_db()
         confidence_threshold = config.evolution.review_threshold
 
-    # Step 1: Classify unclassified patents
-    unclassified = store.get_unclassified_patents()
-    if unclassified:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            TextColumn("[cyan]{task.completed}/{task.total}"),
-            transient=True,
-        ) as progress:
-            task = progress.add_task("Classifying patents...", total=len(unclassified))
-            for patent in unclassified:
-                progress.update(task, description=f"Classifying {patent.id}")
-                text = f"{patent.title}\n{patent.abstract or ''}\n{patent.claims or ''}"
-                try:
-                    classify(text, patent_id=patent.id, llm_client=llm_client, store=store)
-                except Exception:
-                    logger.exception("Failed to classify patent %s", patent.id)
-                progress.advance(task)
-
-    # Step 2: Find poorly-mapped patents (low confidence)
+    # Step 1: Find poorly-mapped patents (low confidence)
     all_patents = store.get_all_patents()
     poorly_mapped = []
     for patent in all_patents:
@@ -130,11 +109,12 @@ def run_parameter_evolution(
     """Run the parameter evolution pipeline to discover candidate new parameters.
 
     Pipeline:
-    1. Batch classify unclassified patents
-    2. Filter classifications with low-confidence contradiction mappings
-    3. Cluster poorly-mapped contradictions via LLM
-    4. Propose candidate parameters for each cluster (min 3 patents)
-    5. Store in candidate_parameters table
+    1. Filter classifications with low-confidence contradiction mappings
+    2. Cluster poorly-mapped contradictions via LLM
+    3. Propose candidate parameters for each cluster (min 3 patents)
+    4. Store in candidate_parameters table
+
+    Patents are classified during ingestion, so no batch classify step is needed.
 
     Returns:
         List of newly created candidate parameters.
@@ -149,26 +129,7 @@ def run_parameter_evolution(
         store.init_db()
         confidence_threshold = config.evolution.review_threshold
 
-    # Step 1: Classify unclassified patents
-    unclassified = store.get_unclassified_patents()
-    if unclassified:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            TextColumn("[cyan]{task.completed}/{task.total}"),
-            transient=True,
-        ) as progress:
-            task = progress.add_task("Classifying patents...", total=len(unclassified))
-            for patent in unclassified:
-                progress.update(task, description=f"Classifying {patent.id}")
-                text = f"{patent.title}\n{patent.abstract or ''}\n{patent.claims or ''}"
-                try:
-                    classify(text, patent_id=patent.id, llm_client=llm_client, store=store)
-                except Exception:
-                    logger.exception("Failed to classify patent %s", patent.id)
-                progress.advance(task)
-
-    # Step 2: Find patents with low-confidence contradiction mappings
+    # Step 1: Find patents with low-confidence contradiction mappings
     all_patents = store.get_all_patents()
     poorly_mapped = []
     for patent in all_patents:

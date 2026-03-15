@@ -2,7 +2,6 @@
 
 import json
 import logging
-import sys
 from pathlib import Path
 
 import typer
@@ -17,17 +16,17 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 app = typer.Typer(
     name="triz-ai",
-    help="AI-Powered TRIZ Innovation Engine — analyze problems, classify patents, "
+    help="AI-Powered TRIZ Innovation Engine — analyze problems, ingest patents, "
     "and discover new inventive principles.",
     no_args_is_help=True,
 )
 console = Console(stderr=True)
 
 
-def _get_llm_client(model: str | None = None):
+def _get_llm_client(model: str | None = None, classify_model: str | None = None):
     from triz_ai.llm.client import LLMClient
 
-    return LLMClient(model=model)
+    return LLMClient(model=model, classify_model=classify_model)
 
 
 def _get_store():
@@ -101,53 +100,6 @@ def analyze(
         console.print("\n[bold]Related Patents:[/bold]")
         for p in result.patent_examples:
             console.print(f"  • [cyan]{p['id']}[/cyan] — {p['title']}")
-
-
-@app.command()
-def classify(
-    source: str = typer.Argument(help="Patent file path, quoted text, or '-' for stdin"),
-    model: str = typer.Option(None, help="LLM model string (overrides config)"),
-    format: str = typer.Option("text", help="Output format: text, json, markdown"),
-) -> None:
-    """Classify a patent through TRIZ lens."""
-    from triz_ai.engine.classifier import classify as run_classify
-    from triz_ai.knowledge.principles import load_principles
-
-    # Determine input source
-    if source == "-":
-        patent_text = sys.stdin.read()
-    elif Path(source).exists():
-        patent_text = Path(source).read_text(encoding="utf-8")
-    else:
-        patent_text = source
-
-    llm_client = _get_llm_client(model)
-    store = _get_store()
-
-    try:
-        result = run_classify(patent_text, llm_client=llm_client, store=store)
-    except Exception as e:
-        console.print(f"[red]Classification failed: {e}[/red]")
-        raise typer.Exit(1) from None
-
-    if format != "text":
-        _output(result.model_dump(), format)
-        return
-
-    # Rich text output
-    principles = {p.id: p for p in load_principles()}
-    console.print(f"\n[bold]Confidence:[/bold] {result.confidence:.0%}")
-    console.print(f"[bold]Contradiction:[/bold] {result.contradiction}")
-    console.print(f"\n[dim]{result.reasoning}[/dim]\n")
-
-    table = Table(title="Identified TRIZ Principles")
-    table.add_column("ID", style="cyan")
-    table.add_column("Name", style="bold")
-    for pid in result.principle_ids:
-        p = principles.get(pid)
-        name = p.name if p else "Unknown"
-        table.add_row(str(pid), name)
-    console.print(table)
 
 
 @app.command()
@@ -307,24 +259,36 @@ def evolve(
 def ingest(
     source: str = typer.Argument(help="File or directory path to ingest"),
     model: str = typer.Option(None, help="LLM model string (overrides config)"),
+    classify_model: str = typer.Option(
+        None,
+        help="Model for classification (default: smaller model from config)",
+    ),
 ) -> None:
-    """Ingest patent data from files."""
+    """Ingest and classify patent data from files."""
     from triz_ai.patents.ingest import ingest_directory, ingest_file
 
     path = Path(source)
-    llm_client = _get_llm_client(model)
+    llm_client = _get_llm_client(model, classify_model=classify_model)
     store = _get_store()
 
     try:
         if path.is_dir():
-            patents = ingest_directory(path, store, llm_client=llm_client)
+            patents, classified = ingest_directory(path, store, llm_client=llm_client)
         else:
-            patents = ingest_file(path, store, llm_client=llm_client)
+            patents, classified = ingest_file(path, store, llm_client=llm_client)
     except Exception as e:
         console.print(f"[red]Ingestion failed: {e}[/red]")
         raise typer.Exit(1) from None
 
     console.print(f"[green]Successfully ingested {len(patents)} patent(s).[/green]")
+    skipped = len(patents) - classified
+    if classified > 0:
+        console.print(f"[green]Classified {classified} patent(s) through TRIZ lens.[/green]")
+    if skipped > 0:
+        console.print(
+            f"[yellow]{skipped} patent(s) could not be classified "
+            "(will retry on next evolve).[/yellow]"
+        )
     for p in patents:
         console.print(f"  • [cyan]{p.id}[/cyan] — {p.title}")
 
