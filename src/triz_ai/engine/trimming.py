@@ -2,7 +2,7 @@
 
 import logging
 
-from triz_ai.engine.analyzer import AnalysisResult, search_patents
+from triz_ai.engine.analyzer import AnalysisResult, run_enrichment_tools, search_patents
 from triz_ai.llm.client import LLMClient
 from triz_ai.patents.store import PatentStore
 
@@ -52,6 +52,8 @@ def analyze_trimming(
     except Exception:
         logger.warning("Solution direction generation failed, continuing without")
 
+    enrichment = run_enrichment_tools(problem_text, solution_directions, research_tools)
+
     return AnalysisResult(
         problem=problem_text,
         method="trimming",
@@ -60,6 +62,7 @@ def analyze_trimming(
         f"candidate(s) for removal out of {len(result.components)} components",
         patent_examples=patent_examples,
         solution_directions=solution_directions,
+        enrichment=enrichment,
         details={
             "components": result.components,
             "trimming_candidates": result.trimming_candidates,

@@ -36,6 +36,7 @@ class AnalysisResult(BaseModel):
     # Common across all methods
     patent_examples: list[dict] = []
     solution_directions: list[dict] = []
+    enrichment: list[dict] = []  # Data from enrichment-stage research tools
     details: dict = {}  # Tool-specific data
 
 
@@ -113,6 +114,9 @@ def analyze_contradiction(
     improving_dict = {"id": improving.id, "name": improving.name}
     worsening_dict = {"id": worsening.id, "name": worsening.name}
 
+    # Run enrichment tools
+    enrichment = run_enrichment_tools(problem_text, solution_directions, research_tools)
+
     return AnalysisResult(
         problem=problem_text,
         method="technical_contradiction",
@@ -124,6 +128,7 @@ def analyze_contradiction(
         recommended_principles=recommended_principles,
         patent_examples=patent_examples,
         solution_directions=solution_directions,
+        enrichment=enrichment,
         details={
             "improving_param": improving_dict,
             "worsening_param": worsening_dict,
@@ -186,12 +191,22 @@ def search_patents(
         except Exception:
             logger.warning("Patent search failed, continuing without examples")
 
-    # 2. Research tools
+    # 2. Research tools (search stage)
     if research_tools:
         seen_titles = {p["title"].lower() for p in patent_examples}
+        search_context: dict = {"stage": "search"}
+        if principle_ids:
+            search_context["principle_ids"] = principle_ids
+        if improving_param:
+            search_context["improving_param"] = improving_param
+        if worsening_param:
+            search_context["worsening_param"] = worsening_param
+
         for tool in research_tools:
+            if "search" not in tool.stages:
+                continue
             try:
-                tool_results = tool.fn(problem_text)
+                tool_results = tool.fn(problem_text, search_context)
                 for item in tool_results:
                     title = item.get("title", "")
                     if not title or title.lower() in seen_titles:
@@ -213,6 +228,24 @@ def search_patents(
                 logger.warning("Research tool '%s' failed, skipping", tool.name)
 
     return patent_examples
+
+
+def run_enrichment_tools(
+    problem_text: str,
+    solution_directions: list[dict],
+    research_tools: list | None = None,
+) -> list[dict]:
+    """Run enrichment-stage research tools after solution generation."""
+    if not research_tools:
+        return []
+    from triz_ai.tools import run_stage_tools
+
+    return run_stage_tools(
+        research_tools,
+        "enrichment",
+        problem_text,
+        extra_context={"solution_directions": solution_directions},
+    )
 
 
 def analyze(

@@ -140,32 +140,48 @@ triz-ai analyze "problem" --deep \
 
 ## Research Tools (Programmatic API)
 
-Pass additional research tools to supplement the built-in patent DB search:
+Research tools can participate in three pipeline stages: **context** (before LLM extraction), **search** (during patent search), and **enrichment** (after solution generation):
 
 ```python
 from triz_ai import ResearchTool
 from triz_ai.engine.router import route
 from triz_ai.llm.client import LLMClient
 
-# Define a research tool
+# Search-only tool (default, backward compatible)
 google_patents = ResearchTool(
     name="google_patents",
     description="Search Google Patents for prior art. Best for recent filings.",
-    fn=lambda query: [  # Replace with real API call
+    fn=lambda query, ctx: [  # ctx includes {"stage": "search", ...}
         {"title": f"Patent about {query}", "abstract": "...", "url": "..."}
     ],
 )
 
-# Normal mode: all tools run automatically
-result = route("battery energy density", LLMClient(), research_tools=[google_patents])
+# Multi-stage tool: provides context before analysis + enrichment after
+web_search = ResearchTool(
+    name="web_search",
+    description="General web search for domain knowledge and feasibility data.",
+    fn=lambda query, ctx: (
+        [{"content": f"Domain context for: {query}"}] if ctx["stage"] == "context"
+        else [{"title": "Feasibility note", "content": "..."}]
+    ),
+    stages=["context", "enrichment"],
+)
+
+# Normal mode: all tools run automatically at their declared stages
+result = route("battery energy density", LLMClient(),
+               research_tools=[google_patents, web_search])
+# result.enrichment contains enrichment-stage results
 
 # Deep mode: LLM selects which tools to use
 from triz_ai.engine.ariz import orchestrate_deep
 result = orchestrate_deep("battery problem", LLMClient(), store=None,
-                          research_tools=[google_patents])
+                          research_tools=[google_patents, web_search])
 ```
 
-Each tool's `fn` receives a search query string and returns a list of dicts with at least `"title"` and `"abstract"`. Optional fields: `"id"`, `"assignee"`, `"filing_date"`, `"url"`, `"matched_principles"`.
+Each tool's `fn(query, context)` receives a search query and a context dict with `{"stage": str}` plus stage-specific data. Return format depends on stage:
+- **context**: `[{"content": "..."}]` — text prepended to problem description
+- **search**: `[{"title": "...", "abstract": "..."}]` — patent-like results (optional: `"id"`, `"assignee"`, `"filing_date"`, `"url"`, `"matched_principles"`)
+- **enrichment**: `[{"title": "...", "content": "..."}]` — stored in `AnalysisResult.enrichment`
 
 ## Project Structure
 
@@ -179,7 +195,7 @@ src/triz_ai/
   patents/             # SQLite + sqlite-vec store, ingestion pipeline
   evolution/           # Candidate principle & parameter discovery + review
   llm/                 # litellm wrapper with pydantic validation
-tests/                 # 137 unit tests
+tests/                 # 170 unit tests
 ```
 
 ## Configuration

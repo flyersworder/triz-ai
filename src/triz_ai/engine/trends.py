@@ -2,7 +2,7 @@
 
 import logging
 
-from triz_ai.engine.analyzer import AnalysisResult, search_patents
+from triz_ai.engine.analyzer import AnalysisResult, run_enrichment_tools, search_patents
 from triz_ai.llm.client import LLMClient
 from triz_ai.patents.store import PatentStore
 
@@ -49,6 +49,8 @@ def analyze_trends(
     except Exception:
         logger.warning("Solution direction generation failed, continuing without")
 
+    enrichment = run_enrichment_tools(problem_text, solution_directions, research_tools)
+
     current = result.current_stage
     return AnalysisResult(
         problem=problem_text,
@@ -59,6 +61,7 @@ def analyze_trends(
         f"'{result.trend_name}'",
         patent_examples=patent_examples,
         solution_directions=solution_directions,
+        enrichment=enrichment,
         details={
             "current_stage": result.current_stage,
             "trend_name": result.trend_name,

@@ -206,11 +206,25 @@ def orchestrate_deep(
         reasoning_effort: Optional reasoning effort (low/medium/high) for
             Passes 1 & 3. Passed to litellm which translates across providers.
     """
+    # Run context tools before Pass 1
+    if research_tools:
+        from triz_ai.tools import run_stage_tools
+
+        context_results = run_stage_tools(research_tools, "context", problem_text)
+        if context_results:
+            context_parts = [r.get("content", "") for r in context_results if r.get("content")]
+            if context_parts:
+                additional_context = "\n\n".join(context_parts)
+                problem_text = (
+                    f"Additional context:\n{additional_context}\n\nProblem: {problem_text}"
+                )
+
     # Build research tool descriptions for the prompt
     research_tool_descriptions = None
     if research_tools:
         research_tool_descriptions = [
-            {"name": t.name, "description": t.description} for t in research_tools
+            {"name": t.name, "description": t.description, "stages": t.stages}
+            for t in research_tools
         ]
 
     # Pass 1: Deep reformulation (uses deep_model if provided)

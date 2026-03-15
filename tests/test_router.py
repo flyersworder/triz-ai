@@ -217,9 +217,42 @@ class TestRouter:
         """Research tools should be forwarded to the pipeline."""
         from triz_ai.tools import ResearchTool
 
-        tool = ResearchTool(name="test", description="test", fn=lambda q: [])
+        tool = ResearchTool(name="test", description="test", fn=lambda q, ctx: [])
         with self._patch_pipeline("technical_contradiction") as mock_get:
             route("test", mock_llm, store, research_tools=[tool])
             pipeline_fn = mock_get.return_value
             call_kwargs = pipeline_fn.call_args[1]
             assert call_kwargs.get("research_tools") == [tool]
+
+    def test_context_tools_enrich_problem_text(self, mock_llm, store):
+        """Context-stage tools should enrich problem_text before pipeline dispatch."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(
+            name="web",
+            description="Web search",
+            fn=lambda q, ctx: [{"content": "SiC MOSFETs switch at 100-400kHz"}],
+            stages=["context"],
+        )
+        with self._patch_pipeline("technical_contradiction") as mock_get:
+            route("SiC problem", mock_llm, store, research_tools=[tool])
+            pipeline_fn = mock_get.return_value
+            call_args = pipeline_fn.call_args[0]
+            # problem_text (first arg) should contain the context
+            assert "100-400kHz" in call_args[0]
+
+    def test_context_tools_no_content_no_change(self, mock_llm, store):
+        """Context tools returning empty content should not modify problem text."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(
+            name="empty",
+            description="Returns nothing useful",
+            fn=lambda q, ctx: [{"content": ""}],
+            stages=["context"],
+        )
+        with self._patch_pipeline("technical_contradiction") as mock_get:
+            route("original problem", mock_llm, store, research_tools=[tool])
+            pipeline_fn = mock_get.return_value
+            call_args = pipeline_fn.call_args[0]
+            assert call_args[0] == "original problem"

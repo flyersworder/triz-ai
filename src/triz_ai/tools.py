@@ -1,27 +1,59 @@
 """Pluggable research tools for supplementing patent search."""
 
+import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
+
+VALID_STAGES = {"context", "search", "enrichment"}
 
 
 @dataclass
 class ResearchTool:
-    """A research tool that can find prior art or technical references.
+    """A research tool that supplements built-in analysis at specific stages.
 
     Developers pass these to route() or orchestrate_deep() to supplement
-    the built-in patent DB search.
+    the built-in patent DB search and enrich analysis at multiple stages.
 
     Args:
         name: Identifier (e.g. "google_patents", "arxiv").
         description: Shown to LLM in deep mode so it can decide whether
             to use this tool. Be specific about what the tool searches
             and when it's most useful.
-        fn: Callable that takes a search query string and returns results.
-            Each result dict must have at least "title" and "abstract".
-            Optional fields: "id", "assignee", "filing_date", "url",
-            "matched_principles".
+        fn: Callable(query: str, context: dict) -> list[dict].
+            context includes {"stage": str} plus stage-specific data.
+        stages: Which pipeline stages this tool runs at.
+            "context" — before LLM extraction; return [{"content": "..."}]
+            "search" — during patent search; return [{"title": "...", "abstract": "..."}]
+            "enrichment" — after solution generation; return [{"title": "...", "content": "..."}]
+            Defaults to ["search"] for backward compatibility.
     """
 
     name: str
     description: str
-    fn: Callable[[str], list[dict]]
+    fn: Callable[[str, dict], list[dict]]
+    stages: list[str] = field(default_factory=lambda: ["search"])
+
+
+def run_stage_tools(
+    tools: list[ResearchTool] | None,
+    stage: str,
+    query: str,
+    extra_context: dict | None = None,
+) -> list[dict]:
+    """Run all tools registered for the given stage, collecting results."""
+    if not tools:
+        return []
+    context = {"stage": stage}
+    if extra_context:
+        context.update(extra_context)
+    results = []
+    for tool in tools:
+        if stage not in tool.stages:
+            continue
+        try:
+            results.extend(tool.fn(query, context))
+        except Exception:
+            logger.warning("Research tool '%s' failed at stage '%s', skipping", tool.name, stage)
+    return results

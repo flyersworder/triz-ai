@@ -238,7 +238,7 @@ class TestOrchestrateDeep:
         """Research tools should be forwarded to _run_tools."""
         from triz_ai.tools import ResearchTool
 
-        tool = ResearchTool(name="test", description="Test", fn=lambda q: [])
+        tool = ResearchTool(name="test", description="Test", fn=lambda q, ctx: [])
         with self._patch_run_tools() as mock_run:
             orchestrate_deep("test", mock_llm, store, research_tools=[tool])
             call_kwargs = mock_run.call_args[1]
@@ -251,8 +251,8 @@ class TestOrchestrateDeep:
         model = _make_problem_model()
         model.recommended_research_tools = ["arxiv"]
         mock_llm.deep_reformulate.return_value = model
-        arxiv = ResearchTool(name="arxiv", description="Arxiv", fn=lambda q: [])
-        web = ResearchTool(name="web", description="Web", fn=lambda q: [])
+        arxiv = ResearchTool(name="arxiv", description="Arxiv", fn=lambda q, ctx: [])
+        web = ResearchTool(name="web", description="Web", fn=lambda q, ctx: [])
         with self._patch_run_tools() as mock_run:
             orchestrate_deep("test", mock_llm, store, research_tools=[arxiv, web])
             selected = mock_run.call_args[1].get("research_tools", [])
@@ -263,17 +263,22 @@ class TestOrchestrateDeep:
         """Without LLM recommendation, all research tools should be used."""
         from triz_ai.tools import ResearchTool
 
-        tool = ResearchTool(name="test", description="Test", fn=lambda q: [])
+        tool = ResearchTool(name="test", description="Test", fn=lambda q, ctx: [])
         with self._patch_run_tools() as mock_run:
             orchestrate_deep("test", mock_llm, store, research_tools=[tool])
             selected = mock_run.call_args[1].get("research_tools", [])
             assert len(selected) == 1
 
     def test_research_tool_descriptions_in_prompt(self, mock_llm, store):
-        """Research tool descriptions should be passed to deep_reformulate."""
+        """Research tool descriptions should be passed to deep_reformulate with stages."""
         from triz_ai.tools import ResearchTool
 
-        tool = ResearchTool(name="bq", description="BigQuery patents", fn=lambda q: [])
+        tool = ResearchTool(
+            name="bq",
+            description="BigQuery patents",
+            fn=lambda q, ctx: [],
+            stages=["search", "enrichment"],
+        )
         with self._patch_run_tools():
             orchestrate_deep("test", mock_llm, store, research_tools=[tool])
             call_kwargs = mock_llm.deep_reformulate.call_args[1]
@@ -281,3 +286,20 @@ class TestOrchestrateDeep:
             assert descs is not None
             assert len(descs) == 1
             assert descs[0]["name"] == "bq"
+            assert descs[0]["stages"] == ["search", "enrichment"]
+
+    def test_context_tools_enrich_deep_mode(self, mock_llm, store):
+        """Context-stage tools should enrich problem text before Pass 1."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(
+            name="web",
+            description="Web",
+            fn=lambda q, ctx: [{"content": "Extra context data"}],
+            stages=["context"],
+        )
+        with self._patch_run_tools():
+            orchestrate_deep("test problem", mock_llm, store, research_tools=[tool])
+            # deep_reformulate should receive enriched problem text
+            call_args = mock_llm.deep_reformulate.call_args[0]
+            assert "Extra context data" in call_args[0]

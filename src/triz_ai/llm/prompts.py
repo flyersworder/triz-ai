@@ -486,7 +486,8 @@ def deep_reformulation_prompt(research_tool_descriptions=None) -> str:
     )
     if research_tool_descriptions:
         tools_text = "\n".join(
-            f"- {t['name']}: {t['description']}" for t in research_tool_descriptions
+            f"- {t['name']} (stages: {', '.join(t.get('stages', ['search']))}): {t['description']}"
+            for t in research_tool_descriptions
         )
         prompt += (
             "\n\nAvailable research tools for finding prior art:\n"

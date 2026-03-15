@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-03-15
+
+### Added
+
+- **Stage-aware research tools**: `ResearchTool` gains a `stages` field (default `["search"]`) so tools can declare participation in `"context"` (before LLM extraction), `"search"` (during patent search), and/or `"enrichment"` (after solution generation)
+- **Context stage**: Tools registered for `"context"` run once in `route()` / `orchestrate_deep()` before dispatch; their output is prepended to `problem_text` for all downstream LLM calls
+- **Enrichment stage**: Tools registered for `"enrichment"` run after solution directions are generated in each pipeline; results stored in new `AnalysisResult.enrichment` field
+- **`run_stage_tools()` helper**: Filters tools by stage, passes a context dict, and handles failures gracefully; exported from top-level `triz_ai` package
+- **`run_enrichment_tools()` helper**: Convenience wrapper in `analyzer.py` that calls `run_stage_tools` with `"enrichment"` stage and solution directions as context
+
+### Changed
+
+- **Breaking: `ResearchTool.fn` signature** changed from `(str) -> list[dict]` to `(str, dict) -> list[dict]` — the second argument is a context dict containing at minimum `{"stage": str}` plus stage-specific data (e.g., `principle_ids` for search, `solution_directions` for enrichment)
+- **Deep mode tool descriptions** now include `stages` field so the LLM knows what each tool can do at each stage
+- **`search_patents()`** now filters research tools by `"search"` stage and passes a context dict with `principle_ids`, `improving_param`, `worsening_param`
+- **Version**: Bumped to 0.11.0
+
 ## [0.10.0] - 2026-03-15
 
 ### Added
@@ -177,6 +194,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.11.0]: https://github.com/flyersworder/triz-ai/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/flyersworder/triz-ai/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/flyersworder/triz-ai/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/flyersworder/triz-ai/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/flyersworder/triz-ai/compare/v0.6.0...v0.7.0

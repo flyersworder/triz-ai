@@ -2,7 +2,7 @@
 
 import logging
 
-from triz_ai.engine.analyzer import AnalysisResult, search_patents
+from triz_ai.engine.analyzer import AnalysisResult, run_enrichment_tools, search_patents
 from triz_ai.llm.client import LLMClient
 from triz_ai.patents.store import PatentStore
 
@@ -58,6 +58,8 @@ def analyze_functions(
         else "No problematic functions identified"
     )
 
+    enrichment = run_enrichment_tools(problem_text, solution_directions, research_tools)
+
     return AnalysisResult(
         problem=problem_text,
         method="function_analysis",
@@ -66,6 +68,7 @@ def analyze_functions(
         f"problematic function(s): {problem_summary}",
         patent_examples=patent_examples,
         solution_directions=solution_directions,
+        enrichment=enrichment,
         details={
             "components": result.components,
             "functions": result.functions,

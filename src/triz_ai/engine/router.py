@@ -75,6 +75,19 @@ def route(
     except Exception:
         logger.warning("IFR formulation failed, continuing without")
 
+    # Step 1.5: Run context tools (enriches problem text for all downstream calls)
+    if research_tools:
+        from triz_ai.tools import run_stage_tools
+
+        context_results = run_stage_tools(research_tools, "context", problem_text)
+        if context_results:
+            context_parts = [r.get("content", "") for r in context_results if r.get("content")]
+            if context_parts:
+                additional_context = "\n\n".join(context_parts)
+                problem_text = (
+                    f"Additional context:\n{additional_context}\n\nProblem: {problem_text}"
+                )
+
     # Step 2: Determine method
     primary_method: str
     secondary_method: str | None = None

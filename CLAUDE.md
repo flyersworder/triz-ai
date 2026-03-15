@@ -40,13 +40,16 @@ IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates
 - Pass 2 pipelines always use `default_model` (via `--model`); Passes 1 & 3 use `deep_model` (falls back to `default_model`)
 - `reasoning_effort` accepts `low|medium|high`; litellm translates across providers (Anthropic, OpenAI o-series, DeepSeek R1, etc.)
 
-### Pluggable Research Tools
+### Pluggable Research Tools (Stage-Aware)
 
-`ResearchTool` dataclass (`tools.py`) lets developers pass additional research tools (web search, BigQuery, Arxiv, etc.) to supplement the built-in patent DB search. Threaded through `route()` / `orchestrate_deep()` → all 6 pipelines → `search_patents()`.
+`ResearchTool` dataclass (`tools.py`) lets developers pass research tools that run at specific pipeline stages. `fn` signature: `(query: str, context: dict) -> list[dict]`.
 
-- **Normal mode**: all research tools run automatically alongside local DB search
-- **Deep mode**: LLM selects which research tools to use via `recommended_research_tools` field in `StructuredProblemModel`; falls back to using all if no recommendation
-- Results are deduplicated by title (case-insensitive); each result gets a `source` field with the tool name
+- **Three stages**: `"context"` (before LLM extraction), `"search"` (during patent search), `"enrichment"` (after solution generation). Default: `["search"]`.
+- **Context stage**: Runs once in `route()` / `orchestrate_deep()` before dispatch. Returns `[{"content": "..."}]`, prepended to `problem_text`.
+- **Search stage**: Runs in `search_patents()`, filtered by `"search"` stage. Results deduplicated by title, tagged with `source`. Returns `[{"title": "...", "abstract": "..."}]`.
+- **Enrichment stage**: Runs after `generate_solution_directions()` in each pipeline. Stored in `AnalysisResult.enrichment`. Returns `[{"title": "...", "content": "..."}]`.
+- **`run_stage_tools()`**: Filters tools by stage, passes context dict; exported from `triz_ai` package.
+- **Deep mode**: LLM selects which research tools to use via `recommended_research_tools`; tool descriptions include stages.
 - Tool failures are logged and skipped — they never block analysis
 - No CLI changes; research tools are passed programmatically via `route(research_tools=[...])` or `orchestrate_deep(research_tools=[...])`
 

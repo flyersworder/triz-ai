@@ -2,7 +2,7 @@
 
 import logging
 
-from triz_ai.engine.analyzer import AnalysisResult, search_patents
+from triz_ai.engine.analyzer import AnalysisResult, run_enrichment_tools, search_patents
 from triz_ai.llm.client import LLMClient
 from triz_ai.patents.store import PatentStore
 
@@ -49,6 +49,8 @@ def analyze_su_field(
     except Exception:
         logger.warning("Solution direction generation failed, continuing without")
 
+    enrichment = run_enrichment_tools(problem_text, solution_directions, research_tools)
+
     return AnalysisResult(
         problem=problem_text,
         method="su_field",
@@ -57,6 +59,7 @@ def analyze_su_field(
         f"{result.field} — problem type: {result.problem_type}",
         patent_examples=patent_examples,
         solution_directions=solution_directions,
+        enrichment=enrichment,
         details={
             "substances": result.substances,
             "field": result.field,
