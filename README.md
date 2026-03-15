@@ -1,5 +1,9 @@
 # triz-ai
 
+[![PyPI](https://img.shields.io/pypi/v/triz-ai.svg)](https://pypi.org/project/triz-ai/)
+[![License](https://img.shields.io/pypi/l/triz-ai.svg)](https://github.com/flyersworder/triz-ai/blob/main/LICENSE)
+[![Python Versions](https://img.shields.io/pypi/pyversions/triz-ai.svg)](https://pypi.org/project/triz-ai/)
+
 AI-powered TRIZ innovation engine — analyze technical problems, classify patents, and discover new inventive principles.
 
 ## What is this?
