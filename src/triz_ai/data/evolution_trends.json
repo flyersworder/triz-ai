@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "name": "Increasing ideality",
+    "description": "Systems evolve toward increasing ideality — maximizing useful functions while minimizing harmful functions and costs. The ideal system performs its function without existing.",
+    "stages": [
+      {"stage": 1, "name": "Initial system", "description": "The system exists as a separate, tangible device with significant costs and harmful side effects."},
+      {"stage": 2, "name": "Improved system", "description": "The system is optimized to reduce costs and harmful effects while maintaining useful functions."},
+      {"stage": 3, "name": "Function transferred to supersystem", "description": "The system's function is absorbed by a neighboring system, eliminating the original system."},
+      {"stage": 4, "name": "Ideal system", "description": "The function is performed without any system — by using available resources or by eliminating the need for the function."}
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Stages of evolution (S-curve)",
+    "description": "Every technical system passes through four stages of evolution: infancy, growth, maturity, and decline, following an S-shaped curve of performance vs. time.",
+    "stages": [
+      {"stage": 1, "name": "Infancy", "description": "The system is invented. Performance is low, many problems, few adopters. High inventive effort to overcome fundamental contradictions."},
+      {"stage": 2, "name": "Rapid growth", "description": "Key contradictions resolved. Performance improves rapidly. Many patents, growing market. System differentiation begins."},
+      {"stage": 3, "name": "Maturity", "description": "Performance approaches physical limits. Improvements become incremental. Focus shifts to cost reduction and feature additions."},
+      {"stage": 4, "name": "Decline / Transition", "description": "The system cannot improve further within its current operating principle. A new system based on a different principle begins to replace it."}
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Transition to supersystem",
+    "description": "Individual systems combine with other systems to form supersystems with enhanced capabilities and emergent properties.",
+    "stages": [
+      {"stage": 1, "name": "Mono-system", "description": "A single, standalone system performing one primary function."},
+      {"stage": 2, "name": "Bi-system", "description": "Two similar or complementary systems combined to gain new properties (stereo sound from two speakers, binoculars from two telescopes)."},
+      {"stage": 3, "name": "Poly-system", "description": "Multiple systems combined (Swiss Army knife, smartphone combining phone + camera + computer + GPS)."},
+      {"stage": 4, "name": "Integrated supersystem", "description": "Elements merge and boundaries dissolve. The supersystem becomes a new mono-system at a higher level."}
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Transition to micro-level",
+    "description": "Systems evolve from macro-scale mechanisms to micro-scale and field-based mechanisms for finer control and higher efficiency.",
+    "stages": [
+      {"stage": 1, "name": "Macro-level mechanism", "description": "The system uses macro-scale mechanical parts (gears, levers, springs)."},
+      {"stage": 2, "name": "Molecular/chemical level", "description": "Functions performed by chemical reactions, molecular interactions, or material properties."},
+      {"stage": 3, "name": "Field-based mechanism", "description": "Functions performed by fields (electromagnetic, acoustic, thermal) instead of substances."},
+      {"stage": 4, "name": "Quantum/atomic level", "description": "Functions performed at quantum or atomic level, exploiting quantum effects."}
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Increasing dynamism and controllability",
+    "description": "Systems evolve from rigid and static to flexible, dynamic, and increasingly controllable, ultimately becoming self-adaptive.",
+    "stages": [
+      {"stage": 1, "name": "Rigid system", "description": "The system has a fixed structure and cannot adapt to changing conditions."},
+      {"stage": 2, "name": "Jointed system", "description": "The system has joints, hinges, or articulations allowing limited movement and adjustment."},
+      {"stage": 3, "name": "Flexible system", "description": "The system uses flexible or elastic materials and can continuously adapt its shape."},
+      {"stage": 4, "name": "Field-controlled system", "description": "The system uses fields (pneumatic, hydraulic, electromagnetic) for shape change and control."},
+      {"stage": 5, "name": "Self-adaptive system", "description": "The system senses conditions and automatically adapts its structure, behavior, or properties via feedback."}
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Uneven development of parts",
+    "description": "Different components of a system evolve at different rates, creating internal contradictions that drive further evolution.",
+    "stages": [
+      {"stage": 1, "name": "All components at similar level", "description": "System components are balanced in their level of development."},
+      {"stage": 2, "name": "Key component advances", "description": "One component evolves faster than others, creating bottlenecks in the lagging parts."},
+      {"stage": 3, "name": "Bottleneck creates contradiction", "description": "The mismatch between advanced and lagging components creates a system-level contradiction that limits performance."},
+      {"stage": 4, "name": "Lagging component upgraded or replaced", "description": "The bottleneck is resolved by upgrading the lagging component, often using a fundamentally different approach."}
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Increasing coordination (matching/mismatching)",
+    "description": "Systems evolve toward better coordination between their elements and with the environment — matching rhythms, frequencies, and interfaces.",
+    "stages": [
+      {"stage": 1, "name": "Uncoordinated elements", "description": "System elements operate independently without harmonization."},
+      {"stage": 2, "name": "Partially matched elements", "description": "Some coordination introduced — resonant frequencies matched, interfaces aligned, rhythms synchronized."},
+      {"stage": 3, "name": "Fully coordinated system", "description": "All elements work in harmony. Frequencies, geometries, and timing are optimized as a whole."},
+      {"stage": 4, "name": "Intentional mismatching", "description": "Deliberate mismatching introduced for beneficial effects (e.g., spread-spectrum signals, anti-resonance damping)."}
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Increasing automation (human involvement reduction)",
+    "description": "Systems evolve to progressively reduce human involvement in performing the main function, from fully manual to fully autonomous.",
+    "stages": [
+      {"stage": 1, "name": "Manual system", "description": "Humans perform the function directly using hand tools."},
+      {"stage": 2, "name": "Mechanized system", "description": "Machines perform the physical work; humans control and monitor."},
+      {"stage": 3, "name": "Automated system", "description": "The system operates automatically with human oversight and decision-making."},
+      {"stage": 4, "name": "Self-controlling system", "description": "The system makes decisions autonomously using sensors and algorithms."},
+      {"stage": 5, "name": "Fully autonomous system", "description": "The system operates, maintains, and improves itself without human involvement."}
+    ]
+  }
+]

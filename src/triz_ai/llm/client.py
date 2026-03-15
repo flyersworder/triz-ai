@@ -10,13 +10,21 @@ from pydantic import BaseModel
 from triz_ai.config import load_config
 from triz_ai.llm.prompts import (
     classify_patent_prompt,
+    classify_problem_prompt,
     cluster_patents_prompt,
     extract_contradiction_prompt,
+    extract_physical_contradiction_prompt,
+    function_analysis_prompt,
     generate_ideas_prompt,
+    ideal_final_result_prompt,
     propose_candidate_parameter_prompt,
     propose_candidate_principle_prompt,
+    root_cause_analysis_prompt,
     seed_matrix_prompt,
     solution_directions_prompt,
+    su_field_analysis_prompt,
+    trends_analysis_prompt,
+    trimming_analysis_prompt,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -92,6 +100,63 @@ class MatrixEntry(BaseModel):
 
 class MatrixSeedResult(BaseModel):
     entries: list[MatrixEntry]
+
+
+# --- Multi-tool routing models ---
+
+
+class ProblemClassification(BaseModel):
+    primary_method: str  # one of the 6 TRIZ methods
+    secondary_method: str | None = None
+    reasoning: str
+    confidence: float
+    reformulated_problem: str
+
+
+class IdealFinalResult(BaseModel):
+    ideal_result: str
+    reasoning: str
+
+
+class RootCauseAnalysis(BaseModel):
+    root_causes: list[str]
+    reformulated_problem: str
+    reasoning: str
+
+
+class PhysicalContradictionResult(BaseModel):
+    property: str
+    requirement_a: str
+    requirement_b: str
+    separation_type: str  # one of the 4 separation categories
+    separation_principles: list[dict]  # [{"id": int, "name": str, "technique": str}]
+
+
+class SuFieldResult(BaseModel):
+    substances: list[str]
+    field: str
+    problem_type: str  # incomplete | harmful | inefficient
+    standard_solutions: list[dict]  # [{"id": str, "name": str, "applicability": str}]
+
+
+class FunctionAnalysisResult(BaseModel):
+    components: list[dict]  # [{"name": str, "role": str}]
+    functions: list[dict]  # [{"subject": str, "action": str, "object": str, "type": str}]
+    problem_functions: list[dict]  # [{subject, action, object, problem}]
+    recommendations: list[str]
+
+
+class TrimmingResult(BaseModel):
+    components: list[dict]  # [{"name": str, "function": str, "cost": str}]
+    trimming_candidates: list[dict]  # [{"component": str, "reason": str, "rule": str}]
+    redistributed_functions: list[dict]  # [{"function": str, "from": str, "to": str}]
+
+
+class TrendsResult(BaseModel):
+    current_stage: dict  # {"trend_id": int, "trend_name": str, "stage": int, "stage_name": str}
+    trend_name: str
+    next_stages: list[dict]  # [{"stage": int, "name": str, "description": str}]
+    predictions: list[str]
 
 
 def _friendly_error(e: Exception) -> TrizAIError:
@@ -347,6 +412,75 @@ class LLMClient:
         prompt = seed_matrix_prompt(improving, imp_name, wp_dicts, example_rows)
         user_msg = f"Fill matrix row for improving parameter {improving}: {imp_name}"
         return self._complete(prompt, user_msg, MatrixSeedResult)
+
+    def classify_problem(
+        self, problem_text: str, model: str | None = None
+    ) -> "ProblemClassification":
+        """Classify a problem into the appropriate TRIZ analysis method."""
+        use_model = model or self.classify_model
+        return self._complete(
+            classify_problem_prompt(),
+            problem_text,
+            ProblemClassification,
+            model=use_model,
+            max_tokens=1024,
+        )
+
+    def formulate_ifr(self, problem_text: str) -> "IdealFinalResult":
+        """Formulate the Ideal Final Result for a problem."""
+        return self._complete(
+            ideal_final_result_prompt(),
+            problem_text,
+            IdealFinalResult,
+        )
+
+    def analyze_root_cause(self, problem_text: str) -> "RootCauseAnalysis":
+        """Trace a vague problem to its root cause and reformulate."""
+        return self._complete(
+            root_cause_analysis_prompt(),
+            problem_text,
+            RootCauseAnalysis,
+        )
+
+    def extract_physical_contradiction(self, problem_text: str) -> "PhysicalContradictionResult":
+        """Extract physical contradiction and recommend separation principles."""
+        return self._complete(
+            extract_physical_contradiction_prompt(),
+            problem_text,
+            PhysicalContradictionResult,
+        )
+
+    def analyze_su_field(self, problem_text: str) -> "SuFieldResult":
+        """Analyze a problem using Su-Field modeling."""
+        return self._complete(
+            su_field_analysis_prompt(),
+            problem_text,
+            SuFieldResult,
+        )
+
+    def analyze_functions(self, problem_text: str) -> "FunctionAnalysisResult":
+        """Perform function analysis on a system."""
+        return self._complete(
+            function_analysis_prompt(),
+            problem_text,
+            FunctionAnalysisResult,
+        )
+
+    def analyze_trimming(self, problem_text: str) -> "TrimmingResult":
+        """Analyze a system for trimming opportunities."""
+        return self._complete(
+            trimming_analysis_prompt(),
+            problem_text,
+            TrimmingResult,
+        )
+
+    def analyze_trends(self, problem_text: str) -> "TrendsResult":
+        """Analyze technology evolution trends for a system."""
+        return self._complete(
+            trends_analysis_prompt(),
+            problem_text,
+            TrendsResult,
+        )
 
     def get_embedding(self, text: str) -> list[float]:
         """Get embedding vector for text."""

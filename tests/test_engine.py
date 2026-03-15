@@ -69,9 +69,14 @@ class TestAnalyzer:
     def test_analyze_returns_result(self, mock_llm, store):
         result = analyze("Make a lighter faster car", llm_client=mock_llm, store=store)
         assert result.problem == "Make a lighter faster car"
+        assert result.method == "technical_contradiction"
+        assert result.improving_param is not None
         assert result.improving_param["id"] == 9
+        assert result.worsening_param is not None
         assert result.worsening_param["id"] == 1
         assert len(result.recommended_principles) > 0
+        # Details dict should also have the contradiction info
+        assert result.details["improving_param"]["id"] == 9
         mock_llm.extract_contradiction.assert_called_once()
 
     def test_analyze_without_store(self, mock_llm):

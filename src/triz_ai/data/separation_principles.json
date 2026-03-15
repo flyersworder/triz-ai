@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "category": "separation_in_time",
+    "name": "Separation in Time",
+    "description": "Separate conflicting requirements by performing them at different times.",
+    "techniques": [
+      "Perform the conflicting actions at different time intervals",
+      "Alternate between the two states periodically",
+      "Use pre-action: prepare in advance when the conflict is absent",
+      "Use post-action: perform the action after the main process"
+    ],
+    "examples": [
+      "Traffic lights alternate red and green phases to resolve the contradiction of crossing flows",
+      "Expandable luggage that is compact for storage and expands when needed",
+      "Pre-stressed concrete: tension applied before load to handle both compression and tension",
+      "Seasonal tires swapped between summer and winter for different grip requirements"
+    ]
+  },
+  {
+    "id": 2,
+    "category": "separation_in_space",
+    "name": "Separation in Space",
+    "description": "Separate conflicting requirements by placing them in different locations.",
+    "techniques": [
+      "Place the conflicting properties in different spatial zones",
+      "Use a gradient of properties across the object",
+      "Move the contradictory requirement to an adjacent system",
+      "Use nested or layered structures with different properties per layer"
+    ],
+    "examples": [
+      "A pencil is hard at the tip (for writing) and soft at the eraser end (for erasing)",
+      "Aircraft wing: rigid spar for strength, flexible skin for aerodynamics",
+      "Multi-layer PCB with signal layers separated from power/ground planes",
+      "Graded-index optical fiber: refractive index varies from center to edge"
+    ]
+  },
+  {
+    "id": 3,
+    "category": "separation_in_scale",
+    "name": "Separation in Scale (Between Parts and Whole)",
+    "description": "Resolve the contradiction by having the whole exhibit one property while individual parts exhibit the opposite.",
+    "techniques": [
+      "Use many small elements that individually have one property but collectively exhibit the opposite",
+      "Introduce porosity or voids at micro-scale while maintaining macro-scale solidity",
+      "Apply hierarchical structures where each level has different behavior",
+      "Use composite materials with different properties at different scales"
+    ],
+    "examples": [
+      "Chain mail: each link is rigid, but the whole is flexible",
+      "Foam: solid material at micro-scale, compressible at macro-scale",
+      "Carbon fiber composite: brittle fibers woven into a tough, flexible sheet",
+      "Pixel displays: discrete red/green/blue elements appear as continuous color at viewing distance"
+    ]
+  },
+  {
+    "id": 4,
+    "category": "separation_upon_condition",
+    "name": "Separation Upon Condition",
+    "description": "Make the system exhibit different properties depending on operating conditions.",
+    "techniques": [
+      "Use phase transitions triggered by temperature, pressure, or other conditions",
+      "Apply smart materials that change properties in response to stimuli",
+      "Use chemical reactions that are reversible under different conditions",
+      "Employ adaptive mechanisms that switch behavior based on sensor input"
+    ],
+    "examples": [
+      "Shape-memory alloy: deformable at low temperature, returns to original shape when heated",
+      "Dilatant fluid (oobleck): liquid under gentle force, solid under impact",
+      "Photochromic lenses: transparent indoors, darken in sunlight",
+      "Self-healing polymers: stable normally, flow to fill cracks when damaged"
+    ]
+  }
+]

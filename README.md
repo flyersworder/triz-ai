@@ -42,10 +42,27 @@ Or use a `.env` file: `echo 'OPENROUTER_API_KEY=your-key' > .env`
 ## Quick Start
 
 ```bash
-# Analyze a technical problem (works immediately — no setup needed)
+# Analyze a problem — auto-classifies and routes to the best TRIZ tool
 triz-ai analyze "How to increase SiC MOSFET switching speed without increasing EMI"
-# → Identifies contradiction, recommends TRIZ principles, finds related patents
-#   with assignees, and generates concrete solution directions
+# → Routes to: technical contradiction analysis
+
+triz-ai analyze "The solder joint must be rigid for reliability but flexible for thermal cycling"
+# → Routes to: physical contradiction analysis
+
+triz-ai analyze "How to detect delamination without adding sensors"
+# → Routes to: Su-Field analysis
+
+triz-ai analyze "The adhesive layer damages the silicon die during thermal cycling"
+# → Routes to: function analysis
+
+triz-ai analyze "Reduce the BOM cost of this gate driver circuit"
+# → Routes to: trimming analysis
+
+triz-ai analyze "What is the next generation of SiC packaging technology?"
+# → Routes to: trends analysis
+
+# Force a specific method
+triz-ai analyze "How to detect delamination" --method su-field
 
 # For patent-backed examples, ingest patent data
 triz-ai ingest data/patents/battery_patents.json
@@ -57,10 +74,6 @@ triz-ai discover --domain "battery technology"
 triz-ai evolve
 triz-ai evolve --review  # interactive accept/reject
 
-# Discover candidate new engineering parameters
-triz-ai evolve --parameters
-triz-ai evolve --parameters --review
-
 # View matrix statistics
 triz-ai matrix stats
 ```
@@ -69,13 +82,24 @@ triz-ai matrix stats
 
 | Command | Description |
 |---------|-------------|
-| `analyze` | Full TRIZ pipeline: contradiction → matrix → hybrid patent search → solution directions |
+| `analyze` | Auto-routes to the best TRIZ tool (6 methods); `--method` to force one |
 | `discover` | Find underused principles in a domain and generate patent-grounded ideas |
 | `evolve` | Discover candidate new TRIZ principles (`--parameters` for parameters) |
 | `ingest` | Ingest and auto-classify patents from .txt, .pdf, or .json files |
 | `init` | Reset the patent database (only needed with `--force`) |
 | `matrix seed` | LLM-seed missing matrix cells for params 40-50 (power-user) |
 | `matrix stats` | Show matrix fill rate and patent observation statistics |
+
+### Analysis Methods
+
+| Method | When to use |
+|--------|-------------|
+| `technical-contradiction` | Improving X worsens Y |
+| `physical-contradiction` | A part must be both A and B |
+| `su-field` | Detection/measurement problems |
+| `function-analysis` | A component causes harm |
+| `trimming` | Simplify / reduce cost |
+| `trends` | Where is this technology going? |
 
 All commands support `--format text|json|markdown` and `--model` to override the LLM model.
 
@@ -85,13 +109,13 @@ All commands support `--format text|json|markdown` and `--model` to override the
 src/triz_ai/
   cli.py              # Typer CLI entry point
   config.py            # Config loading (~/.triz-ai/config.yaml)
-  data/                # Static TRIZ JSON data files (principles, parameters, matrix)
-  knowledge/           # 40 principles, 50 parameters, contradiction matrix
-  engine/              # analyzer, classifier, generator, evaluator
+  data/                # TRIZ JSON data (principles, parameters, matrix, separation, solutions, trends)
+  knowledge/           # Loaders for all TRIZ knowledge data
+  engine/              # analyzer, router, 5 new pipelines, classifier, generator, evaluator
   patents/             # SQLite + sqlite-vec store, ingestion pipeline
   evolution/           # Candidate principle & parameter discovery + review
   llm/                 # litellm wrapper with pydantic validation
-tests/                 # 82 unit tests
+tests/                 # 124 unit tests
 ```
 
 ## Configuration
@@ -101,7 +125,8 @@ Config lives at `~/.triz-ai/config.yaml`:
 ```yaml
 llm:
   default_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
-  classify_model: openrouter/nvidia/nemotron-3-nano-30b-a3b:free  # smaller model for classification
+  classify_model: openrouter/nvidia/nemotron-3-nano-30b-a3b:free
+  # router_model: null  # model for problem classification (defaults to classify_model)
 
 embeddings:
   model: openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free

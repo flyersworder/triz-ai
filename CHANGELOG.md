@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-03-15
+
+### Added
+
+- **Multi-tool TRIZ analysis**: Auto-classifies problems and routes to the best TRIZ tool — technical contradictions, physical contradictions, Su-Field analysis, function analysis, trimming, or evolution trends
+- **Problem router**: Classifier + IFR formulation + root cause analysis fallback; `--method` flag to force a specific tool, `--router-model` to use a different model for classification
+- **Physical contradiction pipeline**: Identifies opposing requirements on a single property and recommends separation principles (time, space, scale, condition)
+- **Su-Field analysis pipeline**: Models substance-field interactions, classifies problem type (incomplete/harmful/inefficient), recommends from 55 standard solutions
+- **Function analysis pipeline**: Decomposes system into components and functions, identifies harmful/insufficient/excessive functions with recommendations
+- **Trimming pipeline**: Identifies components that can be removed and shows how their functions are redistributed to remaining components
+- **Trends pipeline**: Positions technology on 8 TRIZ evolution trends with system operator (9-screen) framing, predicts next evolutionary stages
+- **Ideal Final Result (IFR)**: Every analysis now starts with IFR formulation — the ideal breakthrough target
+- **Root cause analysis**: Automatically triggered when classifier confidence is low (< 0.4) to reformulate vague problems before routing
+- **TRIZ knowledge data**: 4 separation principles, 55 standard solutions (5 classes), 8 evolution trends with stages
+- **Knowledge loaders**: `separation.py`, `solutions.py`, `trends.py` following the same `@lru_cache` pattern as existing loaders
+
+### Changed
+
+- **`AnalysisResult` model**: Now tool-agnostic with `method`, `method_confidence`, `secondary_method`, `ideal_final_result`, and `details` dict; contradiction-specific fields kept for backward compatibility
+- **`analyze` command**: Routes through the problem classifier by default; add `--method` to force a specific tool and `--router-model` to override the classification model
+- **CLI output**: Common header (problem, method, IFR) + method-specific renderer + common patent table + solution directions; tip line suggests secondary method
+- **Config**: Added `llm.router_model` (defaults to `classify_model`)
+- **Version**: Bumped to 0.8.0
+
 ## [0.7.0] - 2026-03-15
 
 ### Added
@@ -123,6 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.8.0]: https://github.com/flyersworder/triz-ai/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/flyersworder/triz-ai/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/flyersworder/triz-ai/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/flyersworder/triz-ai/compare/v0.4.0...v0.5.0

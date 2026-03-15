@@ -13,6 +13,7 @@ load_dotenv()
 class LLMConfig(BaseModel):
     default_model: str = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
     classify_model: str = "openrouter/nvidia/nemotron-3-nano-30b-a3b:free"
+    router_model: str | None = None  # Defaults to classify_model
     api_base: str | None = None  # Custom API base URL (e.g., litellm proxy)
     api_key: str | None = None  # Custom API key (overrides env var)
 

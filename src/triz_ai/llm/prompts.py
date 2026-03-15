@@ -6,6 +6,9 @@ system prompts under ~2K tokens.
 
 from triz_ai.knowledge.parameters import load_parameters
 from triz_ai.knowledge.principles import load_principles
+from triz_ai.knowledge.separation import load_separation_principles
+from triz_ai.knowledge.solutions import load_standard_solutions
+from triz_ai.knowledge.trends import load_evolution_trends
 
 
 def _parameters_list() -> str:
@@ -195,4 +198,232 @@ def seed_matrix_prompt(
         "Respond with JSON:\n"
         '{"entries": [{"improving": <int>, "worsening": <int>, '
         '"principles": [<int>, ...]}]}'
+    )
+
+
+# --- Multi-tool routing prompts ---
+
+
+def _separation_principles_text() -> str:
+    """Compact list of separation principles with techniques."""
+    parts = []
+    for sp in load_separation_principles():
+        techniques = "; ".join(sp.techniques)
+        parts.append(
+            f"{sp.id}. {sp.name} ({sp.category}): {sp.description}\n   Techniques: {techniques}"
+        )
+    return "\n".join(parts)
+
+
+def _standard_solutions_compact() -> str:
+    """Compact list of standard solutions grouped by class."""
+    solutions = load_standard_solutions()
+    parts = []
+    current_class = None
+    for s in solutions:
+        if s.class_id != current_class:
+            current_class = s.class_id
+            parts.append(f"\nClass {s.class_id}: {s.class_name}")
+        parts.append(f"  {s.id}. {s.name} — {s.description}")
+    return "\n".join(parts)
+
+
+def _evolution_trends_text() -> str:
+    """Compact list of evolution trends with stages."""
+    parts = []
+    for t in load_evolution_trends():
+        stages = "; ".join(f"Stage {s.stage}: {s.name}" for s in t.stages)
+        parts.append(f"{t.id}. {t.name}: {t.description}\n   Stages: {stages}")
+    return "\n".join(parts)
+
+
+def classify_problem_prompt() -> str:
+    """System prompt for classifying a problem into the appropriate TRIZ tool."""
+    return (
+        "You are a TRIZ (Theory of Inventive Problem Solving) expert.\n\n"
+        "Classify the engineering problem into the most appropriate TRIZ analysis method:\n\n"
+        "1. **technical_contradiction** — The problem is about improving one parameter that "
+        "worsens another. Examples: 'increase speed without increasing weight', "
+        "'improve strength without reducing flexibility', 'increase throughput without "
+        "increasing error rate'.\n\n"
+        "2. **physical_contradiction** — A single component must have two opposite properties "
+        "simultaneously. Examples: 'the solder joint must be rigid AND flexible', "
+        "'the surface must be smooth AND rough', 'the liquid must be hot AND cold'.\n\n"
+        "3. **su_field** — The problem involves detection, measurement, or insufficient/harmful "
+        "interactions between substances and fields. Examples: 'how to detect cracks without "
+        "adding sensors', 'how to measure internal temperature non-invasively', "
+        "'the field damages the substrate'.\n\n"
+        "4. **function_analysis** — A component performs a harmful function, or the user wants "
+        "to understand which interactions are problematic. Examples: 'the adhesive damages the "
+        "die', 'which component is causing failures', 'the cooling system corrodes the pipes'.\n\n"
+        "5. **trimming** — The goal is simplification, cost reduction, or removing components. "
+        "Examples: 'reduce BOM cost', 'simplify the assembly', 'eliminate unnecessary parts', "
+        "'reduce component count'.\n\n"
+        "6. **trends** — The question is about future technology evolution or generational "
+        "progression. Examples: 'what is the next generation of X', 'where is this technology "
+        "heading', 'how will X evolve'.\n\n"
+        "Also suggest a secondary method that might offer additional insights.\n\n"
+        "Reformulate the problem statement to be more precise and actionable.\n\n"
+        "Respond with JSON:\n"
+        '{"primary_method": "<method>", "secondary_method": "<method or null>", '
+        '"reasoning": "<why this method fits best>", '
+        '"confidence": <float 0.0-1.0>, '
+        '"reformulated_problem": "<clearer problem statement>"}'
+    )
+
+
+def ideal_final_result_prompt() -> str:
+    """System prompt for formulating the Ideal Final Result."""
+    return (
+        "You are a TRIZ expert. Formulate the Ideal Final Result (IFR) for this problem.\n\n"
+        "The IFR describes the perfect solution where:\n"
+        "- The useful function is fully achieved\n"
+        "- No new harmful effects are introduced\n"
+        "- No additional complexity, cost, or resources are needed\n"
+        "- The system achieves the goal 'by itself'\n\n"
+        "Express the IFR as: 'The [system element] ITSELF [performs the desired action] "
+        "without [any negative consequences], using only [available resources].'\n\n"
+        "Respond with JSON:\n"
+        '{"ideal_result": "<the IFR statement>", '
+        '"reasoning": "<why this is the ideal outcome>"}'
+    )
+
+
+def root_cause_analysis_prompt() -> str:
+    """System prompt for root cause analysis when problem is vague."""
+    return (
+        "You are a TRIZ expert. The problem description is vague or ambiguous.\n\n"
+        "Apply root cause analysis to trace the problem to its fundamental cause:\n"
+        "1. Ask 'Why?' repeatedly (5-Whys approach)\n"
+        "2. Identify the chain of causes\n"
+        "3. Find the root technical contradiction or physical limitation\n"
+        "4. Reformulate the problem as a clear, specific engineering challenge\n\n"
+        "Respond with JSON:\n"
+        '{"root_causes": ["<cause 1 (surface)>", "<cause 2 (deeper)>", "..."], '
+        '"reformulated_problem": "<specific engineering problem statement>", '
+        '"reasoning": "<how you traced to the root cause>"}'
+    )
+
+
+def extract_physical_contradiction_prompt() -> str:
+    """System prompt for extracting physical contradictions."""
+    sep_principles = _separation_principles_text()
+    return (
+        "You are a TRIZ expert analyzing a physical contradiction.\n\n"
+        "A physical contradiction exists when a single element must have two opposite "
+        "properties simultaneously (e.g., hot AND cold, rigid AND flexible).\n\n"
+        "Identify:\n"
+        "1. The property that has contradictory requirements\n"
+        "2. The two opposing requirements (requirement_a and requirement_b)\n"
+        "3. The best separation principle to resolve it\n\n"
+        "Separation Principles:\n"
+        f"{sep_principles}\n\n"
+        "Choose the most applicable separation type and list specific techniques.\n\n"
+        "Respond with JSON:\n"
+        '{"property": "<the conflicting property>", '
+        '"requirement_a": "<first requirement>", '
+        '"requirement_b": "<opposite requirement>", '
+        '"separation_type": "<separation_in_time|separation_in_space|'
+        'separation_in_scale|separation_upon_condition>", '
+        '"separation_principles": [{"id": <int>, "name": "<name>", '
+        '"technique": "<specific technique from the list>"}]}'
+    )
+
+
+def su_field_analysis_prompt() -> str:
+    """System prompt for Su-Field analysis."""
+    solutions = _standard_solutions_compact()
+    return (
+        "You are a TRIZ expert performing Su-Field (Substance-Field) analysis.\n\n"
+        "A Su-Field model consists of:\n"
+        "- S1 (substance 1): the object being acted upon\n"
+        "- S2 (substance 2): the tool acting on S1\n"
+        "- F (field): the energy/interaction connecting S1 and S2\n\n"
+        "Problem types:\n"
+        "- incomplete: missing substance or field in the model\n"
+        "- harmful: the interaction produces undesirable effects\n"
+        "- inefficient: the interaction exists but is too weak\n\n"
+        "Standard Solutions:\n"
+        f"{solutions}\n\n"
+        "Identify the Su-Field model elements, classify the problem type, "
+        "and recommend the most applicable standard solutions.\n\n"
+        "Respond with JSON:\n"
+        '{"substances": ["<S1>", "<S2>"], "field": "<field type>", '
+        '"problem_type": "<incomplete|harmful|inefficient>", '
+        '"standard_solutions": [{"id": "<e.g. 1.1.1>", "name": "<name>", '
+        '"applicability": "<why this solution applies>"}]}'
+    )
+
+
+def function_analysis_prompt() -> str:
+    """System prompt for function analysis."""
+    return (
+        "You are a TRIZ expert performing function analysis.\n\n"
+        "Decompose the system into components and their functions. For each function:\n"
+        "- Subject: the component performing the action\n"
+        "- Action: what it does (verb)\n"
+        "- Object: what it acts upon\n"
+        "- Type: useful | harmful | insufficient | excessive\n\n"
+        "Identify problematic functions (harmful, insufficient, or excessive) "
+        "and recommend how to resolve them using TRIZ approaches:\n"
+        "- Harmful → eliminate, shield, or counteract\n"
+        "- Insufficient → enhance, add resources, or restructure\n"
+        "- Excessive → reduce, limit, or redistribute\n\n"
+        "Respond with JSON:\n"
+        '{"components": [{"name": "<name>", "role": "<brief role>"}], '
+        '"functions": [{"subject": "<component>", "action": "<verb>", '
+        '"object": "<component>", "type": "<useful|harmful|insufficient|excessive>"}], '
+        '"problem_functions": [{"subject": "<component>", "action": "<verb>", '
+        '"object": "<component>", "problem": "<what is wrong>"}], '
+        '"recommendations": ["<recommendation 1>", "..."]}'
+    )
+
+
+def trimming_analysis_prompt() -> str:
+    """System prompt for trimming analysis."""
+    return (
+        "You are a TRIZ expert performing trimming analysis.\n\n"
+        "Trimming simplifies a system by removing components and redistributing "
+        "their useful functions to remaining components or the supersystem.\n\n"
+        "Trimming rules:\n"
+        "A. The function is not needed → remove the component entirely\n"
+        "B. The function can be performed by another existing component → remove and reassign\n"
+        "C. The function can be performed by the object itself → remove (self-service)\n\n"
+        "For each component, assess:\n"
+        "- What useful function does it perform?\n"
+        "- How expensive/complex is it? (high/medium/low)\n"
+        "- Can its function be eliminated or performed by something else?\n\n"
+        "Respond with JSON:\n"
+        '{"components": [{"name": "<name>", "function": "<primary function>", '
+        '"cost": "<high|medium|low>"}], '
+        '"trimming_candidates": [{"component": "<name>", '
+        '"reason": "<why it can be trimmed>", '
+        '"rule": "<A|B|C — which trimming rule applies>"}], '
+        '"redistributed_functions": [{"function": "<function description>", '
+        '"from": "<trimmed component>", "to": "<receiving component or self>"}]}'
+    )
+
+
+def trends_analysis_prompt() -> str:
+    """System prompt for technology evolution trends analysis."""
+    trends = _evolution_trends_text()
+    return (
+        "You are a TRIZ expert analyzing technology evolution using TRIZ trends "
+        "and the System Operator (9-screen analysis).\n\n"
+        "TRIZ Evolution Trends:\n"
+        f"{trends}\n\n"
+        "System Operator framework — analyze at three levels:\n"
+        "- Subsystem: key internal components and their evolution\n"
+        "- System: the technology as a whole\n"
+        "- Supersystem: the broader environment and interacting systems\n\n"
+        "For each level, consider past → present → future.\n\n"
+        "Identify which evolution trend best describes the technology's current position, "
+        "determine the current stage, and predict the next evolutionary steps.\n\n"
+        "Respond with JSON:\n"
+        '{"current_stage": {"trend_id": <int>, "trend_name": "<name>", '
+        '"stage": <int>, "stage_name": "<name>"}, '
+        '"trend_name": "<primary trend name>", '
+        '"next_stages": [{"stage": <int>, "name": "<name>", '
+        '"description": "<what this stage looks like for this technology>"}], '
+        '"predictions": ["<prediction 1>", "<prediction 2>", "..."]}'
     )

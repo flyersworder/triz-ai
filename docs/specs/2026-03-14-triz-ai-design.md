@@ -147,13 +147,20 @@ No setup is required. `triz-ai analyze "problem"` works immediately — the data
 
 ### `triz-ai analyze "problem description"`
 
-The flagship command. Full TRIZ pipeline:
+The flagship command. Auto-classifies the problem and routes to the best TRIZ tool:
 
-1. LLM extracts the technical contradiction (improving vs worsening parameter)
-2. Maps to closest engineering parameters from the 50
-3. Looks up contradiction matrix -> recommended principles
-4. Hybrid patent search: combines vector similarity with a principle overlap bonus (patents sharing recommended principles ranked higher) and a contradiction match bonus (patents with matching improving/worsening parameters ranked highest)
-5. LLM generates solution directions grounded in the retrieved patent examples and recommended principles
+1. **IFR formulation** — Always starts with Ideal Final Result
+2. **Problem classification** — Classifier determines the best TRIZ method (or use `--method` to force one)
+3. **Root cause analysis** — If classifier confidence < 0.4, RCA reformulates and re-classifies
+4. **Pipeline dispatch** — Routes to one of 6 specialized pipelines:
+   - `technical_contradiction` → contradiction extraction → matrix lookup → hybrid patent search → solution directions
+   - `physical_contradiction` → opposing requirements → separation principles
+   - `su_field` → substance-field model → 76 standard solutions
+   - `function_analysis` → component decomposition → harmful/insufficient function identification
+   - `trimming` → component cost assessment → trimming candidates → function redistribution
+   - `trends` → evolution trend positioning → system operator → next-stage predictions
+5. **Patent search** — All pipelines search for related patents (hybrid for contradictions, vector-only for others)
+6. **Solution directions** — LLM generates 2-3 concrete approaches
 
 ### `triz-ai discover --domain "battery technology"`
 

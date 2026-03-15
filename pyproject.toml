@@ -1,6 +1,6 @@
 [project]
 name = "triz-ai"
-version = "0.7.0"
+version = "0.8.0"
 description = "AI-Powered TRIZ Innovation Engine — combines TRIZ methodology with AI and real patent data"
 readme = "README.md"
 requires-python = ">=3.12"

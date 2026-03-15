@@ -14,18 +14,32 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 ## Architecture
 
-`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/` (analyzer, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (SQLite + sqlite-vec store, ingestion, matrix observations) → `knowledge/` (TRIZ data from `src/triz_ai/data/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
+`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/router.py` (problem classifier + IFR + RCA + dispatch) → `engine/` (analyzer, physical, su_field, function_analysis, trimming, trends, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (SQLite + sqlite-vec store, ingestion, matrix observations) → `knowledge/` (TRIZ data from `src/triz_ai/data/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
+
+### Multi-Tool Routing
+
+`analyze` auto-classifies problems and routes to the best TRIZ pipeline:
+- `technical_contradiction` → `analyzer.py` (improve X without worsening Y)
+- `physical_contradiction` → `physical.py` (part must be A AND B)
+- `su_field` → `su_field.py` (detection/measurement/interaction problems)
+- `function_analysis` → `function_analysis.py` (harmful component interactions)
+- `trimming` → `trimming.py` (simplification/cost reduction)
+- `trends` → `trends.py` (technology evolution + system operator)
+
+IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates before re-routing. `--method` flag bypasses classifier. `--router-model` overrides classification model.
 
 ## Key Constraints
 
+- **6 TRIZ analysis methods** — technical contradiction, physical contradiction, Su-Field, function analysis, trimming, trends. Router auto-classifies; `--method` forces one.
 - **50 engineering parameters** — IDs 1-39 are Altshuller's originals, 40-50 are modern extensions (Mann's Matrix 2010). The static contradiction matrix covers 1-39; cells for 40-50 can be LLM-seeded via `triz-ai matrix seed` and refined by patent observations over time. `lookup_with_observations()` merges both sources.
 - **Contradiction matrix is asymmetric** — improving A worsening B ≠ improving B worsening A
 - **Embedding dimension is 768** — changing embedding model requires `triz-ai init --force`
 - **LLM responses validated via pydantic** — malformed → 1 retry with stricter prompt, then fail
 - **Auto-init** — `analyze` and other commands work without running `init` first; `init` is only needed with `--force` to reset the database
-- **Hybrid patent search** — `analyze` uses `search_patents_hybrid()` which combines vector similarity with principle overlap bonus (0.3/principle, cap 0.6) and contradiction match bonus (0.4 exact, 0.2 partial). Fetches 4x candidates then re-ranks.
+- **Hybrid patent search** — `analyze` (technical contradiction) uses `search_patents_hybrid()` which combines vector similarity with principle overlap bonus (0.3/principle, cap 0.6) and contradiction match bonus (0.4 exact, 0.2 partial). Other methods use vector-only search.
 - **No DB migrations** — schema changes require `triz-ai init --force`
 - **Token budget** — only inject relevant matrix rows/principles into prompts, not full dataset
+- **TRIZ knowledge data** — `separation_principles.json` (4 categories), `standard_solutions.json` (76 solutions, 5 classes), `evolution_trends.json` (8 trends with stages)
 
 ## Models
 

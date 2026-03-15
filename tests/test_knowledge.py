@@ -1,10 +1,13 @@
-"""Tests for TRIZ knowledge base — principles, parameters, and contradiction matrix."""
+"""Tests for TRIZ knowledge base — principles, parameters, matrix, and new loaders."""
 
 from unittest.mock import MagicMock
 
 from triz_ai.knowledge.contradictions import load_matrix, lookup, lookup_with_observations
 from triz_ai.knowledge.parameters import get_parameter, load_parameters
 from triz_ai.knowledge.principles import get_principle, load_principles
+from triz_ai.knowledge.separation import get_separation_principle, load_separation_principles
+from triz_ai.knowledge.solutions import get_solutions_by_class, load_standard_solutions
+from triz_ai.knowledge.trends import get_trend, load_evolution_trends
 
 
 class TestPrinciples:
@@ -174,3 +177,91 @@ class TestLookupWithObservations:
         result = lookup_with_observations(1, 9, store=mock_store)
         expected = lookup(1, 9)
         assert result == expected
+
+
+class TestSeparationPrinciples:
+    def test_load_4_principles(self):
+        principles = load_separation_principles()
+        assert len(principles) == 4
+
+    def test_principle_ids_1_to_4(self):
+        principles = load_separation_principles()
+        ids = {p.id for p in principles}
+        assert ids == {1, 2, 3, 4}
+
+    def test_has_required_fields(self):
+        for p in load_separation_principles():
+            assert p.id > 0
+            assert len(p.name) > 0
+            assert len(p.description) > 0
+            assert len(p.category) > 0
+            assert len(p.techniques) > 0
+            assert len(p.examples) > 0
+
+    def test_get_by_id(self):
+        p = get_separation_principle(1)
+        assert p is not None
+        assert "time" in p.category.lower()
+
+    def test_get_invalid_id(self):
+        assert get_separation_principle(999) is None
+
+
+class TestStandardSolutions:
+    def test_load_solutions(self):
+        solutions = load_standard_solutions()
+        assert len(solutions) >= 50  # We have 55 in the file
+
+    def test_has_5_classes(self):
+        solutions = load_standard_solutions()
+        class_ids = {s.class_id for s in solutions}
+        assert class_ids == {1, 2, 3, 4, 5}
+
+    def test_has_required_fields(self):
+        for s in load_standard_solutions():
+            assert len(s.id) > 0
+            assert s.class_id > 0
+            assert len(s.class_name) > 0
+            assert len(s.name) > 0
+            assert len(s.description) > 0
+
+    def test_get_by_class(self):
+        class1 = get_solutions_by_class(1)
+        assert len(class1) > 0
+        assert all(s.class_id == 1 for s in class1)
+
+    def test_get_empty_class(self):
+        assert get_solutions_by_class(99) == []
+
+
+class TestEvolutionTrends:
+    def test_load_8_trends(self):
+        trends = load_evolution_trends()
+        assert len(trends) == 8
+
+    def test_trend_ids_1_to_8(self):
+        trends = load_evolution_trends()
+        ids = {t.id for t in trends}
+        assert ids == set(range(1, 9))
+
+    def test_has_required_fields(self):
+        for t in load_evolution_trends():
+            assert t.id > 0
+            assert len(t.name) > 0
+            assert len(t.description) > 0
+            assert len(t.stages) >= 2
+
+    def test_stages_have_required_fields(self):
+        for t in load_evolution_trends():
+            for s in t.stages:
+                assert s.stage > 0
+                assert len(s.name) > 0
+                assert len(s.description) > 0
+
+    def test_get_by_id(self):
+        t = get_trend(1)
+        assert t is not None
+        assert "ideality" in t.name.lower()
+
+    def test_get_invalid_id(self):
+        assert get_trend(999) is None

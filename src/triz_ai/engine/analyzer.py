@@ -14,35 +14,46 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisResult(BaseModel):
-    """Result of TRIZ analysis of a problem."""
+    """Result of TRIZ analysis of a problem.
+
+    The result is tool-agnostic at the top level, with tool-specific data in `details`.
+    For backward compatibility, contradiction-specific fields are kept but optional.
+    """
 
     problem: str
-    improving_param: dict  # {"id": int, "name": str}
-    worsening_param: dict  # {"id": int, "name": str}
-    reasoning: str
+    method: str = "technical_contradiction"
+    method_confidence: float = 1.0
+    secondary_method: str | None = None
+    ideal_final_result: str | None = None
+
+    # Contradiction-specific (kept for backward compat, populated from details)
+    improving_param: dict | None = None  # {"id": int, "name": str}
+    worsening_param: dict | None = None  # {"id": int, "name": str}
+    reasoning: str = ""
     contradiction_confidence: float = 1.0
-    recommended_principles: list[dict]  # [{"id": int, "name": str, "description": str}]
-    patent_examples: list[dict]
+    recommended_principles: list[dict] = []  # [{"id": int, "name": str, "description": str}]
+
+    # Common across all methods
+    patent_examples: list[dict] = []
     solution_directions: list[dict] = []
+    details: dict = {}  # Tool-specific data
 
 
-def analyze(
+def analyze_contradiction(
     problem_text: str,
-    llm_client: LLMClient | None = None,
+    ideal_final_result: str | None,
+    llm_client: LLMClient,
     store: PatentStore | None = None,
 ) -> AnalysisResult:
-    """Analyze a technical problem using TRIZ methodology.
+    """Technical contradiction analysis pipeline.
 
     Pipeline:
     1. LLM extracts the technical contradiction
     2. Maps to engineering parameters
     3. Looks up contradiction matrix for recommended principles
     4. Searches patent store for examples
-    5. Returns structured result
+    5. Generates solution directions
     """
-    if llm_client is None:
-        llm_client = LLMClient()
-
     # Step 1: Extract contradiction
     contradiction = llm_client.extract_contradiction(problem_text)
 
@@ -73,42 +84,14 @@ def analyze(
             )
 
     # Step 4: Hybrid patent search (if store available)
-    patent_examples = []
-    recommended_principle_ids = [p["id"] for p in recommended_principles]
-    if store is not None:
-        try:
-            query_embedding = llm_client.get_embedding(problem_text)
-            results = store.search_patents_hybrid(
-                query_embedding,
-                principle_ids=recommended_principle_ids,
-                improving_param=contradiction.improving_param,
-                worsening_param=contradiction.worsening_param,
-                limit=5,
-            )
-            # Enrich with assignee, filing_date, matched_principles
-            all_principles_map = {p.id: p for p in load_principles()}
-            for patent, _score in results:
-                matched_principles = []
-                classification = store.get_classification(patent.id)
-                if classification:
-                    overlap = set(recommended_principle_ids) & set(classification.principle_ids)
-                    matched_principles = [
-                        all_principles_map[pid].name
-                        for pid in overlap
-                        if pid in all_principles_map
-                    ]
-                patent_examples.append(
-                    {
-                        "id": patent.id,
-                        "title": patent.title,
-                        "abstract": patent.abstract or "",
-                        "assignee": patent.assignee,
-                        "filing_date": patent.filing_date,
-                        "matched_principles": matched_principles,
-                    }
-                )
-        except Exception:
-            logger.warning("Patent search failed, continuing without examples")
+    patent_examples = search_patents(
+        problem_text,
+        llm_client,
+        store,
+        principle_ids=[p["id"] for p in recommended_principles],
+        improving_param=contradiction.improving_param,
+        worsening_param=contradiction.worsening_param,
+    )
 
     # Step 5: Generate solution directions
     solution_directions = []
@@ -125,13 +108,94 @@ def analyze(
         except Exception:
             logger.warning("Solution direction generation failed, continuing without")
 
+    improving_dict = {"id": improving.id, "name": improving.name}
+    worsening_dict = {"id": worsening.id, "name": worsening.name}
+
     return AnalysisResult(
         problem=problem_text,
-        improving_param={"id": improving.id, "name": improving.name},
-        worsening_param={"id": worsening.id, "name": worsening.name},
+        method="technical_contradiction",
+        ideal_final_result=ideal_final_result,
+        improving_param=improving_dict,
+        worsening_param=worsening_dict,
         reasoning=contradiction.reasoning,
         contradiction_confidence=contradiction.confidence,
         recommended_principles=recommended_principles,
         patent_examples=patent_examples,
         solution_directions=solution_directions,
+        details={
+            "improving_param": improving_dict,
+            "worsening_param": worsening_dict,
+            "reasoning": contradiction.reasoning,
+            "contradiction_confidence": contradiction.confidence,
+            "recommended_principles": recommended_principles,
+        },
     )
+
+
+def search_patents(
+    problem_text: str,
+    llm_client: LLMClient,
+    store: PatentStore | None,
+    principle_ids: list[int] | None = None,
+    improving_param: int | None = None,
+    worsening_param: int | None = None,
+) -> list[dict]:
+    """Search patent store for relevant examples."""
+    if store is None:
+        return []
+
+    try:
+        query_embedding = llm_client.get_embedding(problem_text)
+        if principle_ids and improving_param and worsening_param:
+            results = store.search_patents_hybrid(
+                query_embedding,
+                principle_ids=principle_ids,
+                improving_param=improving_param,
+                worsening_param=worsening_param,
+                limit=5,
+            )
+        else:
+            results = store.search_patents(query_embedding, limit=5)
+
+        all_principles_map = {p.id: p for p in load_principles()}
+        patent_examples = []
+        for patent, _score in results:
+            matched_principles = []
+            if principle_ids:
+                classification = store.get_classification(patent.id)
+                if classification:
+                    overlap = set(principle_ids) & set(classification.principle_ids)
+                    matched_principles = [
+                        all_principles_map[pid].name
+                        for pid in overlap
+                        if pid in all_principles_map
+                    ]
+            patent_examples.append(
+                {
+                    "id": patent.id,
+                    "title": patent.title,
+                    "abstract": patent.abstract or "",
+                    "assignee": patent.assignee,
+                    "filing_date": patent.filing_date,
+                    "matched_principles": matched_principles,
+                }
+            )
+        return patent_examples
+    except Exception:
+        logger.warning("Patent search failed, continuing without examples")
+        return []
+
+
+def analyze(
+    problem_text: str,
+    llm_client: LLMClient | None = None,
+    store: PatentStore | None = None,
+) -> AnalysisResult:
+    """Analyze a technical problem using TRIZ methodology.
+
+    Legacy entry point — delegates to analyze_contradiction for backward compatibility.
+    """
+    if llm_client is None:
+        llm_client = LLMClient()
+
+    return analyze_contradiction(problem_text, None, llm_client, store)
