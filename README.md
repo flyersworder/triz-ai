@@ -15,43 +15,46 @@ AI-powered TRIZ innovation engine — analyze technical problems, classify paten
 ## Installation
 
 ```bash
-# Requires Python 3.11+ and uv
+pip install triz-ai
+```
+
+Or for development:
+
+```bash
+# Requires Python 3.12+ and uv
 uv sync
 ```
 
-Set up your LLM provider API key in a `.env` file:
+Set up your LLM provider API key:
 
 ```bash
-echo 'OPENROUTER_API_KEY=your-key' > .env
+export OPENROUTER_API_KEY="your-key"
 ```
 
-Or export directly: `export OPENROUTER_API_KEY="your-key"`
+Or use a `.env` file: `echo 'OPENROUTER_API_KEY=your-key' > .env`
 
 ## Quick Start
 
 ```bash
-# Initialize the database
-uv run triz-ai init
+# Analyze a technical problem (works immediately — no setup needed)
+triz-ai analyze "How to make an EV battery charge faster without overheating"
 
-# Ingest the seed dataset (100 real battery patents — auto-classifies each patent)
-uv run triz-ai ingest data/patents/battery_patents.json
-
-# Analyze a technical problem
-uv run triz-ai analyze "How to make an EV battery charge faster without overheating"
+# For patent-backed examples, ingest patent data
+triz-ai ingest data/patents/battery_patents.json
 
 # Discover underused principles in a domain
-uv run triz-ai discover --domain "battery technology"
+triz-ai discover --domain "battery technology"
 
 # Run evolution pipeline to find candidate new principles
-uv run triz-ai evolve
-uv run triz-ai evolve --review  # interactive accept/reject
+triz-ai evolve
+triz-ai evolve --review  # interactive accept/reject
 
 # Discover candidate new engineering parameters
-uv run triz-ai evolve --parameters
-uv run triz-ai evolve --parameters --review
+triz-ai evolve --parameters
+triz-ai evolve --parameters --review
 
 # View matrix statistics
-uv run triz-ai matrix stats
+triz-ai matrix stats
 ```
 
 ## Commands
@@ -62,7 +65,7 @@ uv run triz-ai matrix stats
 | `discover` | Find underused principles in a domain and generate novel ideas |
 | `evolve` | Discover candidate new TRIZ principles (`--parameters` for parameters) |
 | `ingest` | Ingest and auto-classify patents from .txt, .pdf, or .json files |
-| `init` | Initialize (or recreate with `--force`) the patent database |
+| `init` | Reset the patent database (only needed with `--force`) |
 | `matrix seed` | LLM-seed missing matrix cells for params 40-50 (power-user) |
 | `matrix stats` | Show matrix fill rate and patent observation statistics |
 
@@ -74,12 +77,12 @@ All commands support `--format text|json|markdown` and `--model` to override the
 src/triz_ai/
   cli.py              # Typer CLI entry point
   config.py            # Config loading (~/.triz-ai/config.yaml)
+  data/                # Static TRIZ JSON data files (principles, parameters, matrix)
   knowledge/           # 40 principles, 50 parameters, contradiction matrix
   engine/              # analyzer, classifier, generator, evaluator
   patents/             # SQLite + sqlite-vec store, ingestion pipeline
   evolution/           # Candidate principle & parameter discovery + review
   llm/                 # litellm wrapper with pydantic validation
-data/triz/             # Static TRIZ JSON data files
 tests/                 # 72 unit tests
 ```
 

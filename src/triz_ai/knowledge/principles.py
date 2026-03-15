@@ -1,4 +1,4 @@
-"""TRIZ inventive principles — 40 principles loaded from data/triz/principles.json."""
+"""TRIZ inventive principles — 40 principles loaded from triz_ai/data/principles.json."""
 
 import json
 from functools import lru_cache
@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "triz"
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 class Principle(BaseModel):

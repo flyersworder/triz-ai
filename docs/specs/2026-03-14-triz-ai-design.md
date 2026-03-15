@@ -44,15 +44,14 @@ triz-ai/
 │       │   ├── __init__.py
 │       │   ├── pipeline.py         # Batch classification + trend detection
 │       │   └── review.py           # Human review queue for candidates
-│       └── llm/
-│           ├── __init__.py
-│           ├── client.py           # litellm wrapper (completions + embeddings)
-│           └── prompts.py          # Prompt templates with TRIZ context injection
-├── data/
-│   └── triz/                       # Static TRIZ knowledge (JSON)
-│       ├── principles.json         # 40 principles with sub-principles
-│       ├── parameters.json         # 50 engineering parameters (1-39 classic + 40-50 modern)
-│       └── matrix.json             # Contradiction matrix (covers params 1-39)
+│       ├── llm/
+│       │   ├── __init__.py
+│       │   ├── client.py           # litellm wrapper (completions + embeddings)
+│       │   └── prompts.py          # Prompt templates with TRIZ context injection
+│       └── data/                   # Static TRIZ knowledge (JSON, bundled in package)
+│           ├── principles.json     # 40 principles with sub-principles
+│           ├── parameters.json     # 50 engineering parameters (1-39 classic + 40-50 modern)
+│           └── matrix.json         # Contradiction matrix (covers params 1-39)
 ├── tests/
 ├── pyproject.toml
 └── README.md
@@ -90,7 +89,7 @@ class Principle(BaseModel):
     keywords: list[str]  # For text matching
 ```
 
-Source data in `data/triz/principles.json`, loaded into pydantic models at runtime.
+Source data in `triz_ai/data/principles.json`, bundled inside the package and loaded into pydantic models at runtime.
 
 ### Engineering Parameters (50)
 
@@ -144,7 +143,7 @@ Discovered when patents have contradictions that don't map well to the existing 
 
 ### First-run workflow
 
-Commands that query patents (`analyze`, `discover`, `evolve`) require data in the database. On first run, seed it with: `triz-ai ingest data/patents/`. The `ingest` command automatically classifies each patent through the TRIZ lens during ingestion, so patents are ready for discovery and matrix observations immediately. The `analyze` command works without patent data (it still does TRIZ contradiction analysis) but patent examples will be empty.
+No setup is required. `triz-ai analyze "problem"` works immediately — the database is auto-initialized on first use. For patent-backed examples, run `triz-ai ingest data/patents/` to seed the database. The `ingest` command automatically classifies each patent through the TRIZ lens during ingestion, so patents are ready for discovery and matrix observations immediately. The `init` command is only needed with `--force` to reset the database.
 
 ### `triz-ai analyze "problem description"`
 

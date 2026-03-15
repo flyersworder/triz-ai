@@ -100,6 +100,11 @@ def analyze(
         console.print("\n[bold]Related Patents:[/bold]")
         for p in result.patent_examples:
             console.print(f"  • [cyan]{p['id']}[/cyan] — {p['title']}")
+    else:
+        console.print(
+            "\n[dim]Tip: run [cyan]triz-ai ingest <file>[/cyan] "
+            "to get patent-backed examples.[/dim]"
+        )
 
 
 @app.command()
@@ -297,7 +302,7 @@ def ingest(
 def init(
     force: bool = typer.Option(False, help="Recreate database (destroys existing data)"),
 ) -> None:
-    """Initialize the triz-ai database."""
+    """Initialize the triz-ai database (only needed with --force to reset)."""
     from triz_ai.config import get_db_path
     from triz_ai.patents.store import PatentStore
 

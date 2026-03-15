@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-03-15
+
+### Added
+
+- **PyPI publishing**: `pip install triz-ai` now works — TRIZ data files bundled inside the package
+- **GitHub CI workflow**: Test on push/PR, publish to PyPI on release or manual dispatch
+- **`python-dotenv` dependency**: Now declared in `pyproject.toml` (was used but missing)
+- **PyPI metadata**: Authors, license, classifiers, project URLs
+
+### Changed
+
+- **Zero-setup analyze**: `triz-ai analyze "problem"` works immediately without running `init` first; shows a tip to ingest patents when no patent examples are found
+- **`init` command**: Now documented as only needed with `--force` to reset the database
+- **Python >=3.12**: Lowered from >=3.14 for broader compatibility
+- **TRIZ data location**: Moved from `data/triz/` to `src/triz_ai/data/` so data is included in pip installs
+
 ## [0.5.0] - 2026-03-15
 
 ### Added
@@ -86,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.6.0]: https://github.com/flyersworder/triz-ai/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/flyersworder/triz-ai/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/flyersworder/triz-ai/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/flyersworder/triz-ai/compare/v0.2.0...v0.3.0

@@ -1,4 +1,4 @@
-"""TRIZ contradiction matrix — asymmetric matrix loaded from data/triz/matrix.json.
+"""TRIZ contradiction matrix — asymmetric matrix loaded from triz_ai/data/matrix.json.
 
 The original 39x39 Altshuller matrix covers parameters 1-39. Parameters 40-50
 (modern extensions) have no historical matrix data; lookups return empty lists.
@@ -8,7 +8,7 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "triz"
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 @lru_cache(maxsize=1)

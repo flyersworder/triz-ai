@@ -13,7 +13,7 @@ from triz_ai.knowledge.contradictions import load_matrix
 if TYPE_CHECKING:
     from triz_ai.llm.client import LLMClient
 
-_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "triz"
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 def seed_matrix(llm_client: LLMClient, force: bool = False) -> int:

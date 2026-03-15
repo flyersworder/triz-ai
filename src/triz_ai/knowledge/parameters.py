@@ -1,4 +1,4 @@
-"""TRIZ engineering parameters — 50 parameters loaded from data/triz/parameters.json."""
+"""TRIZ engineering parameters — 50 parameters loaded from triz_ai/data/parameters.json."""
 
 import json
 from functools import lru_cache
@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "triz"
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 class Parameter(BaseModel):

@@ -14,7 +14,7 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 ## Architecture
 
-`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/` (analyzer, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (SQLite + sqlite-vec store, ingestion, matrix observations) → `knowledge/` (TRIZ data from `data/triz/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
+`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/` (analyzer, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (SQLite + sqlite-vec store, ingestion, matrix observations) → `knowledge/` (TRIZ data from `src/triz_ai/data/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
 
 ## Key Constraints
 
@@ -22,6 +22,7 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 - **Contradiction matrix is asymmetric** — improving A worsening B ≠ improving B worsening A
 - **Embedding dimension is 768** — changing embedding model requires `triz-ai init --force`
 - **LLM responses validated via pydantic** — malformed → 1 retry with stricter prompt, then fail
+- **Auto-init** — `analyze` and other commands work without running `init` first; `init` is only needed with `--force` to reset the database
 - **No DB migrations** — schema changes require `triz-ai init --force`
 - **Token budget** — only inject relevant matrix rows/principles into prompts, not full dataset
 
