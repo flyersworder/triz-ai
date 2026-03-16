@@ -1,6 +1,7 @@
 # triz-ai
 
 [![PyPI](https://img.shields.io/pypi/v/triz-ai.svg)](https://pypi.org/project/triz-ai/)
+[![Tests](https://github.com/flyersworder/triz-ai/actions/workflows/ci-and-publish.yml/badge.svg)](https://github.com/flyersworder/triz-ai/actions/workflows/ci-and-publish.yml)
 [![License](https://img.shields.io/pypi/l/triz-ai.svg)](https://github.com/flyersworder/triz-ai/blob/main/LICENSE)
 [![Python Versions](https://img.shields.io/pypi/pyversions/triz-ai.svg)](https://pypi.org/project/triz-ai/)
 

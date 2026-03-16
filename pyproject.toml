@@ -8,10 +8,15 @@ authors = [{ name = "Qing", email = "qingye779@gmail.com" }]
 license = { text = "MIT" }
 keywords = ["triz", "innovation", "patents", "ai", "engineering"]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Manufacturing",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
     "typer>=0.15",
@@ -28,6 +33,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/flyersworder/triz-ai"
 Repository = "https://github.com/flyersworder/triz-ai"
+Issues = "https://github.com/flyersworder/triz-ai/issues"
+Changelog = "https://github.com/flyersworder/triz-ai/releases"
 
 [project.scripts]
 triz-ai = "triz_ai.cli:app"
