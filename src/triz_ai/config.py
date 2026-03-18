@@ -29,6 +29,9 @@ class EmbeddingsConfig(BaseModel):
 
 class DatabaseConfig(BaseModel):
     path: str = "~/.triz-ai/patents.db"
+    backend: str = "sqlite"
+    vector_backend: str = "sqlite-vec"
+    vector_options: dict = {}
 
 
 class EvolutionConfig(BaseModel):

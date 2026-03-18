@@ -5,7 +5,8 @@ import logging
 from pydantic import BaseModel
 
 from triz_ai.llm.client import LLMClient
-from triz_ai.patents.store import Classification, PatentStore
+from triz_ai.patents.repository import PatentRepository
+from triz_ai.patents.store import Classification
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def classify(
     patent_text: str,
     patent_id: str | None = None,
     llm_client: LLMClient | None = None,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
 ) -> ClassificationResult:
     """Classify a patent by TRIZ principles.
 

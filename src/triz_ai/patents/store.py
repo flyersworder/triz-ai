@@ -1,4 +1,6 @@
-"""Patent storage with SQLite + sqlite-vec for vector search."""
+"""Patent storage with SQLite + pluggable vector search."""
+
+from __future__ import annotations
 
 import json
 import logging
@@ -7,6 +9,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic import BaseModel
+
+from triz_ai.patents.vector import SqliteVecStore, VectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -109,24 +113,22 @@ CREATE TABLE IF NOT EXISTS matrix_observations (
 );
 """
 
-_VEC_TABLE_SQL = """
-CREATE VIRTUAL TABLE IF NOT EXISTS patent_embeddings USING vec0(
-    patent_id TEXT PRIMARY KEY,
-    embedding FLOAT[768]
-);
-"""
-
 
 class PatentStore:
     """SQLite-backed patent storage with vector search."""
 
-    def __init__(self, db_path: str | Path | None = None):
+    def __init__(
+        self,
+        db_path: str | Path | None = None,
+        vector_store: VectorStore | None = None,
+    ):
         if db_path is None:
             from triz_ai.config import get_db_path
 
             db_path = get_db_path()
         self.db_path = Path(db_path)
         self._conn: sqlite3.Connection | None = None
+        self._vector_store: VectorStore | None = vector_store
 
     def _get_conn(self) -> sqlite3.Connection:
         if self._conn is None:
@@ -146,15 +148,12 @@ class PatentStore:
 
         conn = self._get_conn()
         conn.executescript(_SCHEMA_SQL)
-
-        # Load sqlite-vec extension and create vector table
-        import sqlite_vec
-
-        conn.enable_load_extension(True)
-        sqlite_vec.load(conn)
-        conn.enable_load_extension(False)
-        conn.executescript(_VEC_TABLE_SQL)
         conn.commit()
+
+        # Initialize vector store — create default SqliteVecStore if none provided
+        if self._vector_store is None:
+            self._vector_store = SqliteVecStore(connection=conn)
+        self._vector_store.init(force=force)
         logger.info("Database initialized at %s", self.db_path)
 
     def _close(self) -> None:
@@ -163,7 +162,9 @@ class PatentStore:
             self._conn = None
 
     def close(self) -> None:
-        """Close database connection."""
+        """Close database connection and vector store."""
+        if self._vector_store is not None:
+            self._vector_store.close()
         self._close()
 
     # --- Patent CRUD ---
@@ -191,16 +192,9 @@ class PatentStore:
         conn.commit()
 
     def _insert_embedding(self, patent_id: str, embedding: list[float]) -> None:
-        """Insert or replace a patent embedding."""
-        import struct
-
-        conn = self._get_conn()
-        # sqlite-vec expects binary float32 data
-        embedding_bytes = struct.pack(f"{len(embedding)}f", *embedding)
-        conn.execute(
-            "INSERT OR REPLACE INTO patent_embeddings (patent_id, embedding) VALUES (?, ?)",
-            (patent_id, embedding_bytes),
-        )
+        """Insert or replace a patent embedding via vector store."""
+        if self._vector_store is not None:
+            self._vector_store.insert(patent_id, embedding)
 
     def get_patent(self, patent_id: str) -> Patent | None:
         """Get a patent by ID."""
@@ -214,25 +208,14 @@ class PatentStore:
         self, query_embedding: list[float], limit: int = 5
     ) -> list[tuple[Patent, float]]:
         """Search patents by vector similarity. Returns (patent, distance) tuples."""
-        import struct
-
-        conn = self._get_conn()
-        embedding_bytes = struct.pack(f"{len(query_embedding)}f", *query_embedding)
-        rows = conn.execute(
-            """
-            SELECT p.*, pe.distance
-            FROM patent_embeddings pe
-            JOIN patents p ON p.id = pe.patent_id
-            WHERE pe.embedding MATCH ? AND k = ?
-            ORDER BY pe.distance
-            """,
-            (embedding_bytes, limit),
-        ).fetchall()
+        if self._vector_store is None:
+            return []
+        id_distances = self._vector_store.search(query_embedding, limit=limit)
         results = []
-        for row in rows:
-            row_dict = dict(row)
-            distance = row_dict.pop("distance")
-            results.append((Patent(**row_dict), distance))
+        for patent_id, distance in id_distances:
+            patent = self.get_patent(patent_id)
+            if patent:
+                results.append((patent, distance))
         return results
 
     def search_patents_hybrid(
@@ -252,33 +235,23 @@ class PatentStore:
 
         Fetches more candidates from vector search, scores them, and returns top `limit`.
         """
-        import struct
+        if self._vector_store is None:
+            return []
 
-        conn = self._get_conn()
         # Fetch more candidates than needed for re-ranking
         candidate_count = max(limit * 4, 20)
-        embedding_bytes = struct.pack(f"{len(query_embedding)}f", *query_embedding)
-        rows = conn.execute(
-            """
-            SELECT p.*, pe.distance
-            FROM patent_embeddings pe
-            JOIN patents p ON p.id = pe.patent_id
-            WHERE pe.embedding MATCH ? AND k = ?
-            ORDER BY pe.distance
-            """,
-            (embedding_bytes, candidate_count),
-        ).fetchall()
+        id_distances = self._vector_store.search(query_embedding, limit=candidate_count)
 
-        if not rows:
+        if not id_distances:
             return []
 
         principle_ids_set = set(principle_ids or [])
         scored: list[tuple[Patent, float]] = []
 
-        for row in rows:
-            row_dict = dict(row)
-            distance = row_dict.pop("distance")
-            patent = Patent(**row_dict)
+        for patent_id, distance in id_distances:
+            patent = self.get_patent(patent_id)
+            if patent is None:
+                continue
 
             # Base score: vector similarity (1 - distance)
             score = 1.0 - distance

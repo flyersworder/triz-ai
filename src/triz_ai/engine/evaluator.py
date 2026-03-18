@@ -5,6 +5,7 @@ import logging
 from pydantic import BaseModel
 
 from triz_ai.llm.client import LLMClient
+from triz_ai.patents.repository import PatentRepository
 from triz_ai.patents.store import PatentStore
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ def evaluate(
     idea: str,
     domain: str,
     llm_client: LLMClient | None = None,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
 ) -> EvaluationResult:
     """Evaluate an idea against existing patents in the store.
 

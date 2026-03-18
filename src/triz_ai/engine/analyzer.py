@@ -8,7 +8,7 @@ from triz_ai.knowledge.contradictions import lookup_with_observations
 from triz_ai.knowledge.parameters import load_parameters
 from triz_ai.knowledge.principles import load_principles
 from triz_ai.llm.client import LLMClient
-from triz_ai.patents.store import PatentStore
+from triz_ai.patents.repository import PatentRepository
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def analyze_contradiction(
     problem_text: str,
     ideal_final_result: str | None,
     llm_client: LLMClient,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
     research_tools: list | None = None,
 ) -> AnalysisResult:
     """Technical contradiction analysis pipeline.
@@ -144,7 +144,7 @@ def analyze_contradiction(
 def search_patents(
     problem_text: str,
     llm_client: LLMClient,
-    store: PatentStore | None,
+    store: PatentRepository | None,
     principle_ids: list[int] | None = None,
     improving_param: int | None = None,
     worsening_param: int | None = None,
@@ -258,7 +258,7 @@ def run_enrichment_tools(
 def analyze(
     problem_text: str,
     llm_client: LLMClient | None = None,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
 ) -> AnalysisResult:
     """Analyze a technical problem using TRIZ methodology.
 

@@ -7,13 +7,14 @@ from rich.panel import Panel
 from rich.prompt import Confirm
 from rich.table import Table
 
+from triz_ai.patents.repository import PatentRepository
 from triz_ai.patents.store import PatentStore
 
 logger = logging.getLogger(__name__)
 console = Console()
 
 
-def interactive_review(store: PatentStore | None = None) -> None:
+def interactive_review(store: PatentRepository | None = None) -> None:
     """Interactively review pending candidate principles.
 
     Displays each candidate with evidence and prompts for accept/reject.
@@ -60,7 +61,7 @@ def interactive_review(store: PatentStore | None = None) -> None:
     console.print("[bold green]Review complete.[/bold green]")
 
 
-def interactive_parameter_review(store: PatentStore | None = None) -> None:
+def interactive_parameter_review(store: PatentRepository | None = None) -> None:
     """Interactively review pending candidate parameters.
 
     Displays each candidate with evidence and prompts for accept/reject.

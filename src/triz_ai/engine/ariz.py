@@ -1,12 +1,19 @@
 """ARIZ-85C deep analysis models and orchestrator."""
 
+from __future__ import annotations
+
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from triz_ai.engine.analyzer import AnalysisResult
 from triz_ai.llm.client import TrizAIError
+
+if TYPE_CHECKING:
+    from triz_ai.llm.client import LLMClient
+    from triz_ai.patents.repository import PatentRepository
 
 logger = logging.getLogger(__name__)
 
@@ -157,9 +164,9 @@ def _run_tools(
     tools: list[str],
     problem_text: str,
     ifr: str,
-    llm_client,
-    store,
-    research_tools=None,
+    llm_client: LLMClient,
+    store: PatentRepository | None,
+    research_tools: list | None = None,
 ) -> list[AnalysisResult]:
     """Run multiple TRIZ pipelines in parallel using ThreadPoolExecutor."""
     results: list[AnalysisResult] = []
@@ -187,8 +194,8 @@ def _run_tools(
 
 def orchestrate_deep(
     problem_text: str,
-    llm_client,
-    store,
+    llm_client: LLMClient,
+    store: PatentRepository | None,
     deep_model: str | None = None,
     reasoning_effort: str | None = None,
     research_tools: list | None = None,

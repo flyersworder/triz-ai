@@ -14,7 +14,15 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 ## Architecture
 
-`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/router.py` (problem classifier + IFR + RCA + dispatch) → `engine/` (analyzer, physical, su_field, function_analysis, trimming, trends, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (SQLite + sqlite-vec store, ingestion, matrix observations) → `knowledge/` (TRIZ data from `src/triz_ai/data/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
+`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/router.py` (problem classifier + IFR + RCA + dispatch) → `engine/` (analyzer, physical, su_field, function_analysis, trimming, trends, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (`PatentRepository` protocol + SQLite-backed `PatentStore` default, pluggable `VectorStore` protocol, ingestion, matrix observations) → `knowledge/` (TRIZ data from `src/triz_ai/data/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
+
+### Pluggable Patent Repository
+
+`patents/repository.py` defines a `PatentRepository` protocol (18 methods) covering patents, classifications, candidate principles/parameters, and matrix observations. `PatentStore` (SQLite-backed) is the default implementation. All engine/evolution consumers type-hint `PatentRepository`, not `PatentStore` — alternative backends (Postgres, DynamoDB, etc.) implement this protocol for full database portability. `cli.py` remains the concrete factory, creating `PatentStore()`.
+
+### Pluggable Vector Database
+
+`patents/vector.py` defines a `VectorStore` protocol with 4 methods (`init`, `insert`, `search`, `close`). Default `SqliteVecStore` wraps sqlite-vec. `PatentStore` accepts an optional `vector_store` parameter — if not provided, creates `SqliteVecStore` sharing its SQLite connection. Alternative backends (Chroma, Qdrant, pgvector) can be plugged via `PatentStore(vector_store=my_store)`. Hybrid scoring (TRIZ domain logic) stays in `PatentStore`.
 
 ### Multi-Tool Routing
 

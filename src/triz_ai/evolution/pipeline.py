@@ -3,6 +3,7 @@
 import logging
 
 from triz_ai.llm.client import LLMClient
+from triz_ai.patents.repository import PatentRepository
 from triz_ai.patents.store import CandidateParameter, CandidatePrinciple, PatentStore
 
 logger = logging.getLogger(__name__)
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def run_evolution(
     llm_client: LLMClient | None = None,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
     confidence_threshold: float = 0.7,
     min_cluster_size: int = 3,
 ) -> list[CandidatePrinciple]:
@@ -102,7 +103,7 @@ def run_evolution(
 
 def run_parameter_evolution(
     llm_client: LLMClient | None = None,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
     confidence_threshold: float = 0.7,
     min_cluster_size: int = 3,
 ) -> list[CandidateParameter]:

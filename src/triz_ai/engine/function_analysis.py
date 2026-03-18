@@ -4,7 +4,7 @@ import logging
 
 from triz_ai.engine.analyzer import AnalysisResult, run_enrichment_tools, search_patents
 from triz_ai.llm.client import LLMClient
-from triz_ai.patents.store import PatentStore
+from triz_ai.patents.repository import PatentRepository
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ def analyze_functions(
     problem_text: str,
     ideal_final_result: str | None,
     llm_client: LLMClient,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
     research_tools: list | None = None,
 ) -> AnalysisResult:
     """Function analysis pipeline.

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-03-18
+
+### Added
+
+- **`PatentRepository` protocol**: New 18-method protocol (`patents/repository.py`) defines the full patent storage interface — patents, classifications, candidate principles/parameters, and matrix observations. Any class implementing this protocol can replace the default SQLite backend.
+- **Pluggable database backend**: All engine, evolution, and ingestion consumers now type-hint `PatentRepository` instead of `PatentStore`. Alternative backends (Postgres, DynamoDB, etc.) can be plugged via `route(store=my_repo)` or `orchestrate_deep(store=my_repo)`.
+- **`database.backend` config field**: `DatabaseConfig` gains `backend: str = "sqlite"` to record the chosen backend; no factory function yet — programmatic usage is the primary plug-in path.
+- **Protocol conformance tests**: `test_repository.py` with 6 tests — `isinstance` check, method existence, mock delegation, negative conformance, and static type-checker assertion.
+
+### Changed
+
+- **Type hints across 15 files**: `PatentStore` type annotations replaced with `PatentRepository` in `router.py`, `analyzer.py`, `classifier.py`, `generator.py`, `evaluator.py`, `physical.py`, `su_field.py`, `function_analysis.py`, `trimming.py`, `trends.py`, `ingest.py`, `pipeline.py`, `review.py`, `contradictions.py`, and `ariz.py`
+- **`contradictions.py`**: `store: object | None` upgraded to `store: PatentRepository | None`; removed stale `type: ignore[attr-defined]` suppression
+- **`ariz.py`**: Added type annotations to `orchestrate_deep()` and `_run_tools()` (`store: PatentRepository | None`, `llm_client: LLMClient`)
+- **`PatentRepository` exported** from `triz_ai.patents` package
+- **Version**: Bumped to 0.12.0
+
+### Note
+
+- **Zero breaking changes**: `PatentStore` still works everywhere — it satisfies `PatentRepository` structurally. `cli.py` still creates `PatentStore()` concretely. Existing code constructing `PatentStore()` is unaffected.
+
 ## [0.11.1] - 2026-03-15
 
 ### Fixed
@@ -202,6 +223,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-commit hooks**: ruff (lint/format), ty (type check), validate-pyproject, security checks, fast pytest on pre-push
 - **Sample data**: 5 sample patent fixtures (3 txt, 1 JSON batch with 3 patents) for testing and demos
 
+[0.12.0]: https://github.com/flyersworder/triz-ai/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/flyersworder/triz-ai/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/flyersworder/triz-ai/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/flyersworder/triz-ai/compare/v0.9.0...v0.10.0

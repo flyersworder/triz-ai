@@ -17,7 +17,8 @@ AI-powered TRIZ innovation engine — analyze technical problems, classify paten
 - **50 engineering parameters** — extends Altshuller's 39 with modern domains (security, sustainability, scalability, etc.)
 - **Evolving principles & parameters** — discovers candidate new principles and parameters from modern patents
 - **Provider-agnostic** — works with OpenRouter, Ollama, Anthropic, OpenAI, and 100+ providers via litellm
-- **Zero infrastructure** — local SQLite database with built-in vector search
+- **Pluggable storage** — local SQLite by default; swap to Postgres, DynamoDB, etc. via the `PatentRepository` protocol
+- **Zero infrastructure** — works out of the box with local SQLite + built-in vector search
 
 ## Installation
 
@@ -193,10 +194,10 @@ src/triz_ai/
   data/                # TRIZ JSON data (principles, parameters, matrix, separation, solutions, trends)
   knowledge/           # Loaders for all TRIZ knowledge data
   engine/              # analyzer, router, ariz orchestrator, 5 pipelines, classifier, generator, evaluator
-  patents/             # SQLite + sqlite-vec store, ingestion pipeline
+  patents/             # PatentRepository protocol + SQLite default, vector search, ingestion
   evolution/           # Candidate principle & parameter discovery + review
   llm/                 # litellm wrapper with pydantic validation
-tests/                 # 170 unit tests
+tests/                 # 194 unit tests
 ```
 
 ## Configuration

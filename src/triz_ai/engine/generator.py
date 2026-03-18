@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from triz_ai.knowledge.principles import load_principles
 from triz_ai.llm.client import LLMClient
+from triz_ai.patents.repository import PatentRepository
 from triz_ai.patents.store import PatentStore
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ class DiscoveryReport(BaseModel):
 def discover(
     domain: str,
     llm_client: LLMClient | None = None,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
 ) -> DiscoveryReport:
     """Discover underused TRIZ principles and generate ideas for a domain.
 

@@ -9,7 +9,7 @@ from triz_ai.engine.su_field import analyze_su_field
 from triz_ai.engine.trends import analyze_trends
 from triz_ai.engine.trimming import analyze_trimming
 from triz_ai.llm.client import LLMClient
-from triz_ai.patents.store import PatentStore
+from triz_ai.patents.repository import PatentRepository
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def _normalize_method(method: str) -> str:
 def route(
     problem_text: str,
     llm_client: LLMClient,
-    store: PatentStore | None = None,
+    store: PatentRepository | None = None,
     method: str | None = None,
     router_model: str | None = None,
     research_tools: list | None = None,

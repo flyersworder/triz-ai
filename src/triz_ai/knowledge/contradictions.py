@@ -4,9 +4,15 @@ The original 39x39 Altshuller matrix covers parameters 1-39. Parameters 40-50
 (modern extensions) have no historical matrix data; lookups return empty lists.
 """
 
+from __future__ import annotations
+
 import json
 from functools import lru_cache
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from triz_ai.patents.repository import PatentRepository
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -48,14 +54,14 @@ def lookup(improving: int, worsening: int) -> list[int]:
 def lookup_with_observations(
     improving: int,
     worsening: int,
-    store: object | None = None,
+    store: PatentRepository | None = None,
 ) -> list[int]:
     """Look up principles, merging static matrix with patent observations.
 
     Args:
         improving: The parameter being improved (1-50).
         worsening: The parameter that worsens as a result (1-50).
-        store: PatentStore instance for observation data (optional).
+        store: PatentRepository instance for observation data (optional).
 
     Returns:
         List of recommended principle IDs (up to 4).
@@ -67,7 +73,7 @@ def lookup_with_observations(
 
     # Try to get patent-observed data
     try:
-        observations = store.get_matrix_observations(min_count=3)  # type: ignore[attr-defined]
+        observations = store.get_matrix_observations(min_count=3)
     except Exception:
         return static_principles
 

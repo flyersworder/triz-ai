@@ -49,9 +49,11 @@ triz-ai/
 │       │   ├── generator.py        # White space / idea generation
 │       │   └── evaluator.py        # Idea scoring against prior art
 │       ├── patents/
-│       │   ├── __init__.py
-│       │   ├── store.py            # Patent storage + vector search
-│       │   └── ingest.py           # Patent ingestion pipeline
+│       │   ├── __init__.py          # Exports PatentRepository, PatentStore, VectorStore, SqliteVecStore
+│       │   ├── repository.py        # PatentRepository protocol (18 methods)
+│       │   ├── store.py             # PatentStore: default SQLite-backed implementation
+│       │   ├── vector.py            # VectorStore protocol + SqliteVecStore default
+│       │   └── ingest.py            # Patent ingestion pipeline
 │       ├── evolution/
 │       │   ├── __init__.py
 │       │   ├── pipeline.py         # Batch classification + trend detection
@@ -79,7 +81,7 @@ triz-ai/
 | Package manager | uv | Fast, modern Python package management |
 | CLI framework | typer | Auto-generated help, modern Python CLI |
 | LLM integration | litellm | Unified interface to 100+ providers (OpenRouter, Ollama, Anthropic, OpenAI, Google, etc.) — handles completions and embeddings |
-| Storage | SQLite + sqlite-vec | Zero infrastructure, portable, vector search built in |
+| Storage | SQLite + pluggable vector | Relational data via `PatentRepository` protocol (default: SQLite-backed `PatentStore`); vector search via `VectorStore` protocol (default: sqlite-vec). Both layers pluggable for Postgres, DynamoDB, etc. |
 | Data models | pydantic | JSON schema validation, structured LLM output |
 | Terminal UI | rich | Tables, progress bars, formatted output |
 | PDF parsing | pdfplumber | Lightweight PDF text extraction for patent documents |
@@ -281,7 +283,7 @@ All commands support `--format` flag:
 
 ## Database Schema
 
-SQLite + sqlite-vec, single file at `~/.triz-ai/patents.db`:
+SQLite for relational data, pluggable `VectorStore` for embeddings. Single file at `~/.triz-ai/patents.db` by default:
 
 ```sql
 -- Raw patent data
@@ -296,10 +298,12 @@ CREATE TABLE patents (
     source TEXT  -- "curated" | "uspto" | "google_patents"
 );
 
--- Vector embeddings for similarity search
+-- Vector embeddings for similarity search (managed by VectorStore)
+-- Default SqliteVecStore creates this table; alternative backends (Chroma, Qdrant, pgvector)
+-- manage their own storage externally.
 CREATE VIRTUAL TABLE patent_embeddings USING vec0(
     patent_id TEXT PRIMARY KEY,
-    embedding FLOAT[768]  -- nomic-embed-text dimension; changing embedding model requires re-creating the DB
+    embedding FLOAT[768]  -- dimension configurable; changing embedding model requires re-creating the DB
 );
 
 -- TRIZ classification results
@@ -413,6 +417,9 @@ embeddings:
 
 database:
   path: ~/.triz-ai/patents.db
+  backend: sqlite               # default; alternative: postgres, dynamodb, etc.
+  vector_backend: sqlite-vec    # default; alternative backends plugged programmatically
+  vector_options: {}            # backend-specific options (e.g., host, port for Qdrant)
 
 evolution:
   auto_classify: true

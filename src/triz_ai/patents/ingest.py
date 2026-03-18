@@ -9,7 +9,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from triz_ai.engine.classifier import classify
 from triz_ai.llm.client import LLMClient
-from triz_ai.patents.store import Patent, PatentStore
+from triz_ai.patents.repository import PatentRepository
+from triz_ai.patents.store import Patent
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ def _ingest_json(path: Path) -> list[Patent]:
 
 def ingest_file(
     path: Path,
-    store: PatentStore,
+    store: PatentRepository,
     llm_client: LLMClient | None = None,
     embed: bool = True,
     auto_classify: bool = True,
@@ -140,7 +141,7 @@ def ingest_file(
 
 def ingest_directory(
     directory: Path,
-    store: PatentStore,
+    store: PatentRepository,
     llm_client: LLMClient | None = None,
     embed: bool = True,
     auto_classify: bool = True,
@@ -199,7 +200,7 @@ def _parse_file(path: Path) -> list[Patent]:
 
 def _store_patents(
     patents: list[Patent],
-    store: PatentStore,
+    store: PatentRepository,
     llm_client: LLMClient | None,
     embed: bool,
     auto_classify: bool,
@@ -260,7 +261,7 @@ def _get_embedding(
         return None
 
 
-def _classify_patent(patent: Patent, llm_client: LLMClient, store: PatentStore) -> bool:
+def _classify_patent(patent: Patent, llm_client: LLMClient, store: PatentRepository) -> bool:
     """Classify a patent during ingestion. Returns True on success."""
     text = f"{patent.title}\n{patent.abstract or ''}\n{patent.claims or ''}"
     try:
