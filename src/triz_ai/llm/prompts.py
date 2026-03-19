@@ -1,7 +1,9 @@
 """Prompt templates with TRIZ context injection.
 
-Each builder function injects only the relevant TRIZ knowledge to keep
-system prompts under ~2K tokens.
+Each builder function injects only the relevant TRIZ knowledge.
+Prompts include few-shot examples, structured analysis steps,
+confidence calibration, and common-mistake guardrails for
+robust performance across different LLMs.
 """
 
 from triz_ai.knowledge.parameters import load_parameters
@@ -12,8 +14,8 @@ from triz_ai.knowledge.trends import load_evolution_trends
 
 
 def _parameters_list() -> str:
-    """Compact list of all 50 parameters: 'ID. Name' per line."""
-    return "\n".join(f"{p.id}. {p.name}" for p in load_parameters())
+    """Compact list of all 50 parameters: 'ID. Name — Description' per line."""
+    return "\n".join(f"{p.id}. {p.name} — {p.description}" for p in load_parameters())
 
 
 def _principles_compact() -> str:
@@ -43,29 +45,75 @@ def extract_contradiction_prompt() -> str:
     """System prompt for extracting technical contradictions."""
     params = _parameters_list()
     return (
-        "You are a TRIZ (Theory of Inventive Problem Solving) expert.\n\n"
-        "Analyze the technical problem and identify the core technical contradiction: "
-        "which engineering parameter is the user trying to IMPROVE, and which parameter "
-        "WORSENS as a result?\n\n"
-        "Map both to the closest parameters from this list:\n\n"
+        "You are a TRIZ expert. Analyze the technical problem and identify "
+        "the core technical contradiction.\n\n"
+        "A technical contradiction exists when improving one engineering parameter "
+        "causes another to worsen. Your task is to map both parameters to the "
+        "closest match from the list below.\n\n"
+        "Analysis steps:\n"
+        "1. Identify what the user is trying to improve\n"
+        "2. Identify what gets worse as a consequence\n"
+        "3. Map each to the closest engineering parameter by ID\n"
+        "4. The mapped parameter IDs will be used to look up the Altshuller "
+        "contradiction matrix for recommended inventive principles\n\n"
+        "Engineering Parameters:\n"
         f"{params}\n\n"
+        "Common mistakes to avoid:\n"
+        "- Do NOT use the same parameter for both improving and worsening\n"
+        "- Do NOT pick overly abstract parameters; choose the most specific match\n"
+        "- Distinguish moving vs stationary variants (e.g., param 1 vs 2, 3 vs 4)\n\n"
+        "Confidence guide: 0.8-1.0 = contradiction is clear and mapping is unambiguous, "
+        "0.5-0.7 = reasonable mapping but alternatives exist, "
+        "< 0.5 = problem may not be a clear technical contradiction.\n\n"
+        "Example:\n"
+        "Problem: 'Our car engine needs more power but that increases fuel consumption.'\n"
+        '{"improving_param": 21, "worsening_param": 22, '
+        '"reasoning": "Improving Power (21) causes Energy use by moving object (22) to worsen — '
+        'classic power-efficiency trade-off.", "confidence": 0.9}\n\n'
         "Respond with JSON:\n"
         '{"improving_param": <int 1-50>, "worsening_param": <int 1-50>, '
         '"reasoning": "<brief explanation of the contradiction>", '
-        '"confidence": <float 0.0-1.0, how confident you are in this mapping>}'
+        '"confidence": <float 0.0-1.0>}'
     )
 
 
 def classify_patent_prompt() -> str:
     """System prompt for classifying patents by TRIZ principles."""
     principles = _principles_compact()
+    params = _parameters_list()
     return (
         "You are a TRIZ expert analyzing patents.\n\n"
-        "Identify which TRIZ inventive principles this patent employs, "
-        "what technical contradiction it resolves (using engineering parameter "
-        "IDs 1-50), and your confidence.\n\n"
+        "Identify which TRIZ inventive principles this patent employs and "
+        "what technical contradiction it resolves.\n\n"
+        "Analysis steps:\n"
+        "1. Read the patent and identify the core inventive mechanism\n"
+        "2. Match the mechanism to 1-3 TRIZ principles from the list below\n"
+        "3. Identify what engineering parameter the invention improves\n"
+        "4. Identify what engineering parameter worsens (or would worsen without "
+        "the inventive solution)\n"
+        "5. Assess your confidence\n\n"
         "TRIZ Inventive Principles:\n"
         f"{principles}\n\n"
+        "TRIZ Engineering Parameters:\n"
+        f"{params}\n\n"
+        "Common mistakes to avoid:\n"
+        "- Do NOT assign more than 3 principles; focus on the primary inventive mechanism\n"
+        "- Do NOT use the same parameter for both improving and worsening\n"
+        "- Do NOT confuse the problem domain with the inventive principle (e.g., 'thermal "
+        "management' is a domain, not a principle)\n\n"
+        "Confidence guide: 0.8-1.0 = principle clearly applies, 0.5-0.7 = reasonable match "
+        "but other principles could also apply, 0.2-0.4 = weak/uncertain mapping, "
+        "< 0.2 = patent does not clearly employ TRIZ-like inventive patterns.\n\n"
+        "Example:\n"
+        "Patent: 'A drill bit with segmented cutting edges that can be individually "
+        "replaced when worn, reducing downtime and material waste.'\n"
+        '{"principle_ids": [1, 27], '
+        '"contradiction": {"improving": 34, "worsening": 31}, '
+        '"confidence": 0.85, '
+        '"reasoning": "Segmentation (P1) divides the cutting edge into '
+        "replaceable parts; Cheap short-living objects (P27) accepts wear of "
+        "individual segments. Improves Ease of repair (34) at potential cost "
+        'to Object-generated harmful factors (31)."}\n\n'
         "Respond with JSON:\n"
         '{"principle_ids": [<int>], '
         '"contradiction": {"improving": <int 1-50>, "worsening": <int 1-50>}, '
@@ -240,30 +288,55 @@ def _evolution_trends_text() -> str:
 def classify_problem_prompt() -> str:
     """System prompt for classifying a problem into the appropriate TRIZ tool."""
     return (
-        "You are a TRIZ (Theory of Inventive Problem Solving) expert.\n\n"
-        "Classify the engineering problem into the most appropriate TRIZ analysis method:\n\n"
-        "1. **technical_contradiction** — The problem is about improving one parameter that "
-        "worsens another. Examples: 'increase speed without increasing weight', "
-        "'improve strength without reducing flexibility', 'increase throughput without "
-        "increasing error rate'.\n\n"
-        "2. **physical_contradiction** — A single component must have two opposite properties "
-        "simultaneously. Examples: 'the solder joint must be rigid AND flexible', "
-        "'the surface must be smooth AND rough', 'the liquid must be hot AND cold'.\n\n"
-        "3. **su_field** — The problem involves detection, measurement, or insufficient/harmful "
-        "interactions between substances and fields. Examples: 'how to detect cracks without "
-        "adding sensors', 'how to measure internal temperature non-invasively', "
-        "'the field damages the substrate'.\n\n"
-        "4. **function_analysis** — A component performs a harmful function, or the user wants "
-        "to understand which interactions are problematic. Examples: 'the adhesive damages the "
-        "die', 'which component is causing failures', 'the cooling system corrodes the pipes'.\n\n"
-        "5. **trimming** — The goal is simplification, cost reduction, or removing components. "
-        "Examples: 'reduce BOM cost', 'simplify the assembly', 'eliminate unnecessary parts', "
-        "'reduce component count'.\n\n"
-        "6. **trends** — The question is about future technology evolution or generational "
-        "progression. Examples: 'what is the next generation of X', 'where is this technology "
-        "heading', 'how will X evolve'.\n\n"
+        "You are a TRIZ expert. Classify the engineering problem into the most "
+        "appropriate TRIZ analysis method.\n\n"
+        "Analysis steps:\n"
+        "1. Read the problem carefully and identify the core tension or need\n"
+        "2. Match it to one of the 6 methods below\n"
+        "3. Reformulate the problem to be more precise and actionable\n\n"
+        "Methods:\n\n"
+        "1. technical_contradiction — Improving one parameter worsens another. "
+        "Two DIFFERENT parameters are in conflict. "
+        "Examples: 'increase speed without increasing weight', "
+        "'improve strength without reducing flexibility'.\n\n"
+        "2. physical_contradiction — A SINGLE element must have two OPPOSITE properties "
+        "simultaneously. The same property must be both A and not-A. "
+        "Examples: 'the solder joint must be rigid AND flexible', "
+        "'the surface must be smooth AND rough'.\n\n"
+        "3. su_field — Detection, measurement, or insufficient/harmful interactions "
+        "between substances and fields. "
+        "Examples: 'how to detect cracks without adding sensors', "
+        "'how to measure internal temperature non-invasively'.\n\n"
+        "4. function_analysis — A component performs a harmful function, or the user "
+        "needs to understand which interactions are problematic. "
+        "Examples: 'the adhesive damages the die', 'which component is causing failures'.\n\n"
+        "5. trimming — Simplification, cost reduction, or removing components. "
+        "Examples: 'reduce BOM cost', 'simplify the assembly', 'eliminate unnecessary parts'.\n\n"
+        "6. trends — Future technology evolution or generational progression. "
+        "Examples: 'what is the next generation of X', 'where is this technology heading'.\n\n"
+        "Common mistakes to avoid:\n"
+        "- Do NOT confuse technical_contradiction with physical_contradiction. "
+        "TC = two different parameters in trade-off. PC = one property must be opposite values. "
+        "'Make it stronger without making it heavier' is TC (strength vs weight). "
+        "'The coating must be thick AND thin' is PC (thickness has contradictory requirements).\n"
+        "- Do NOT classify vague complaints as trimming. 'It costs too much' might be TC "
+        "(cost vs performance) rather than trimming.\n\n"
+        "Confidence guide: 0.8-1.0 = problem clearly fits one method, "
+        "0.5-0.7 = reasonable fit but another method could also work, "
+        "0.3-0.5 = problem is ambiguous or vaguely stated, "
+        "< 0.3 = problem needs reformulation before classification is meaningful. "
+        "If you are unsure, return low confidence rather than forcing a classification.\n\n"
         "Also suggest a secondary method that might offer additional insights.\n\n"
-        "Reformulate the problem statement to be more precise and actionable.\n\n"
+        "Example:\n"
+        "Problem: 'Our heat sink needs to dissipate more heat "
+        "but it makes the device too heavy.'\n"
+        '{"primary_method": "technical_contradiction", "secondary_method": "trimming", '
+        '"reasoning": "Clear trade-off between thermal performance and weight — two different '
+        "parameters in conflict. Trimming could also help "
+        'by identifying components to eliminate.", '
+        '"confidence": 0.9, '
+        '"reformulated_problem": "Increase thermal dissipation capacity of the heat sink '
+        'without increasing the mass of the assembly."}\n\n'
         "Respond with JSON:\n"
         '{"primary_method": "<method>", "secondary_method": "<method or null>", '
         '"reasoning": "<why this method fits best>", '
@@ -310,12 +383,18 @@ def extract_physical_contradiction_prompt() -> str:
     sep_principles = _separation_principles_text()
     return (
         "You are a TRIZ expert analyzing a physical contradiction.\n\n"
-        "A physical contradiction exists when a single element must have two opposite "
-        "properties simultaneously (e.g., hot AND cold, rigid AND flexible).\n\n"
-        "Identify:\n"
-        "1. The property that has contradictory requirements\n"
-        "2. The two opposing requirements (requirement_a and requirement_b)\n"
-        "3. The best separation principle to resolve it\n\n"
+        "A physical contradiction exists when a SINGLE element must have two OPPOSITE "
+        "properties simultaneously (e.g., hot AND cold, rigid AND flexible). This is "
+        "different from a technical contradiction, where two DIFFERENT parameters "
+        "trade off against each other.\n\n"
+        "Analysis steps:\n"
+        "1. Identify the single property that has contradictory requirements\n"
+        "2. State the two opposing requirements as clearly as possible\n"
+        "3. Determine which separation principle best resolves the contradiction\n\n"
+        "Common mistake: Do NOT describe a technical contradiction (improving X worsens Y) "
+        "as a physical contradiction. A true physical contradiction has the form: "
+        "'The [element] must be [property A] to [achieve function 1] AND must be "
+        "[NOT property A] to [achieve function 2].'\n\n"
         "Separation Principles:\n"
         f"{sep_principles}\n\n"
         "Choose the most applicable separation type and list specific techniques.\n\n"
@@ -339,16 +418,29 @@ def su_field_analysis_prompt() -> str:
         "- S1 (substance 1): the object being acted upon\n"
         "- S2 (substance 2): the tool acting on S1\n"
         "- F (field): the energy/interaction connecting S1 and S2\n\n"
+        "Field types in TRIZ (use one of these for the 'field' value):\n"
+        "- Mechanical (force, pressure, vibration, acoustic/ultrasonic)\n"
+        "- Thermal (heating, cooling, temperature gradient)\n"
+        "- Chemical (reaction, dissolution, catalysis, oxidation)\n"
+        "- Electromagnetic (electric current, magnetic, electromagnetic radiation)\n"
+        "- Optical (visible light, UV, IR, laser)\n"
+        "- Gravitational (weight, centrifugal force)\n"
+        "- Nuclear (radiation, isotope decay)\n"
+        "- Biological (enzymatic, microbial)\n\n"
         "Problem types:\n"
         "- incomplete: missing substance or field in the model\n"
         "- harmful: the interaction produces undesirable effects\n"
         "- inefficient: the interaction exists but is too weak\n\n"
+        "Analysis steps:\n"
+        "1. Identify S1 (the object being processed or affected)\n"
+        "2. Identify S2 (the tool or agent acting on S1)\n"
+        "3. Identify the field type connecting them\n"
+        "4. Determine if the model is incomplete, harmful, or inefficient\n"
+        "5. Select the most applicable standard solutions from the list below\n\n"
         "Standard Solutions:\n"
         f"{solutions}\n\n"
-        "Identify the Su-Field model elements, classify the problem type, "
-        "and recommend the most applicable standard solutions.\n\n"
         "Respond with JSON:\n"
-        '{"substances": ["<S1>", "<S2>"], "field": "<field type>", '
+        '{"substances": ["<S1>", "<S2>"], "field": "<field type from list above>", '
         '"problem_type": "<incomplete|harmful|inefficient>", '
         '"standard_solutions": [{"id": "<e.g. 1.1.1>", "name": "<name>", '
         '"applicability": "<why this solution applies>"}]}'

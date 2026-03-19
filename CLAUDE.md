@@ -71,7 +71,7 @@ IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates
 - **Auto-init** — `analyze` and other commands work without running `init` first; `init` is only needed with `--force` to reset the database
 - **Hybrid patent search** — `analyze` (technical contradiction) uses `search_patents_hybrid()` which combines vector similarity with principle overlap bonus (0.3/principle, cap 0.6) and contradiction match bonus (0.4 exact, 0.2 partial). Other methods use vector-only search.
 - **No DB migrations** — schema changes require `triz-ai init --force`
-- **Token budget** — only inject relevant matrix rows/principles into prompts, not full dataset
+- **Token budget** — only inject relevant matrix rows/principles into prompts, not full dataset. Parameters include descriptions for disambiguation.
 - **TRIZ knowledge data** — `separation_principles.json` (4 categories), `standard_solutions.json` (76 solutions, 5 classes), `evolution_trends.json` (8 trends with stages)
 
 ## Models

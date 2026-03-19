@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2026-03-19
+
+### Improved
+
+- **Prompt engineering overhaul**: Optimized 7 of 18 system prompts for better output quality across different LLMs
+  - **Few-shot examples** added to `extract_contradiction`, `classify_patent`, and `classify_problem` prompts — grounds model output with concrete correct examples
+  - **Structured "Analysis steps"** added to 5 prompts — lightweight chain-of-thought guidance before JSON output
+  - **Confidence calibration** defined in 3 prompts — confidence ranges now aligned with downstream thresholds (e.g., 0.4 RCA trigger in router)
+  - **Negative examples / common mistakes** added to 4 prompts — prevents TC/PC confusion, same-parameter-for-both errors, domain-vs-principle conflation
+  - **Su-Field field type taxonomy** — 8 TRIZ field types (Mechanical, Thermal, Chemical, Electromagnetic, Optical, Gravitational, Nuclear, Biological) with sub-examples constrain LLM output to proper TRIZ terminology
+  - **`classify_patent` prompt fixed** — was missing the engineering parameter list; LLM had to guess parameter IDs without reference
+  - **Parameter descriptions** now included in `_parameters_list()` for better disambiguation across all parameter-referencing prompts (7 prompts)
+
+### Changed
+
+- **`_parameters_list()` output format**: Changed from `"ID. Name"` to `"ID. Name — Description"` for improved parameter disambiguation at modest token cost
+- **Version**: Bumped to 0.12.1
+
 ## [0.12.0] - 2026-03-18
 
 ### Added
