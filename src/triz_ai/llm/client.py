@@ -220,10 +220,29 @@ class LLMClient:
         self.classify_model = classify_model or config.llm.classify_model
         self.api_base = config.llm.api_base
         self.api_key = config.llm.api_key
+        self.ssl_verify = config.llm.ssl_verify
         self.embedding_model = config.embeddings.model
         self.embedding_dimensions = config.embeddings.dimensions
         self.embedding_api_base = config.embeddings.api_base
         self.embedding_api_key = config.embeddings.api_key
+
+    def _build_custom_client(self, api_base: str | None, api_key: str | None):
+        """Build a custom OpenAI client with SSL verification disabled.
+
+        Returns None when ssl_verify is True (default), letting litellm
+        create its own client. When ssl_verify is False, returns an
+        openai.OpenAI client with an httpx.Client(verify=False) transport.
+        """
+        if self.ssl_verify:
+            return None
+        import httpx
+        import openai
+
+        return openai.OpenAI(
+            api_key=api_key or "unused",
+            base_url=api_base,
+            http_client=httpx.Client(verify=False),
+        )
 
     def _completion_kwargs(self) -> dict:
         """Build optional kwargs for litellm.completion."""
@@ -232,6 +251,9 @@ class LLMClient:
             kwargs["api_base"] = self.api_base
         if self.api_key:
             kwargs["api_key"] = self.api_key
+        client = self._build_custom_client(self.api_base, self.api_key)
+        if client is not None:
+            kwargs["client"] = client
         return kwargs
 
     def _embedding_kwargs(self) -> dict:
@@ -241,6 +263,9 @@ class LLMClient:
             kwargs["api_base"] = self.embedding_api_base
         if self.embedding_api_key:
             kwargs["api_key"] = self.embedding_api_key
+        client = self._build_custom_client(self.embedding_api_base, self.embedding_api_key)
+        if client is not None:
+            kwargs["client"] = client
         return kwargs
 
     def _complete(

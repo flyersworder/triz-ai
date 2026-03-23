@@ -24,7 +24,7 @@ triz-ai/
 │   └── triz_ai/
 │       ├── __init__.py             # Exports ResearchTool, run_stage_tools
 │       ├── cli.py                  # CLI entry point (typer)
-│       ├── config.py               # Config loading (~/.triz-ai/config.yaml)
+│       ├── config.py               # Config loading (--config / TRIZ_AI_CONFIG / ~/.triz-ai/config.yaml)
 │       ├── tools.py                # ResearchTool dataclass + run_stage_tools() helper
 │       ├── knowledge/
 │       │   ├── __init__.py
@@ -401,7 +401,13 @@ Embeddings:
 
 ## Configuration
 
-`~/.triz-ai/config.yaml`:
+Config path resolution (highest priority first):
+
+1. `--config` CLI flag — `triz-ai --config /path/to/config.yaml analyze "..."`
+2. `TRIZ_AI_CONFIG` environment variable — `export TRIZ_AI_CONFIG=/app/config.yaml`
+3. `~/.triz-ai/config.yaml` (default)
+
+Example config:
 
 ```yaml
 llm:
@@ -410,6 +416,7 @@ llm:
   router_model: null       # defaults to classify_model
   deep_model: null         # defaults to default_model; for --deep Passes 1 & 3
   reasoning_effort: null   # low|medium|high for deep mode
+  ssl_verify: true         # set to false for corporate proxies with internal CA certs
 
 embeddings:
   model: openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free

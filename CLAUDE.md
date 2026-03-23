@@ -84,5 +84,6 @@ IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates
 ## References
 
 - Design spec: `docs/specs/2026-03-14-triz-ai-design.md`
-- Config: `~/.triz-ai/config.yaml`
+- Config: `~/.triz-ai/config.yaml` (default), overridable via `--config` CLI flag or `TRIZ_AI_CONFIG` env var
 - API keys: `.env` file (loaded via python-dotenv) or env vars per litellm conventions (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
+- SSL: For corporate proxies with internal CA certs, set `llm.ssl_verify: false` in config. This creates a custom OpenAI client with `httpx.Client(verify=False)` passed to litellm via `client=`.

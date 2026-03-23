@@ -190,7 +190,7 @@ Each tool's `fn(query, context)` receives a search query and a context dict with
 ```
 src/triz_ai/
   cli.py              # Typer CLI entry point
-  config.py            # Config loading (~/.triz-ai/config.yaml)
+  config.py            # Config loading (--config / TRIZ_AI_CONFIG / ~/.triz-ai/config.yaml)
   data/                # TRIZ JSON data (principles, parameters, matrix, separation, solutions, trends)
   knowledge/           # Loaders for all TRIZ knowledge data
   engine/              # analyzer, router, ariz orchestrator, 5 pipelines, classifier, generator, evaluator
@@ -202,7 +202,13 @@ tests/                 # 194 unit tests
 
 ## Configuration
 
-Config lives at `~/.triz-ai/config.yaml`:
+Config is loaded from (highest priority first):
+
+1. `--config` CLI flag — `triz-ai --config /path/to/config.yaml analyze "..."`
+2. `TRIZ_AI_CONFIG` environment variable — `export TRIZ_AI_CONFIG=/app/config.yaml`
+3. `~/.triz-ai/config.yaml` (default)
+
+Example:
 
 ```yaml
 llm:
@@ -235,6 +241,7 @@ llm:
   reasoning_effort: medium           # low/medium/high for the deep model
   api_base: https://llm-proxy.internal/v1
   api_key: your-proxy-token
+  ssl_verify: false                # disable for corporate proxies with internal CA certs
 
 embeddings:
   model: text-embedding-3-small

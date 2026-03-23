@@ -1,5 +1,6 @@
 """Configuration loading with pydantic-settings."""
 
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -18,6 +19,7 @@ class LLMConfig(BaseModel):
     reasoning_effort: str | None = None  # low/medium/high for reasoning models in deep mode
     api_base: str | None = None  # Custom API base URL (e.g., litellm proxy)
     api_key: str | None = None  # Custom API key (overrides env var)
+    ssl_verify: bool = True  # Set to false for corporate proxies with internal CA certs
 
 
 class EmbeddingsConfig(BaseModel):
@@ -46,9 +48,35 @@ class Settings(BaseSettings):
     evolution: EvolutionConfig = EvolutionConfig()
 
 
-def load_config() -> Settings:
-    """Load config from ~/.triz-ai/config.yaml, falling back to defaults."""
-    config_path = Path.home() / ".triz-ai" / "config.yaml"
+_config_path_override: Path | None = None
+
+
+def set_config_path(path: str | Path | None) -> None:
+    """Set a global config path override (used by CLI --config flag)."""
+    global _config_path_override
+    _config_path_override = Path(path) if path is not None else None
+
+
+def load_config(config_path: str | Path | None = None) -> Settings:
+    """Load config from YAML, falling back to defaults.
+
+    Resolution order:
+    1. Explicit ``config_path`` argument (highest priority)
+    2. Module-level override set via :func:`set_config_path` (CLI ``--config``)
+    3. ``TRIZ_AI_CONFIG`` environment variable
+    4. ``~/.triz-ai/config.yaml`` (default)
+    """
+    if config_path is None:
+        config_path = _config_path_override
+    if config_path is None:
+        env_path = os.environ.get("TRIZ_AI_CONFIG")
+        if env_path:
+            config_path = Path(env_path)
+    if config_path is None:
+        config_path = Path.home() / ".triz-ai" / "config.yaml"
+    else:
+        config_path = Path(config_path)
+
     if config_path.exists():
         import yaml
 
@@ -58,7 +86,7 @@ def load_config() -> Settings:
     return Settings()
 
 
-def get_db_path() -> Path:
+def get_db_path(config_path: str | Path | None = None) -> Path:
     """Get resolved database path."""
-    settings = load_config()
+    settings = load_config(config_path)
     return Path(settings.database.path).expanduser()

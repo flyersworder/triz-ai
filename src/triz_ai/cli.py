@@ -23,6 +23,21 @@ app = typer.Typer(
 console = Console(stderr=True)
 
 
+@app.callback()
+def _main(
+    config: str = typer.Option(
+        None,
+        help="Path to config YAML "
+        "(overrides TRIZ_AI_CONFIG env var and default ~/.triz-ai/config.yaml)",
+    ),
+) -> None:
+    """AI-Powered TRIZ Innovation Engine."""
+    if config is not None:
+        from triz_ai.config import set_config_path
+
+        set_config_path(config)
+
+
 def _get_llm_client(model: str | None = None, classify_model: str | None = None):
     from triz_ai.llm.client import LLMClient
 
