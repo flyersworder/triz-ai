@@ -1,4 +1,4 @@
-"""Tests for LLM client with mocked litellm calls."""
+"""Tests for LLM client with mocked litellm and openai fallback calls."""
 
 import json
 from types import SimpleNamespace
@@ -10,6 +10,7 @@ from triz_ai.llm.client import (
     ExtractedContradiction,
     LLMClient,
     PatentClassification,
+    TrizAIError,
 )
 
 
@@ -132,3 +133,114 @@ class TestGetEmbedding:
             result = client.get_embedding("test text")
             assert result == [0.1, 0.2, 0.3, 0.4, 0.5]
             assert all(isinstance(x, float) for x in result)
+
+
+class TestOpenAIFallback:
+    """Tests for the openai SDK fallback when litellm is not installed."""
+
+    def test_complete_uses_openai_when_no_litellm(self):
+        """When HAS_LITELLM is False and api_base is set, use openai SDK."""
+        valid_json = json.dumps(
+            {
+                "improving_param": 1,
+                "worsening_param": 2,
+                "reasoning": "openai fallback test",
+            }
+        )
+        message = MagicMock()
+        message.content = valid_json
+        choice = MagicMock()
+        choice.message = message
+        mock_response = MagicMock()
+        mock_response.choices = [choice]
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_response
+
+        with (
+            patch("triz_ai.llm.client.load_config") as mock_config,
+            patch("triz_ai.llm.client.HAS_LITELLM", False),
+            patch("triz_ai.llm.client.openai.OpenAI", return_value=mock_client),
+        ):
+            mock_settings = MagicMock()
+            mock_settings.llm.default_model = "test-model"
+            mock_settings.llm.api_base = "http://localhost:4000"
+            mock_settings.llm.api_key = "test-key"
+            mock_settings.llm.ssl_verify = True
+            mock_settings.embeddings.model = "test-embed-model"
+            mock_config.return_value = mock_settings
+
+            client = LLMClient()
+            result = client._complete("system", "user", ExtractedContradiction)
+            assert isinstance(result, ExtractedContradiction)
+            assert result.improving_param == 1
+            mock_client.chat.completions.create.assert_called_once()
+
+    def test_embedding_uses_openai_when_no_litellm(self):
+        """When HAS_LITELLM is False and api_base is set, use openai SDK for embeddings."""
+        mock_embedding = MagicMock()
+        mock_embedding.embedding = [0.1, 0.2, 0.3]
+        mock_response = MagicMock()
+        mock_response.data = [mock_embedding]
+
+        mock_client = MagicMock()
+        mock_client.embeddings.create.return_value = mock_response
+
+        with (
+            patch("triz_ai.llm.client.load_config") as mock_config,
+            patch("triz_ai.llm.client.HAS_LITELLM", False),
+            patch("triz_ai.llm.client.openai.OpenAI", return_value=mock_client),
+        ):
+            mock_settings = MagicMock()
+            mock_settings.llm.default_model = "test-model"
+            mock_settings.embeddings.model = "test-embed-model"
+            mock_settings.embeddings.api_base = "http://localhost:4000"
+            mock_settings.embeddings.api_key = "test-key"
+            mock_settings.llm.api_base = "http://localhost:4000"
+            mock_settings.llm.ssl_verify = True
+            mock_config.return_value = mock_settings
+
+            client = LLMClient()
+            result = client.get_embedding("test text")
+            assert result == [0.1, 0.2, 0.3]
+            mock_client.embeddings.create.assert_called_once()
+
+    def test_raises_when_no_litellm_and_no_api_base(self):
+        """When HAS_LITELLM is False and no api_base, raise TrizAIError."""
+        with (
+            patch("triz_ai.llm.client.load_config") as mock_config,
+            patch("triz_ai.llm.client.HAS_LITELLM", False),
+        ):
+            mock_settings = MagicMock()
+            mock_settings.llm.default_model = "test-model"
+            mock_settings.llm.api_base = None
+            mock_settings.llm.api_key = None
+            mock_settings.llm.ssl_verify = True
+            mock_settings.embeddings.model = "test-embed-model"
+            mock_settings.embeddings.api_base = None
+            mock_settings.embeddings.api_key = None
+            mock_config.return_value = mock_settings
+
+            client = LLMClient()
+            with pytest.raises(TrizAIError, match="No LLM backend available"):
+                client._complete("system", "user", ExtractedContradiction)
+
+    def test_raises_when_no_litellm_and_no_embedding_api_base(self):
+        """When HAS_LITELLM is False and no embedding_api_base, raise TrizAIError."""
+        with (
+            patch("triz_ai.llm.client.load_config") as mock_config,
+            patch("triz_ai.llm.client.HAS_LITELLM", False),
+        ):
+            mock_settings = MagicMock()
+            mock_settings.llm.default_model = "test-model"
+            mock_settings.llm.api_base = "http://localhost:4000"
+            mock_settings.llm.api_key = "test-key"
+            mock_settings.llm.ssl_verify = True
+            mock_settings.embeddings.model = "test-embed-model"
+            mock_settings.embeddings.api_base = None
+            mock_settings.embeddings.api_key = None
+            mock_config.return_value = mock_settings
+
+            client = LLMClient()
+            with pytest.raises(TrizAIError, match="embeddings.api_base"):
+                client.get_embedding("test text")

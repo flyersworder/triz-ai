@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-03-25
+
+### Changed
+
+- **`litellm` is now an optional dependency**: Install `pip install triz-ai[litellm]` for direct access to any LLM provider (OpenRouter, Anthropic, Google, Ollama, etc.). The bare `pip install triz-ai` uses the lightweight `openai` SDK and requires `api_base` pointing to an OpenAI-compatible endpoint (e.g. a self-hosted litellm gateway)
+- **`openai` SDK added as core dependency**: Replaces litellm as the default LLM transport for users with an OpenAI-compatible gateway. Lightweight (~2MB vs litellm's ~50MB+)
+- **Dual LLM backend in `client.py`**: `HAS_LITELLM` flag selects between litellm (any provider) and openai SDK (OpenAI-compatible endpoints). All `LLMClient` public methods unchanged — no API changes for consumers
+- **Cached OpenAI clients**: OpenAI SDK clients are created once and reused across calls (also applies to litellm's SSL-disabled path)
+- **Separate `api_base` validation for embeddings**: `_require_api_base(for_embeddings=True)` checks `embeddings.api_base` independently from `llm.api_base`, with a specific error message pointing to the correct config key
+- **Version**: Bumped to 0.14.0
+
 ## [0.13.0] - 2026-03-23
 
 ### Added

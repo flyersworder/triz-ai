@@ -9,9 +9,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-# Suppress litellm noise before any imports trigger it
-logging.getLogger("LiteLLM").setLevel(logging.WARNING)
-logging.getLogger("litellm").setLevel(logging.WARNING)
+# Suppress noisy loggers before any imports trigger them
+try:
+    import litellm  # noqa: F401 — import only to suppress its loggers
+
+    logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+    logging.getLogger("litellm").setLevel(logging.WARNING)
+except ImportError:
+    pass
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 app = typer.Typer(

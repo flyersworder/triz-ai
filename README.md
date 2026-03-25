@@ -23,7 +23,11 @@ AI-powered TRIZ innovation engine — analyze technical problems, classify paten
 ## Installation
 
 ```bash
+# With a self-hosted litellm gateway or OpenAI-compatible endpoint:
 pip install triz-ai
+
+# For direct access to any provider (OpenRouter, Anthropic, Google, Ollama, etc.):
+pip install triz-ai[litellm]
 ```
 
 Or for development:
@@ -33,10 +37,16 @@ Or for development:
 uv sync
 ```
 
-Set up your LLM provider API key:
+Set up your LLM provider:
 
 ```bash
+# Option 1: Direct provider access (requires litellm extra)
 export OPENROUTER_API_KEY="your-key"
+
+# Option 2: Self-hosted litellm gateway (no extra needed)
+# Set api_base in ~/.triz-ai/config.yaml:
+#   llm:
+#     api_base: http://your-litellm-gateway:4000
 ```
 
 Or use a `.env` file: `echo 'OPENROUTER_API_KEY=your-key' > .env`

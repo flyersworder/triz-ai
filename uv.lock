@@ -1838,10 +1838,10 @@ wheels = [
 
 [[package]]
 name = "triz-ai"
-version = "0.13.0"
+version = "0.14.0"
 source = { editable = "." }
 dependencies = [
-    { name = "litellm" },
+    { name = "openai" },
     { name = "pdfplumber" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -1850,6 +1850,11 @@ dependencies = [
     { name = "rich" },
     { name = "sqlite-vec" },
     { name = "typer" },
+]
+
+[package.optional-dependencies]
+litellm = [
+    { name = "litellm" },
 ]
 
 [package.dev-dependencies]
@@ -1863,7 +1868,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "litellm", specifier = ">=1.50" },
+    { name = "litellm", marker = "extra == 'litellm'", specifier = ">=1.50" },
+    { name = "openai", specifier = ">=1.0" },
     { name = "pdfplumber", specifier = ">=0.11" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pydantic-settings", specifier = ">=2.0" },
@@ -1873,6 +1879,7 @@ requires-dist = [
     { name = "sqlite-vec", specifier = ">=0.1" },
     { name = "typer", specifier = ">=0.15" },
 ]
+provides-extras = ["litellm"]
 
 [package.metadata.requires-dev]
 dev = [

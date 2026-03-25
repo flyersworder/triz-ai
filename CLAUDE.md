@@ -14,7 +14,7 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 ## Architecture
 
-`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/router.py` (problem classifier + IFR + RCA + dispatch) → `engine/` (analyzer, physical, su_field, function_analysis, trimming, trends, classifier, generator, evaluator) → `llm/client.py` (litellm wrapper) → `patents/` (`PatentRepository` protocol + SQLite-backed `PatentStore` default, pluggable `VectorStore` protocol, ingestion, matrix observations) → `knowledge/` (TRIZ data from `src/triz_ai/data/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
+`src/triz_ai/` modules: `cli.py` (Typer CLI) → `engine/router.py` (problem classifier + IFR + RCA + dispatch) → `engine/` (analyzer, physical, su_field, function_analysis, trimming, trends, classifier, generator, evaluator) → `llm/client.py` (openai SDK + optional litellm) → `patents/` (`PatentRepository` protocol + SQLite-backed `PatentStore` default, pluggable `VectorStore` protocol, ingestion, matrix observations) → `knowledge/` (TRIZ data from `src/triz_ai/data/*.json`, `matrix_builder.py` for LLM-seeding) → `evolution/` (candidate principle and parameter discovery).
 
 ### Pluggable Patent Repository
 
@@ -87,3 +87,4 @@ IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates
 - Config: `~/.triz-ai/config.yaml` (default), overridable via `--config` CLI flag or `TRIZ_AI_CONFIG` env var
 - API keys: `.env` file (loaded via python-dotenv) or env vars per litellm conventions (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
 - SSL: For corporate proxies with internal CA certs, set `llm.ssl_verify: false` in config. This creates a custom OpenAI client with `httpx.Client(verify=False)` passed to litellm via `client=`.
+- LLM backend: `litellm` is an optional dependency (`pip install triz-ai[litellm]`). Without it, the `openai` SDK is used as fallback and requires `api_base` in config pointing to an OpenAI-compatible endpoint (e.g. a self-hosted litellm gateway). With litellm installed, any provider works directly.

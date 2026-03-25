@@ -1,10 +1,10 @@
-"""LLM client wrapping litellm for TRIZ operations."""
+"""LLM client wrapping litellm (optional) or openai for TRIZ operations."""
 
 import json
 import logging
 from typing import TypeVar
 
-import litellm
+import openai
 from pydantic import BaseModel
 
 from triz_ai.config import load_config
@@ -29,14 +29,20 @@ from triz_ai.llm.prompts import (
     trimming_analysis_prompt,
 )
 
+try:
+    import litellm
+
+    litellm.suppress_debug_info = True  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+    logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+    logging.getLogger("litellm").setLevel(logging.WARNING)
+    HAS_LITELLM = True
+except ImportError:
+    HAS_LITELLM = False
+
 T = TypeVar("T", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
 
-# Suppress litellm's noisy console output
-litellm.suppress_debug_info = True  # type: ignore[assignment]
-logging.getLogger("LiteLLM").setLevel(logging.WARNING)
-logging.getLogger("litellm").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
@@ -162,7 +168,7 @@ class TrendsResult(BaseModel):
 
 
 def _friendly_error(e: Exception) -> TrizAIError:
-    """Convert litellm exceptions to user-friendly error messages."""
+    """Convert LLM provider exceptions to user-friendly error messages."""
     error_str = str(e)
     error_type = type(e).__name__
 
@@ -225,48 +231,73 @@ class LLMClient:
         self.embedding_dimensions = config.embeddings.dimensions
         self.embedding_api_base = config.embeddings.api_base
         self.embedding_api_key = config.embeddings.api_key
+        # Lazily-created openai clients for the non-litellm path
+        self._openai_client: openai.OpenAI | None = None
+        self._openai_embedding_client: openai.OpenAI | None = None
 
-    def _build_custom_client(self, api_base: str | None, api_key: str | None):
-        """Build a custom OpenAI client with SSL verification disabled.
+    def _build_openai_client(self, api_base: str | None, api_key: str | None) -> openai.OpenAI:
+        """Build an OpenAI client for direct API access (no litellm)."""
+        client_kwargs: dict = {}
+        if api_base:
+            client_kwargs["base_url"] = api_base
+        if api_key:
+            client_kwargs["api_key"] = api_key
+        if not self.ssl_verify:
+            import httpx
 
-        Returns None when ssl_verify is True (default), letting litellm
-        create its own client. When ssl_verify is False, returns an
-        openai.OpenAI client with an httpx.Client(verify=False) transport.
-        """
-        if self.ssl_verify:
-            return None
-        import httpx
-        import openai
+            client_kwargs["http_client"] = httpx.Client(verify=False)
+        return openai.OpenAI(**client_kwargs)
 
-        return openai.OpenAI(
-            api_key=api_key or "unused",
-            base_url=api_base,
-            http_client=httpx.Client(verify=False),
-        )
+    def _get_openai_client(self) -> openai.OpenAI:
+        """Get or create cached openai client for completions."""
+        if self._openai_client is None:
+            self._openai_client = self._build_openai_client(self.api_base, self.api_key)
+        return self._openai_client
 
-    def _completion_kwargs(self) -> dict:
+    def _get_openai_embedding_client(self) -> openai.OpenAI:
+        """Get or create cached openai client for embeddings."""
+        if self._openai_embedding_client is None:
+            self._openai_embedding_client = self._build_openai_client(
+                self.embedding_api_base, self.embedding_api_key
+            )
+        return self._openai_embedding_client
+
+    def _litellm_completion_kwargs(self) -> dict:
         """Build optional kwargs for litellm.completion."""
         kwargs: dict = {}
         if self.api_base:
             kwargs["api_base"] = self.api_base
         if self.api_key:
             kwargs["api_key"] = self.api_key
-        client = self._build_custom_client(self.api_base, self.api_key)
-        if client is not None:
-            kwargs["client"] = client
+        if not self.ssl_verify:
+            kwargs["client"] = self._get_openai_client()
         return kwargs
 
-    def _embedding_kwargs(self) -> dict:
+    def _litellm_embedding_kwargs(self) -> dict:
         """Build optional kwargs for litellm.embedding."""
         kwargs: dict = {}
         if self.embedding_api_base:
             kwargs["api_base"] = self.embedding_api_base
         if self.embedding_api_key:
             kwargs["api_key"] = self.embedding_api_key
-        client = self._build_custom_client(self.embedding_api_base, self.embedding_api_key)
-        if client is not None:
-            kwargs["client"] = client
+        if not self.ssl_verify:
+            kwargs["client"] = self._get_openai_embedding_client()
         return kwargs
+
+    def _require_api_base(self, for_embeddings: bool = False) -> None:
+        """Raise if litellm is not installed and api_base is not configured."""
+        if HAS_LITELLM:
+            return
+        api_base = self.embedding_api_base if for_embeddings else self.api_base
+        if not api_base:
+            config_key = "embeddings.api_base" if for_embeddings else "llm.api_base"
+            raise TrizAIError(
+                "No LLM backend available. Either:\n"
+                "  1. Install litellm for direct provider access:\n"
+                "     uv add triz-ai[litellm]  (or: pip install triz-ai[litellm])\n"
+                f"  2. Set {config_key} in ~/.triz-ai/config.yaml to point to an\n"
+                "     OpenAI-compatible endpoint (e.g. a litellm gateway)."
+            )
 
     def _complete(
         self,
@@ -283,6 +314,10 @@ class LLMClient:
         On malformed response, retry once with stricter prompt, then fail.
         Auth/network errors are raised immediately without retry.
 
+        Uses litellm if installed (supports any provider), otherwise falls
+        back to the openai SDK (requires api_base pointing to an
+        OpenAI-compatible endpoint such as a litellm gateway).
+
         Args:
             model: Optional model override (defaults to self.model).
             max_tokens: Optional max output tokens (useful for structured
@@ -291,26 +326,41 @@ class LLMClient:
                 models (low/medium/high). Passed to litellm which translates
                 across providers (Anthropic, OpenAI o-series, DeepSeek, etc.).
         """
+        self._require_api_base()
         use_model = model or self.model
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
-        kwargs = self._completion_kwargs()
-        if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
-        if reasoning_effort is not None:
-            kwargs["reasoning_effort"] = reasoning_effort
-
         try:
-            response = litellm.completion(
-                model=use_model,
-                messages=messages,
-                response_format={"type": "json_object"},
-                **kwargs,
-            )
-            raw = response.choices[0].message.content
+            if HAS_LITELLM:
+                kwargs = self._litellm_completion_kwargs()
+                if max_tokens is not None:
+                    kwargs["max_tokens"] = max_tokens
+                if reasoning_effort is not None:
+                    kwargs["reasoning_effort"] = reasoning_effort
+                response = litellm.completion(
+                    model=use_model,
+                    messages=messages,
+                    response_format={"type": "json_object"},
+                    **kwargs,
+                )
+                raw = response.choices[0].message.content
+            else:
+                client = self._get_openai_client()
+                oai_kwargs: dict = {
+                    "model": use_model,
+                    "messages": messages,
+                    "response_format": {"type": "json_object"},
+                }
+                if max_tokens is not None:
+                    oai_kwargs["max_tokens"] = max_tokens
+                if reasoning_effort is not None:
+                    oai_kwargs["reasoning_effort"] = reasoning_effort
+                response = client.chat.completions.create(**oai_kwargs)
+                raw = response.choices[0].message.content
+
             data = json.loads(raw)
             return response_model.model_validate(data)
         except Exception as e:
@@ -591,14 +641,24 @@ class LLMClient:
 
     def get_embedding(self, text: str) -> list[float]:
         """Get embedding vector for text."""
+        self._require_api_base(for_embeddings=True)
         try:
-            response = litellm.embedding(
-                model=self.embedding_model,
-                input=[text],
-                dimensions=self.embedding_dimensions,
-                **self._embedding_kwargs(),
-            )
-            return response.data[0]["embedding"]
+            if HAS_LITELLM:
+                response = litellm.embedding(
+                    model=self.embedding_model,
+                    input=[text],
+                    dimensions=self.embedding_dimensions,
+                    **self._litellm_embedding_kwargs(),
+                )
+                return response.data[0]["embedding"]
+            else:
+                client = self._get_openai_embedding_client()
+                response = client.embeddings.create(
+                    model=self.embedding_model,
+                    input=[text],
+                    dimensions=self.embedding_dimensions,
+                )
+                return response.data[0].embedding
         except Exception as e:
             raise _friendly_error(e) from e
 

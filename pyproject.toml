@@ -1,6 +1,6 @@
 [project]
 name = "triz-ai"
-version = "0.13.0"
+version = "0.14.0"
 description = "AI-Powered TRIZ Innovation Engine — combines TRIZ methodology with AI and real patent data"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "typer>=0.15",
-    "litellm>=1.50",
+    "openai>=1.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "rich>=13.0",
@@ -29,6 +29,9 @@ dependencies = [
     "pyyaml>=6.0",
     "python-dotenv>=1.0",
 ]
+
+[project.optional-dependencies]
+litellm = ["litellm>=1.50"]
 
 [project.urls]
 Homepage = "https://github.com/flyersworder/triz-ai"
