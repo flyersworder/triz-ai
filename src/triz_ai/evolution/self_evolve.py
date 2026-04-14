@@ -123,23 +123,178 @@ def consolidate(
     llm_client: LLMClient,
     store: PatentRepository,
     retention_days: int | None = None,
+    min_observations: int = 3,
+    source_confidence_weight: float | None = None,
 ) -> ConsolidationResult:
     """Consolidate search observations into matrix observations and candidates.
 
-    Stub — full implementation in Task 7.
+    Steps:
+    1. Load unconsolidated observations
+    2. Group by (improving_param, worsening_param)
+    3. LLM validates principle assignments per group
+    4. Record matrix observations (with source confidence discount)
+    5. Cluster low-confidence observations for candidate discovery
+    6. Mark consolidated and prune
     """
-    if retention_days is None:
-        from triz_ai.config import load_config
+    from triz_ai.config import load_config
+    from triz_ai.knowledge.parameters import get_parameter
 
-        retention_days = load_config().evolution.retention_days
+    config = load_config()
+    if retention_days is None:
+        retention_days = config.evolution.retention_days
+    if source_confidence_weight is None:
+        source_confidence_weight = config.evolution.source_confidence_weight
 
     observations = store.get_unconsolidated_observations()
     if not observations:
         return ConsolidationResult()
 
+    # Group by contradiction pair
+    groups: dict[tuple[int | None, int | None], list[SearchObservation]] = {}
+    for obs in observations:
+        key = (obs.improving_param, obs.worsening_param)
+        if key not in groups:
+            groups[key] = []
+        groups[key].append(obs)
+
+    matrix_obs_added = 0
+    all_low_confidence: list[SearchObservation] = []
+
+    for (improving, worsening), group_obs in groups.items():
+        # Skip non-contradiction groups for matrix recording
+        if improving is None or worsening is None:
+            all_low_confidence.extend(group_obs)
+            continue
+
+        # Collect principle IDs from all observations in this group
+        principle_set: set[int] = set()
+        for obs in group_obs:
+            principle_set.update(obs.principle_ids)
+
+        if not principle_set:
+            all_low_confidence.extend(group_obs)
+            continue
+
+        # Get parameter names for the LLM prompt
+        imp_param = get_parameter(improving)
+        wor_param = get_parameter(worsening)
+        imp_name = imp_param.name if imp_param else f"Parameter {improving}"
+        wor_name = wor_param.name if wor_param else f"Parameter {worsening}"
+
+        # LLM validates principle assignments
+        try:
+            validation = llm_client.validate_observations(
+                observations=[
+                    {"id": o.id, "title": o.title, "snippet": o.snippet} for o in group_obs
+                ],
+                improving_param=improving,
+                improving_name=imp_name,
+                worsening_param=worsening,
+                worsening_name=wor_name,
+                principle_ids=sorted(principle_set),
+            )
+        except Exception:
+            logger.warning(
+                "Observation validation failed for (%d, %d), skipping",
+                improving,
+                worsening,
+            )
+            continue
+
+        # Aggregate validated confidence per principle
+        principle_scores: dict[int, list[float]] = {}
+        low_conf_obs_ids: set[str] = set()
+
+        for v in validation.validations:
+            has_high_conf = False
+            for vp in v.validated_principles:
+                if vp.confidence >= config.evolution.review_threshold:
+                    has_high_conf = True
+                    if vp.principle_id not in principle_scores:
+                        principle_scores[vp.principle_id] = []
+                    principle_scores[vp.principle_id].append(vp.confidence)
+
+            if not has_high_conf:
+                low_conf_obs_ids.add(v.observation_id)
+
+        # Record matrix observations for principles with enough evidence
+        for principle_id, scores in principle_scores.items():
+            if len(scores) >= min_observations:
+                avg_conf = sum(scores) / len(scores)
+                weighted_conf = avg_conf * source_confidence_weight
+                for obs in group_obs:
+                    if obs.id not in low_conf_obs_ids:
+                        store.insert_matrix_observation(
+                            improving=improving,
+                            worsening=worsening,
+                            principle_id=principle_id,
+                            patent_id=obs.id,
+                            confidence=weighted_conf,
+                        )
+                        matrix_obs_added += 1
+
+        # Collect low-confidence observations for candidate discovery
+        for obs in group_obs:
+            if obs.id in low_conf_obs_ids:
+                all_low_confidence.append(obs)
+
+    # Candidate principle discovery from low-confidence observations
+    candidates_proposed = 0
+    if len(all_low_confidence) >= min_observations:
+        try:
+            snippets = [f"{o.title}\n{o.snippet or ''}" for o in all_low_confidence]
+            clusters = llm_client.cluster_patents(snippets)
+            for cluster_indices in clusters:
+                if len(cluster_indices) < min_observations:
+                    continue
+                cluster_texts = [snippets[i] for i in cluster_indices if i < len(snippets)]
+                if len(cluster_texts) < min_observations:
+                    continue
+                try:
+                    proposal = llm_client.propose_candidate_principle(cluster_texts)
+                    from triz_ai.patents.store import CandidatePrinciple
+
+                    existing = store.get_pending_candidates()
+                    next_id = len(existing) + 1
+                    candidate = CandidatePrinciple(
+                        id=f"C{next_id}",
+                        name=proposal.name,
+                        description=proposal.description,
+                        evidence_patent_ids=[
+                            all_low_confidence[i].id
+                            for i in cluster_indices
+                            if i < len(all_low_confidence)
+                        ],
+                        confidence=proposal.confidence,
+                    )
+                    store.insert_candidate_principle(candidate)
+                    candidates_proposed += 1
+                    logger.info(
+                        "Proposed candidate principle from web observations: %s — %s",
+                        candidate.id,
+                        candidate.name,
+                    )
+                except Exception:
+                    logger.warning("Failed to propose candidate for cluster, skipping")
+        except Exception:
+            logger.warning("Clustering low-confidence observations failed, skipping")
+
+    # Mark all as consolidated and prune
     store.mark_observations_consolidated([o.id for o in observations])
     pruned = store.prune_observations(retention_days=retention_days)
-    return ConsolidationResult(
+
+    result = ConsolidationResult(
         observations_processed=len(observations),
+        matrix_observations_added=matrix_obs_added,
+        candidate_principles_proposed=candidates_proposed,
         observations_pruned=pruned,
     )
+    logger.info(
+        "Consolidation complete: %d processed, %d matrix obs added, "
+        "%d candidates proposed, %d pruned",
+        result.observations_processed,
+        result.matrix_observations_added,
+        result.candidate_principles_proposed,
+        result.observations_pruned,
+    )
+    return result
