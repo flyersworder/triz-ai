@@ -263,3 +263,84 @@ def test_consolidate_applies_source_confidence_weight(mock_llm, store):
     if (17, 14) in obs:
         for _pid, _count, avg_conf in obs[(17, 14)]:
             assert avg_conf <= 0.5
+
+
+def test_end_to_end_collect_then_consolidate(store):
+    """Full flow: collect from multiple analyses, then consolidate."""
+    mock_llm = MagicMock()
+    mock_llm.validate_observations.return_value = ObservationValidationBatch(
+        validations=[
+            ObservationValidation(
+                observation_id=f"ws:{chr(97 + i) * 3}",
+                validated_principles=[
+                    ValidatedPrinciple(principle_id=35, confidence=0.85),
+                ],
+            )
+            for i in range(4)
+        ]
+    )
+    mock_llm.cluster_patents.return_value = []
+
+    # Simulate 4 analyze calls, each producing 1 web result
+    for i in range(4):
+        result = AnalysisResult(
+            problem=f"Problem {i}",
+            method="technical_contradiction",
+            improving_param={"id": 17, "name": "Temperature"},
+            worsening_param={"id": 14, "name": "Strength"},
+            recommended_principles=[{"id": 35, "name": "Parameter changes", "description": "..."}],
+            contradiction_confidence=0.8,
+            patent_examples=[
+                {
+                    "title": f"Web Result {i}",
+                    "abstract": f"Technique {i} for thermal management",
+                    "url": f"https://example.com/{i}",
+                    "source": "web_search",
+                },
+            ],
+        )
+        collect_search_observations(result, store)
+
+    # Verify 4 observations stored
+    assert len(store.get_unconsolidated_observations()) == 4
+    assert store.get_analyses_since_consolidation() == 4
+
+    # Run consolidation
+    consolidation_result = consolidate(mock_llm, store)
+
+    assert consolidation_result.observations_processed == 4
+    assert consolidation_result.matrix_observations_added >= 1
+    assert len(store.get_unconsolidated_observations()) == 0
+
+
+def test_auto_consolidation_trigger(store):
+    """maybe_auto_consolidate should trigger when threshold is reached."""
+    mock_llm = MagicMock()
+    mock_llm.validate_observations.return_value = ObservationValidationBatch(validations=[])
+    mock_llm.cluster_patents.return_value = []
+
+    from triz_ai.evolution.self_evolve import maybe_auto_consolidate
+
+    # Below threshold — should not trigger
+    for _ in range(3):
+        store.increment_analysis_count()
+    result = maybe_auto_consolidate(mock_llm, store)
+    assert result is None
+
+    # Manually set counter above default threshold (25)
+    conn = store._get_conn()
+    conn.execute("UPDATE self_evolution_meta SET analyses_since_consolidation = 25 WHERE id = 1")
+    conn.commit()
+
+    # Insert at least one observation so consolidation has something to do
+    obs = SearchObservation(
+        id="ws:trigger",
+        title="Trigger Result",
+        observed_at="2026-04-13T10:00:00",
+    )
+    store.insert_search_observation(obs)
+
+    result = maybe_auto_consolidate(mock_llm, store)
+    assert result is not None
+    assert result.observations_processed == 1
+    assert store.get_analyses_since_consolidation() == 0  # counter reset
