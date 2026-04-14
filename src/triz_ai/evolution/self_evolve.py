@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from triz_ai.engine.analyzer import AnalysisResult
+    from triz_ai.llm.client import LLMClient
     from triz_ai.patents.repository import PatentRepository
 
 logger = logging.getLogger(__name__)
@@ -96,3 +97,49 @@ def collect_search_observations(
         logger.debug("Collected %d search observations", count)
 
     return count
+
+
+def maybe_auto_consolidate(
+    llm_client: LLMClient,
+    store: PatentRepository,
+) -> ConsolidationResult | None:
+    """Auto-consolidate if analysis count exceeds threshold.
+
+    Returns ConsolidationResult if consolidation ran, None otherwise.
+    """
+    from triz_ai.config import load_config
+
+    config = load_config()
+    count = store.get_analyses_since_consolidation()
+    if count < config.evolution.consolidation_interval:
+        return None
+
+    result = consolidate(llm_client, store)
+    store.reset_analysis_count()
+    return result
+
+
+def consolidate(
+    llm_client: LLMClient,
+    store: PatentRepository,
+    retention_days: int | None = None,
+) -> ConsolidationResult:
+    """Consolidate search observations into matrix observations and candidates.
+
+    Stub — full implementation in Task 7.
+    """
+    if retention_days is None:
+        from triz_ai.config import load_config
+
+        retention_days = load_config().evolution.retention_days
+
+    observations = store.get_unconsolidated_observations()
+    if not observations:
+        return ConsolidationResult()
+
+    store.mark_observations_consolidated([o.id for o in observations])
+    pruned = store.prune_observations(retention_days=retention_days)
+    return ConsolidationResult(
+        observations_processed=len(observations),
+        observations_pruned=pruned,
+    )

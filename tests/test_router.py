@@ -272,3 +272,75 @@ class TestRouter:
             pipeline_fn = mock_get.return_value
             call_args = pipeline_fn.call_args[0]
             assert call_args[0] == "original problem"
+
+
+class TestSelfEvolutionHook:
+    """Self-evolution collection hooks in route()."""
+
+    def test_collects_web_results_after_analysis(self, mock_llm, store):
+        """route() should call collect_search_observations when research_tools present."""
+        from triz_ai.tools import ResearchTool
+
+        def mock_search(query, context):
+            return [
+                {"title": "Web Result 1", "abstract": "Found via search", "source": "test_tool"},
+            ]
+
+        tool = ResearchTool(
+            name="test_tool",
+            description="Test search",
+            fn=mock_search,
+            stages=["search"],
+        )
+
+        mock_result = AnalysisResult(
+            problem="test problem",
+            method="technical_contradiction",
+            improving_param={"id": 1, "name": "Weight"},
+            worsening_param={"id": 2, "name": "Length"},
+            recommended_principles=[{"id": 10, "name": "Prior action", "description": "..."}],
+            patent_examples=[
+                {"title": "Web Result 1", "abstract": "Found via search", "source": "test_tool"},
+            ],
+        )
+
+        with patch(
+            "triz_ai.engine.router._get_pipeline",
+            return_value=MagicMock(return_value=mock_result),
+        ):
+            route("test problem", mock_llm, store, research_tools=[tool])
+
+        observations = store.get_unconsolidated_observations()
+        assert len(observations) == 1
+        assert observations[0].source_tool == "test_tool"
+
+    def test_no_collection_without_research_tools(self, mock_llm, store):
+        """route() without research_tools should not collect anything."""
+        with patch(
+            "triz_ai.engine.router._get_pipeline",
+            return_value=MagicMock(return_value=AnalysisResult(problem="test")),
+        ):
+            route("test", mock_llm, store)
+
+        observations = store.get_unconsolidated_observations()
+        assert len(observations) == 0
+
+    def test_collection_failure_does_not_break_analysis(self, mock_llm, store):
+        """If collection fails, route() should still return the analysis result."""
+        from triz_ai.tools import ResearchTool
+
+        tool = ResearchTool(name="t", description="t", fn=lambda q, c: [], stages=["search"])
+        mock_result = AnalysisResult(problem="test", method="technical_contradiction")
+
+        with (
+            patch(
+                "triz_ai.engine.router._get_pipeline",
+                return_value=MagicMock(return_value=mock_result),
+            ),
+            patch(
+                "triz_ai.evolution.self_evolve.collect_search_observations",
+                side_effect=Exception("DB error"),
+            ),
+        ):
+            result = route("test", mock_llm, store, research_tools=[tool])
+            assert result.problem == "test"
