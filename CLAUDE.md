@@ -61,6 +61,17 @@ IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates
 - Tool failures are logged and skipped — they never block analysis
 - No CLI changes; research tools are passed programmatically via `route(research_tools=[...])` or `orchestrate_deep(research_tools=[...])`
 
+### Usage-Driven Self-Evolution
+
+The system learns from web search results encountered during `analyze` calls. When research tools provide web results, they are captured as **search observations** in the database. These are periodically consolidated into matrix observations and candidate principles.
+
+- **Collection**: Automatic — every `analyze` call with research tools stores web results as observations (zero latency cost, no LLM calls)
+- **Consolidation triggers**: Automatic (every `consolidation_interval` analyses, default 25) or on-demand (`triz-ai consolidate`)
+- **Consolidation pipeline**: LLM validates principle assignments → records `matrix_observations` (with `source_confidence_weight` discount, default 0.6) → clusters low-confidence observations for candidate principle discovery
+- **Retention**: Consolidated observations are pruned after `retention_days` (default 180)
+- **No patent DB required**: Self-evolution works from day one with just web search research tools
+- **Config**: `evolution.consolidation_interval`, `evolution.retention_days`, `evolution.source_confidence_weight` in `~/.triz-ai/config.yaml`
+
 ## Key Constraints
 
 - **6 TRIZ analysis methods** — technical contradiction, physical contradiction, Su-Field, function analysis, trimming, trends. Router auto-classifies; `--method` forces one.
