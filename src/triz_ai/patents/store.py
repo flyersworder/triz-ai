@@ -445,6 +445,15 @@ class PatentStore:
         )
         conn.commit()
 
+    def get_next_candidate_parameter_id(self) -> int:
+        """Get the next available candidate parameter ID number."""
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT COALESCE(MAX(CAST(SUBSTR(id, 2) AS INTEGER)), 0) AS max_id "
+            "FROM candidate_parameters"
+        ).fetchone()
+        return row["max_id"] + 1
+
     # --- Candidate Principles ---
 
     def insert_candidate_principle(self, candidate: CandidatePrinciple) -> None:
@@ -495,12 +504,15 @@ class PatentStore:
     def get_next_candidate_id(self) -> int:
         """Get the next available candidate principle ID number.
 
-        Queries all candidates (not just pending) to avoid ID collisions
-        when some candidates have been accepted or rejected.
+        Uses MAX(id) instead of COUNT(*) to avoid collisions when
+        candidates have been deleted.
         """
         conn = self._get_conn()
-        row = conn.execute("SELECT COUNT(*) AS cnt FROM candidate_principles").fetchone()
-        return row["cnt"] + 1
+        row = conn.execute(
+            "SELECT COALESCE(MAX(CAST(SUBSTR(id, 2) AS INTEGER)), 0) AS max_id "
+            "FROM candidate_principles"
+        ).fetchone()
+        return row["max_id"] + 1
 
     # --- Matrix Observations ---
 

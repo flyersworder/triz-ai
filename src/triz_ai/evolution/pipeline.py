@@ -157,8 +157,7 @@ def run_parameter_evolution(
 
     # Step 4: Propose candidate parameters for valid clusters
     candidates = []
-    existing = store.get_pending_candidate_parameters()
-    next_id = len(existing) + 1
+    next_id = store.get_next_candidate_parameter_id()
 
     for cluster_indices in clusters:
         if len(cluster_indices) < min_cluster_size:
