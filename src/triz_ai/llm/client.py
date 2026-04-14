@@ -27,6 +27,7 @@ from triz_ai.llm.prompts import (
     su_field_analysis_prompt,
     trends_analysis_prompt,
     trimming_analysis_prompt,
+    validate_observations_prompt,
 )
 
 try:
@@ -108,6 +109,20 @@ class MatrixEntry(BaseModel):
 
 class MatrixSeedResult(BaseModel):
     entries: list[MatrixEntry]
+
+
+class ValidatedPrinciple(BaseModel):
+    principle_id: int
+    confidence: float
+
+
+class ObservationValidation(BaseModel):
+    observation_id: str
+    validated_principles: list[ValidatedPrinciple]
+
+
+class ObservationValidationBatch(BaseModel):
+    validations: list[ObservationValidation]
 
 
 # --- Multi-tool routing models ---
@@ -401,6 +416,40 @@ class LLMClient:
             patent_text,
             PatentClassification,
             model=self.classify_model,
+            max_tokens=1024,
+        )
+
+    def validate_observations(
+        self,
+        observations: list[dict],
+        improving_param: int,
+        improving_name: str,
+        worsening_param: int,
+        worsening_name: str,
+        principle_ids: list[int],
+    ) -> ObservationValidationBatch:
+        """Validate whether search observations support recommended principles."""
+        from triz_ai.knowledge.principles import load_principles
+
+        all_principles = {p.id: p.name for p in load_principles()}
+        principle_names = [f"{pid}: {all_principles.get(pid, 'Unknown')}" for pid in principle_ids]
+
+        obs_text = "\n---\n".join(
+            f"ID: {o['id']}\nTitle: {o['title']}\nSnippet: {o.get('snippet', 'N/A')}"
+            for o in observations
+        )
+
+        user_prompt = (
+            f"Contradiction: improving '{improving_name}' (param {improving_param}) "
+            f"worsens '{worsening_name}' (param {worsening_param}).\n\n"
+            f"Recommended principles: {', '.join(principle_names)}\n\n"
+            f"Search results to validate:\n{obs_text}"
+        )
+
+        return self._complete(
+            validate_observations_prompt(),
+            user_prompt,
+            ObservationValidationBatch,
             max_tokens=1024,
         )
 
