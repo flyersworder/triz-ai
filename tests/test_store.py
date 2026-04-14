@@ -2,6 +2,7 @@
 
 import pytest
 
+from triz_ai.evolution.self_evolve import SearchObservation
 from triz_ai.patents.store import (
     CandidateParameter,
     CandidatePrinciple,
@@ -314,3 +315,89 @@ def test_candidate_parameter_crud(store):
     store.update_candidate_parameter_status("P1", "accepted")
     pending = store.get_pending_candidate_parameters()
     assert len(pending) == 0
+
+
+def test_insert_and_get_search_observation(store):
+    obs = SearchObservation(
+        id="ws:abc123",
+        title="Phase Change Thermal Management",
+        snippet="Using PCMs for heat dissipation",
+        url="https://example.com/article",
+        source_tool="web_search",
+        problem_text="reduce thermal resistance",
+        analysis_method="technical_contradiction",
+        improving_param=17,
+        worsening_param=14,
+        principle_ids=[35, 2],
+        analysis_confidence=0.85,
+        observed_at="2026-04-13T10:00:00+00:00",
+    )
+    store.insert_search_observation(obs)
+
+    unconsolidated = store.get_unconsolidated_observations()
+    assert len(unconsolidated) == 1
+    assert unconsolidated[0].id == "ws:abc123"
+    assert unconsolidated[0].title == "Phase Change Thermal Management"
+    assert unconsolidated[0].principle_ids == [35, 2]
+    assert unconsolidated[0].consolidated is False
+
+
+def test_insert_search_observation_deduplicates(store):
+    obs = SearchObservation(id="ws:abc123", title="Same Result", observed_at="2026-04-13T10:00:00")
+    store.insert_search_observation(obs)
+    store.insert_search_observation(obs)  # duplicate — should be ignored
+
+    unconsolidated = store.get_unconsolidated_observations()
+    assert len(unconsolidated) == 1
+
+
+def test_mark_observations_consolidated(store):
+    obs1 = SearchObservation(id="ws:aaa", title="Result A", observed_at="2026-04-13T10:00:00")
+    obs2 = SearchObservation(id="ws:bbb", title="Result B", observed_at="2026-04-13T10:00:00")
+    store.insert_search_observation(obs1)
+    store.insert_search_observation(obs2)
+
+    store.mark_observations_consolidated(["ws:aaa"])
+
+    unconsolidated = store.get_unconsolidated_observations()
+    assert len(unconsolidated) == 1
+    assert unconsolidated[0].id == "ws:bbb"
+
+
+def test_prune_observations(store):
+    old_obs = SearchObservation(
+        id="ws:old",
+        title="Old Result",
+        consolidated=True,
+        observed_at="2020-01-01T00:00:00",
+        consolidated_at="2020-01-02T00:00:00",
+    )
+    new_obs = SearchObservation(
+        id="ws:new",
+        title="New Result",
+        consolidated=True,
+        observed_at="2026-04-13T10:00:00",
+        consolidated_at="2026-04-13T11:00:00",
+    )
+    store.insert_search_observation(old_obs)
+    store.insert_search_observation(new_obs)
+
+    # Mark both as consolidated
+    store.mark_observations_consolidated(["ws:old", "ws:new"])
+
+    pruned = store.prune_observations(retention_days=180)
+    assert pruned == 1  # only the old one
+
+
+def test_analysis_count_tracking(store):
+    assert store.get_analyses_since_consolidation() == 0
+
+    store.increment_analysis_count()
+    assert store.get_analyses_since_consolidation() == 1
+
+    store.increment_analysis_count()
+    store.increment_analysis_count()
+    assert store.get_analyses_since_consolidation() == 3
+
+    store.reset_analysis_count()
+    assert store.get_analyses_since_consolidation() == 0

@@ -7,10 +7,14 @@ import logging
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from triz_ai.patents.vector import SqliteVecStore, VectorStore
+
+if TYPE_CHECKING:
+    from triz_ai.evolution.self_evolve import SearchObservation
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +114,30 @@ CREATE TABLE IF NOT EXISTS matrix_observations (
     confidence REAL NOT NULL,
     observed_at TEXT,
     PRIMARY KEY (improving_param, worsening_param, principle_id, patent_id)
+);
+
+CREATE TABLE IF NOT EXISTS search_observations (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    snippet TEXT,
+    url TEXT,
+    source_tool TEXT,
+    problem_text TEXT,
+    analysis_method TEXT,
+    improving_param INTEGER,
+    worsening_param INTEGER,
+    principle_ids JSON,
+    analysis_confidence REAL,
+    consolidated BOOLEAN DEFAULT 0,
+    observed_at TEXT,
+    consolidated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS self_evolution_meta (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    analyses_since_consolidation INTEGER DEFAULT 0,
+    last_consolidated_at TEXT,
+    total_observations INTEGER DEFAULT 0
 );
 """
 
@@ -510,3 +538,134 @@ class PatentStore:
             entry = (row["principle_id"], row["cnt"], row["avg_conf"])
             result.setdefault(key, []).append(entry)
         return result
+
+    # --- Search Observations (self-evolution) ---
+
+    def insert_search_observation(self, observation: SearchObservation) -> None:
+        """Insert a search observation, ignoring duplicates."""
+        conn = self._get_conn()
+        conn.execute(
+            "INSERT OR IGNORE INTO search_observations "
+            "(id, title, snippet, url, source_tool, problem_text, analysis_method, "
+            "improving_param, worsening_param, principle_ids, analysis_confidence, "
+            "consolidated, observed_at, consolidated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                observation.id,
+                observation.title,
+                observation.snippet,
+                observation.url,
+                observation.source_tool,
+                observation.problem_text,
+                observation.analysis_method,
+                observation.improving_param,
+                observation.worsening_param,
+                json.dumps(observation.principle_ids),
+                observation.analysis_confidence,
+                observation.consolidated,
+                observation.observed_at,
+                observation.consolidated_at,
+            ),
+        )
+        conn.commit()
+
+    def get_unconsolidated_observations(self) -> list[SearchObservation]:
+        """Get all search observations not yet consolidated."""
+        from triz_ai.evolution.self_evolve import SearchObservation
+
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT * FROM search_observations WHERE consolidated = 0 ORDER BY observed_at"
+        ).fetchall()
+        return [
+            SearchObservation(
+                id=row["id"],
+                title=row["title"],
+                snippet=row["snippet"],
+                url=row["url"],
+                source_tool=row["source_tool"],
+                problem_text=row["problem_text"],
+                analysis_method=row["analysis_method"],
+                improving_param=row["improving_param"],
+                worsening_param=row["worsening_param"],
+                principle_ids=json.loads(row["principle_ids"]) if row["principle_ids"] else [],
+                analysis_confidence=row["analysis_confidence"] or 0.0,
+                consolidated=bool(row["consolidated"]),
+                observed_at=row["observed_at"],
+                consolidated_at=row["consolidated_at"],
+            )
+            for row in rows
+        ]
+
+    def mark_observations_consolidated(self, observation_ids: list[str]) -> None:
+        """Mark observations as consolidated, preserving existing consolidated_at if set."""
+        if not observation_ids:
+            return
+        conn = self._get_conn()
+        consolidated_at = datetime.now(UTC).isoformat()
+        placeholders = ",".join("?" for _ in observation_ids)
+        conn.execute(
+            f"UPDATE search_observations SET consolidated = 1, "
+            f"consolidated_at = COALESCE(consolidated_at, ?) "
+            f"WHERE id IN ({placeholders})",
+            [consolidated_at, *observation_ids],
+        )
+        conn.commit()
+
+    def prune_observations(self, retention_days: int = 180) -> int:
+        """Delete consolidated observations older than retention period."""
+        conn = self._get_conn()
+        cutoff = datetime.now(UTC).isoformat()
+        cursor = conn.execute(
+            "DELETE FROM search_observations "
+            "WHERE consolidated = 1 AND consolidated_at IS NOT NULL "
+            "AND julianday(?) - julianday(consolidated_at) > ?",
+            (cutoff, retention_days),
+        )
+        conn.commit()
+        return cursor.rowcount
+
+    # --- Self-Evolution Meta ---
+
+    def _ensure_meta_row(self) -> None:
+        """Ensure the single meta row exists."""
+        conn = self._get_conn()
+        conn.execute(
+            "INSERT OR IGNORE INTO self_evolution_meta "
+            "(id, analyses_since_consolidation, total_observations) VALUES (1, 0, 0)"
+        )
+        conn.commit()
+
+    def increment_analysis_count(self) -> int:
+        """Increment analysis counter, return new value."""
+        self._ensure_meta_row()
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE self_evolution_meta SET analyses_since_consolidation = "
+            "analyses_since_consolidation + 1 WHERE id = 1"
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT analyses_since_consolidation FROM self_evolution_meta WHERE id = 1"
+        ).fetchone()
+        return row["analyses_since_consolidation"]
+
+    def get_analyses_since_consolidation(self) -> int:
+        """Get the number of analyses since last consolidation."""
+        self._ensure_meta_row()
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT analyses_since_consolidation FROM self_evolution_meta WHERE id = 1"
+        ).fetchone()
+        return row["analyses_since_consolidation"]
+
+    def reset_analysis_count(self) -> None:
+        """Reset analysis counter and update last_consolidated_at."""
+        self._ensure_meta_row()
+        conn = self._get_conn()
+        conn.execute(
+            "UPDATE self_evolution_meta SET analyses_since_consolidation = 0, "
+            "last_consolidated_at = ? WHERE id = 1",
+            (datetime.now(UTC).isoformat(),),
+        )
+        conn.commit()
