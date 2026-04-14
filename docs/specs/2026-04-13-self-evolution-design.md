@@ -33,7 +33,7 @@ analyze("problem", research_tools=[web_search])
   ├─ web search results flow through as patent_examples
   └─ collect_search_observations(result, store)
        → search_observations table
-       → increment analysis counter
+  └─ caller increments analysis counter if observations were collected
 
 Phase 2: CONSOLIDATE (periodic or on-demand)
 ─────────────────────────────────────────────
@@ -132,8 +132,7 @@ Single-row tracking table for auto-consolidation trigger.
 CREATE TABLE IF NOT EXISTS self_evolution_meta (
     id INTEGER PRIMARY KEY DEFAULT 1,
     analyses_since_consolidation INTEGER DEFAULT 0,
-    last_consolidated_at TEXT,
-    total_observations INTEGER DEFAULT 0
+    last_consolidated_at TEXT
 );
 ```
 
@@ -225,7 +224,7 @@ def collect_search_observations(
         count += 1
 
     if count > 0:
-        store.increment_analysis_count()
+        logger.debug("Collected %d search observations", count)
 
     return count
 
@@ -252,10 +251,12 @@ def route(problem_text, llm_client, store=None, method=None, research_tools=None
             maybe_auto_consolidate,
         )
         try:
-            collect_search_observations(result, store)
+            collected = collect_search_observations(result, store)
+            if collected > 0:
+                store.increment_analysis_count()
             maybe_auto_consolidate(llm_client, store)
         except Exception:
-            logger.warning("Self-evolution collection failed, continuing")
+            logger.warning("Self-evolution collection failed, continuing", exc_info=True)
 
     return result
 ```
@@ -334,7 +335,6 @@ class ConsolidationResult(BaseModel):
     observations_processed: int
     matrix_observations_added: int
     candidate_principles_proposed: int
-    candidate_parameters_proposed: int
     observations_pruned: int
 ```
 

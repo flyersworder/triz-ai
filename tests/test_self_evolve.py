@@ -264,6 +264,39 @@ def test_consolidate_applies_source_confidence_weight(mock_llm, store):
             assert avg_conf <= 0.5
 
 
+def test_consolidate_omitted_observations_not_promoted(mock_llm, store):
+    """Observations the LLM omits from its response should NOT be promoted to matrix."""
+    _insert_observations(store, 4)  # ws:aaa, ws:bbb, ws:ccc, ws:ddd
+
+    # LLM only returns validations for ws:aaa, ws:bbb, ws:ccc — omits ws:ddd
+    mock_llm.validate_observations.return_value = ObservationValidationBatch(
+        validations=[
+            ObservationValidation(
+                observation_id="ws:aaa",
+                validated_principles=[ValidatedPrinciple(principle_id=35, confidence=0.9)],
+            ),
+            ObservationValidation(
+                observation_id="ws:bbb",
+                validated_principles=[ValidatedPrinciple(principle_id=35, confidence=0.85)],
+            ),
+            ObservationValidation(
+                observation_id="ws:ccc",
+                validated_principles=[ValidatedPrinciple(principle_id=35, confidence=0.8)],
+            ),
+            # ws:ddd intentionally omitted — LLM truncated or dropped it
+        ]
+    )
+
+    consolidate(mock_llm, store, retention_days=180)
+
+    # ws:ddd should NOT appear in matrix observations
+    obs = store.get_matrix_observations(min_count=1)
+    if (17, 14) in obs:
+        for _pid, count, _avg_conf in obs[(17, 14)]:
+            # Only 3 observations validated, not 4
+            assert count <= 3
+
+
 def test_end_to_end_collect_then_consolidate(store):
     """Full flow: collect from multiple analyses, then consolidate."""
     mock_llm = MagicMock()

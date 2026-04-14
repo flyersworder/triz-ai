@@ -18,7 +18,7 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 ### Pluggable Patent Repository
 
-`patents/repository.py` defines a `PatentRepository` protocol (18 methods) covering patents, classifications, candidate principles/parameters, and matrix observations. `PatentStore` (SQLite-backed) is the default implementation. All engine/evolution consumers type-hint `PatentRepository`, not `PatentStore` — alternative backends (Postgres, DynamoDB, etc.) implement this protocol for full database portability. `cli.py` remains the concrete factory, creating `PatentStore()`.
+`patents/repository.py` defines a `PatentRepository` protocol (28 methods) covering patents, classifications, candidate principles/parameters, matrix observations, and self-evolution (search observations + meta tracking). `PatentStore` (SQLite-backed) is the default implementation. All engine/evolution consumers type-hint `PatentRepository`, not `PatentStore` — alternative backends (Postgres, DynamoDB, etc.) implement this protocol for full database portability. `cli.py` remains the concrete factory, creating `PatentStore()`.
 
 ### Pluggable Vector Database
 

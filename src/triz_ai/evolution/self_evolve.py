@@ -205,24 +205,23 @@ def consolidate(
             )
             continue
 
-        # Aggregate validated confidence per principle
+        # Aggregate validated confidence per (observation, principle) pair.
+        # Use an allow-list: only observations the LLM explicitly validated
+        # with high confidence are included. Observations the LLM omits
+        # from its response are treated as unvalidated (not promoted).
         principle_scores: dict[int, list[float]] = {}
-        low_conf_obs_ids: set[str] = set()
+        high_conf_obs_ids: set[str] = set()
         valid_obs_ids = {o.id for o in group_obs}
 
         for v in validation.validations:
             if v.observation_id not in valid_obs_ids:
                 continue  # LLM hallucinated an ID — skip
-            has_high_conf = False
             for vp in v.validated_principles:
                 if vp.confidence >= config.evolution.review_threshold:
-                    has_high_conf = True
+                    high_conf_obs_ids.add(v.observation_id)
                     if vp.principle_id not in principle_scores:
                         principle_scores[vp.principle_id] = []
                     principle_scores[vp.principle_id].append(vp.confidence)
-
-            if not has_high_conf:
-                low_conf_obs_ids.add(v.observation_id)
 
         # Record matrix observations for principles with enough evidence
         for principle_id, scores in principle_scores.items():
@@ -230,7 +229,7 @@ def consolidate(
                 avg_conf = sum(scores) / len(scores)
                 weighted_conf = avg_conf * source_confidence_weight
                 for obs in group_obs:
-                    if obs.id not in low_conf_obs_ids:
+                    if obs.id in high_conf_obs_ids:
                         store.insert_matrix_observation(
                             improving=improving,
                             worsening=worsening,
@@ -240,9 +239,9 @@ def consolidate(
                         )
                         matrix_obs_added += 1
 
-        # Collect low-confidence observations for candidate discovery
+        # Collect non-validated observations for candidate discovery
         for obs in group_obs:
-            if obs.id in low_conf_obs_ids:
+            if obs.id not in high_conf_obs_ids:
                 all_low_confidence.append(obs)
 
     # Candidate principle discovery from low-confidence observations
