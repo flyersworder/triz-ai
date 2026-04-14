@@ -699,6 +699,58 @@ def evolve(
 
 
 @app.command()
+def consolidate(
+    retention_days: int = typer.Option(
+        None, help="Prune consolidated observations older than N days (default: from config)"
+    ),
+    model: str = typer.Option(None, help="LLM model string (overrides config)"),
+    format: str = typer.Option("text", help="Output format: text, json, markdown"),
+) -> None:
+    """Consolidate web search observations into matrix data and candidate principles.
+
+    Processes unconsolidated search observations collected during analyze runs.
+    Validates principle assignments via LLM, records matrix observations,
+    and proposes candidate principles from low-confidence clusters.
+    """
+    from triz_ai.evolution.self_evolve import consolidate as run_consolidate
+
+    llm_client = _get_llm_client(model)
+    store = _get_store()
+
+    try:
+        result = run_consolidate(
+            llm_client,
+            store,
+            retention_days=retention_days,
+        )
+    except Exception as e:
+        console.print(f"[red]Consolidation failed: {e}[/red]")
+        raise typer.Exit(1) from None
+
+    if format != "text":
+        _output(result.model_dump(), format)
+        return
+
+    if result.observations_processed == 0:
+        console.print("[yellow]No unconsolidated observations to process.[/yellow]")
+        return
+
+    console.print(
+        Panel(
+            f"[green]Observations processed:[/green] {result.observations_processed}\n"
+            f"[green]Matrix observations added:[/green] {result.matrix_observations_added}\n"
+            f"[green]Candidate principles proposed:[/green]"
+            f" {result.candidate_principles_proposed}\n"
+            f"[green]Observations pruned:[/green] {result.observations_pruned}",
+            title="Consolidation Results",
+        )
+    )
+
+    if result.candidate_principles_proposed > 0:
+        console.print("\nRun [cyan]triz-ai evolve --review[/cyan] to accept or reject candidates.")
+
+
+@app.command()
 def ingest(
     source: str = typer.Argument(help="File or directory path to ingest"),
     model: str = typer.Option(None, help="LLM model string (overrides config)"),

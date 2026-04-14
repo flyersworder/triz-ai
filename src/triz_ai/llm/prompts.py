@@ -521,6 +521,24 @@ def trends_analysis_prompt() -> str:
     )
 
 
+def validate_observations_prompt() -> str:
+    """System prompt for validating search observation principle assignments."""
+    principles = _principles_compact()
+    return (
+        "You are a TRIZ methodology expert. You are given web search results that were "
+        "encountered during a TRIZ contradiction analysis. Each result was found when "
+        "analyzing a technical contradiction between two engineering parameters.\n\n"
+        "Your task: for each search result, validate whether it genuinely supports "
+        "the TRIZ principles that were recommended during the analysis. Rate your "
+        "confidence (0.0-1.0) for each principle.\n\n"
+        "TRIZ Principles reference:\n"
+        f"{principles}\n\n"
+        "Respond with JSON:\n"
+        '{"validations": [{"observation_id": "<id>", "validated_principles": '
+        '[{"principle_id": <int>, "confidence": <float 0.0-1.0>}, ...]}, ...]}'
+    )
+
+
 # --- Deep ARIZ-85C prompts ---
 
 

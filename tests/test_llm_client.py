@@ -124,6 +124,51 @@ class TestClassifyPatent:
             assert result.confidence == 0.85
 
 
+class TestValidateObservations:
+    """Tests for validate_observations."""
+
+    def test_validate_observations_returns_validated_results(self, client):
+        """validate_observations should return a list of validated principle assignments."""
+        from triz_ai.llm.client import (
+            ObservationValidation,
+            ObservationValidationBatch,
+            ValidatedPrinciple,
+        )
+
+        client._complete = MagicMock(
+            return_value=ObservationValidationBatch(
+                validations=[
+                    ObservationValidation(
+                        observation_id="ws:abc123",
+                        validated_principles=[
+                            ValidatedPrinciple(principle_id=35, confidence=0.8),
+                            ValidatedPrinciple(principle_id=2, confidence=0.3),
+                        ],
+                    ),
+                ]
+            )
+        )
+
+        results = client.validate_observations(
+            observations=[
+                {
+                    "id": "ws:abc123",
+                    "title": "PCM Thermal Management",
+                    "snippet": "Phase change materials for cooling",
+                }
+            ],
+            improving_param=17,
+            improving_name="Temperature",
+            worsening_param=14,
+            worsening_name="Strength",
+            principle_ids=[35, 2],
+        )
+
+        assert len(results.validations) == 1
+        assert results.validations[0].observation_id == "ws:abc123"
+        assert len(results.validations[0].validated_principles) == 2
+
+
 class TestGetEmbedding:
     """Tests for get_embedding."""
 

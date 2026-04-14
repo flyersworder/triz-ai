@@ -23,3 +23,12 @@ def test_evolution_auto_classify_default():
 
     s = Settings()
     assert s.evolution.auto_classify is True
+
+
+def test_evolution_config_self_evolution_defaults():
+    from triz_ai.config import EvolutionConfig
+
+    config = EvolutionConfig()
+    assert config.consolidation_interval == 25
+    assert config.retention_days == 180
+    assert config.source_confidence_weight == 0.6

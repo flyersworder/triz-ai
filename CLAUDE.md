@@ -18,7 +18,7 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 ### Pluggable Patent Repository
 
-`patents/repository.py` defines a `PatentRepository` protocol (18 methods) covering patents, classifications, candidate principles/parameters, and matrix observations. `PatentStore` (SQLite-backed) is the default implementation. All engine/evolution consumers type-hint `PatentRepository`, not `PatentStore` — alternative backends (Postgres, DynamoDB, etc.) implement this protocol for full database portability. `cli.py` remains the concrete factory, creating `PatentStore()`.
+`patents/repository.py` defines a `PatentRepository` protocol (28 methods) covering patents, classifications, candidate principles/parameters, matrix observations, and self-evolution (search observations + meta tracking). `PatentStore` (SQLite-backed) is the default implementation. All engine/evolution consumers type-hint `PatentRepository`, not `PatentStore` — alternative backends (Postgres, DynamoDB, etc.) implement this protocol for full database portability. `cli.py` remains the concrete factory, creating `PatentStore()`.
 
 ### Pluggable Vector Database
 
@@ -60,6 +60,17 @@ IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates
 - **Deep mode**: LLM selects which research tools to use via `recommended_research_tools`; tool descriptions include stages.
 - Tool failures are logged and skipped — they never block analysis
 - No CLI changes; research tools are passed programmatically via `route(research_tools=[...])` or `orchestrate_deep(research_tools=[...])`
+
+### Usage-Driven Self-Evolution
+
+The system learns from web search results encountered during `analyze` calls. When research tools provide web results, they are captured as **search observations** in the database. These are periodically consolidated into matrix observations and candidate principles.
+
+- **Collection**: Automatic — every `analyze` call with research tools stores web results as observations (zero latency cost, no LLM calls)
+- **Consolidation triggers**: Automatic (every `consolidation_interval` analyses, default 25) or on-demand (`triz-ai consolidate`)
+- **Consolidation pipeline**: LLM validates principle assignments → records `matrix_observations` (with `source_confidence_weight` discount, default 0.6) → clusters low-confidence observations for candidate principle discovery
+- **Retention**: Consolidated observations are pruned after `retention_days` (default 180)
+- **No patent DB required**: Self-evolution works from day one with just web search research tools
+- **Config**: `evolution.consolidation_interval`, `evolution.retention_days`, `evolution.source_confidence_weight` in `~/.triz-ai/config.yaml`
 
 ## Key Constraints
 

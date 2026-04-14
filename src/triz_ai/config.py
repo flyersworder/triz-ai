@@ -39,6 +39,9 @@ class DatabaseConfig(BaseModel):
 class EvolutionConfig(BaseModel):
     auto_classify: bool = True
     review_threshold: float = 0.7
+    consolidation_interval: int = 25
+    retention_days: int = 180
+    source_confidence_weight: float = 0.6
 
 
 class Settings(BaseSettings):

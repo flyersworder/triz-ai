@@ -306,6 +306,23 @@ def orchestrate_deep(
         )
         problem_model = swapped_model
 
+    # Self-evolution: collect web search observations from all tool results
+    if store is not None and research_tools:
+        try:
+            from triz_ai.evolution.self_evolve import (
+                collect_search_observations,
+                maybe_auto_consolidate,
+            )
+
+            total_collected = sum(
+                collect_search_observations(tool_result, store) for tool_result in tool_results
+            )
+            if total_collected > 0:
+                store.increment_analysis_count()
+            maybe_auto_consolidate(llm_client, store)
+        except Exception:
+            logger.warning("Self-evolution collection failed, continuing", exc_info=True)
+
     return DeepAnalysisResult(
         problem_model=problem_model,
         tool_results=tool_results,
