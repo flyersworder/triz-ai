@@ -42,7 +42,6 @@ class ConsolidationResult(BaseModel):
     observations_processed: int = 0
     matrix_observations_added: int = 0
     candidate_principles_proposed: int = 0
-    candidate_parameters_proposed: int = 0
     observations_pruned: int = 0
 
 
@@ -93,7 +92,6 @@ def collect_search_observations(
         count += 1
 
     if count > 0:
-        store.increment_analysis_count()
         logger.debug("Collected %d search observations", count)
 
     return count
@@ -102,16 +100,22 @@ def collect_search_observations(
 def maybe_auto_consolidate(
     llm_client: LLMClient,
     store: PatentRepository,
+    consolidation_interval: int | None = None,
 ) -> ConsolidationResult | None:
     """Auto-consolidate if analysis count exceeds threshold.
 
+    Args:
+        consolidation_interval: Override threshold (default: from config).
+
     Returns ConsolidationResult if consolidation ran, None otherwise.
     """
-    from triz_ai.config import load_config
+    if consolidation_interval is None:
+        from triz_ai.config import load_config
 
-    config = load_config()
+        consolidation_interval = load_config().evolution.consolidation_interval
+
     count = store.get_analyses_since_consolidation()
-    if count < config.evolution.consolidation_interval:
+    if count < consolidation_interval:
         return None
 
     result = consolidate(llm_client, store)
@@ -204,8 +208,11 @@ def consolidate(
         # Aggregate validated confidence per principle
         principle_scores: dict[int, list[float]] = {}
         low_conf_obs_ids: set[str] = set()
+        valid_obs_ids = {o.id for o in group_obs}
 
         for v in validation.validations:
+            if v.observation_id not in valid_obs_ids:
+                continue  # LLM hallucinated an ID — skip
             has_high_conf = False
             for vp in v.validated_principles:
                 if vp.confidence >= config.evolution.review_threshold:
@@ -254,8 +261,7 @@ def consolidate(
                     proposal = llm_client.propose_candidate_principle(cluster_texts)
                     from triz_ai.patents.store import CandidatePrinciple
 
-                    existing = store.get_pending_candidates()
-                    next_id = len(existing) + 1
+                    next_id = store.get_next_candidate_id()
                     candidate = CandidatePrinciple(
                         id=f"C{next_id}",
                         name=proposal.name,

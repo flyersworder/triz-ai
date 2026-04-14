@@ -136,8 +136,7 @@ CREATE TABLE IF NOT EXISTS search_observations (
 CREATE TABLE IF NOT EXISTS self_evolution_meta (
     id INTEGER PRIMARY KEY DEFAULT 1,
     analyses_since_consolidation INTEGER DEFAULT 0,
-    last_consolidated_at TEXT,
-    total_observations INTEGER DEFAULT 0
+    last_consolidated_at TEXT
 );
 """
 
@@ -493,6 +492,16 @@ class PatentStore:
         )
         conn.commit()
 
+    def get_next_candidate_id(self) -> int:
+        """Get the next available candidate principle ID number.
+
+        Queries all candidates (not just pending) to avoid ID collisions
+        when some candidates have been accepted or rejected.
+        """
+        conn = self._get_conn()
+        row = conn.execute("SELECT COUNT(*) AS cnt FROM candidate_principles").fetchone()
+        return row["cnt"] + 1
+
     # --- Matrix Observations ---
 
     def insert_matrix_observation(
@@ -632,7 +641,7 @@ class PatentStore:
         conn = self._get_conn()
         conn.execute(
             "INSERT OR IGNORE INTO self_evolution_meta "
-            "(id, analyses_since_consolidation, total_observations) VALUES (1, 0, 0)"
+            "(id, analyses_since_consolidation) VALUES (1, 0)"
         )
         conn.commit()
 

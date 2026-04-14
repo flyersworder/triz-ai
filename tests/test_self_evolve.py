@@ -78,7 +78,6 @@ def test_consolidation_result_defaults():
     assert result.observations_processed == 0
     assert result.matrix_observations_added == 0
     assert result.candidate_principles_proposed == 0
-    assert result.candidate_parameters_proposed == 0
     assert result.observations_pruned == 0
 
 
@@ -141,15 +140,15 @@ def test_collect_skips_empty_title(store):
     assert count == 0
 
 
-def test_collect_increments_analysis_count(store):
+def test_collect_returns_count_without_incrementing(store):
+    """Collection returns count but does NOT increment analysis counter (callers do that)."""
     result = AnalysisResult(
         problem="test",
         patent_examples=[{"title": "Web Result", "abstract": "...", "source": "web_search"}],
     )
-    collect_search_observations(result, store)
-    assert store.get_analyses_since_consolidation() == 1
-    collect_search_observations(result, store)
-    assert store.get_analyses_since_consolidation() == 2
+    count = collect_search_observations(result, store)
+    assert count == 1
+    assert store.get_analyses_since_consolidation() == 0  # caller increments, not collect
 
 
 def test_collect_handles_non_contradiction_methods(store):
@@ -268,17 +267,6 @@ def test_consolidate_applies_source_confidence_weight(mock_llm, store):
 def test_end_to_end_collect_then_consolidate(store):
     """Full flow: collect from multiple analyses, then consolidate."""
     mock_llm = MagicMock()
-    mock_llm.validate_observations.return_value = ObservationValidationBatch(
-        validations=[
-            ObservationValidation(
-                observation_id=f"ws:{chr(97 + i) * 3}",
-                validated_principles=[
-                    ValidatedPrinciple(principle_id=35, confidence=0.85),
-                ],
-            )
-            for i in range(4)
-        ]
-    )
     mock_llm.cluster_patents.return_value = []
 
     # Simulate 4 analyze calls, each producing 1 web result
@@ -299,11 +287,27 @@ def test_end_to_end_collect_then_consolidate(store):
                 },
             ],
         )
-        collect_search_observations(result, store)
+        collected = collect_search_observations(result, store)
+        if collected > 0:
+            store.increment_analysis_count()
 
     # Verify 4 observations stored
-    assert len(store.get_unconsolidated_observations()) == 4
+    observations = store.get_unconsolidated_observations()
+    assert len(observations) == 4
     assert store.get_analyses_since_consolidation() == 4
+
+    # Set up mock to return validations with real observation IDs
+    mock_llm.validate_observations.return_value = ObservationValidationBatch(
+        validations=[
+            ObservationValidation(
+                observation_id=obs.id,
+                validated_principles=[
+                    ValidatedPrinciple(principle_id=35, confidence=0.85),
+                ],
+            )
+            for obs in observations
+        ]
+    )
 
     # Run consolidation
     consolidation_result = consolidate(mock_llm, store)

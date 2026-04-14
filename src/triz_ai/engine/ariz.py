@@ -314,11 +314,14 @@ def orchestrate_deep(
                 maybe_auto_consolidate,
             )
 
-            for tool_result in tool_results:
-                collect_search_observations(tool_result, store)
+            total_collected = sum(
+                collect_search_observations(tool_result, store) for tool_result in tool_results
+            )
+            if total_collected > 0:
+                store.increment_analysis_count()
             maybe_auto_consolidate(llm_client, store)
         except Exception:
-            logger.warning("Self-evolution collection failed, continuing")
+            logger.warning("Self-evolution collection failed, continuing", exc_info=True)
 
     return DeepAnalysisResult(
         problem_model=problem_model,

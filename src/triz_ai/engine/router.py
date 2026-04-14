@@ -139,10 +139,12 @@ def route(
                 maybe_auto_consolidate,
             )
 
-            collect_search_observations(result, store)
+            collected = collect_search_observations(result, store)
+            if collected > 0:
+                store.increment_analysis_count()
             maybe_auto_consolidate(llm_client, store)
         except Exception:
-            logger.warning("Self-evolution collection failed, continuing")
+            logger.warning("Self-evolution collection failed, continuing", exc_info=True)
 
     # Step 6: Attach metadata
     result.method_confidence = method_confidence
