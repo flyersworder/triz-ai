@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    pass
+    from triz_ai.engine.analyzer import AnalysisResult
+    from triz_ai.patents.repository import PatentRepository
 
 logger = logging.getLogger(__name__)
 
@@ -48,3 +50,49 @@ def _make_observation_id(title: str, snippet: str | None) -> str:
     content = f"{title}|{snippet or ''}"
     hash_hex = hashlib.sha256(content.encode()).hexdigest()[:16]
     return f"ws:{hash_hex}"
+
+
+def collect_search_observations(
+    result: AnalysisResult,
+    store: PatentRepository,
+) -> int:
+    """Store web search results from analysis as search observations.
+
+    Filters patent_examples to those with a 'source' field (web results),
+    builds a SearchObservation from each, and stores in the DB.
+
+    Returns number of observations stored.
+    """
+    count = 0
+    for example in result.patent_examples:
+        source = example.get("source")
+        if not source:
+            continue
+
+        title = example.get("title", "")
+        snippet = example.get("abstract", "")
+        if not title:
+            continue
+
+        obs = SearchObservation(
+            id=_make_observation_id(title, snippet),
+            title=title,
+            snippet=snippet,
+            url=example.get("url"),
+            source_tool=source,
+            problem_text=result.problem,
+            analysis_method=result.method,
+            improving_param=(result.improving_param["id"] if result.improving_param else None),
+            worsening_param=(result.worsening_param["id"] if result.worsening_param else None),
+            principle_ids=[p["id"] for p in result.recommended_principles],
+            analysis_confidence=result.contradiction_confidence,
+            observed_at=datetime.now(UTC).isoformat(),
+        )
+        store.insert_search_observation(obs)
+        count += 1
+
+    if count > 0:
+        store.increment_analysis_count()
+        logger.debug("Collected %d search observations", count)
+
+    return count
