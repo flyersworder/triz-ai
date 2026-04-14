@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-04-14
+
+### Added
+
+- **Usage-driven self-evolution**: The system learns from web search results encountered during `analyze` calls. When research tools provide results, they are captured as search observations and periodically consolidated into matrix observations and candidate principles — no patent database required
+- **`triz-ai consolidate` CLI command**: On-demand consolidation of accumulated search observations. Validates principle assignments via LLM, records matrix observations (with configurable `source_confidence_weight` discount, default 0.6), and proposes candidate principles from low-confidence clusters
+- **Auto-consolidation**: Consolidation triggers automatically every `consolidation_interval` analyses (default 25), with no user action needed
+- **`SearchObservation` model**: Captures web search results with full analysis context (contradiction pair, recommended principles, confidence, method)
+- **`ConsolidationResult` model**: Summary of consolidation runs (observations processed, matrix observations added, candidates proposed, observations pruned)
+- **`validate_observations()` LLM method**: New LLM method validates whether web search results genuinely support TRIZ principles recommended during analysis
+- **7 new `PatentRepository` protocol methods**: `insert_search_observation`, `get_unconsolidated_observations`, `mark_observations_consolidated`, `prune_observations`, `increment_analysis_count`, `get_analyses_since_consolidation`, `reset_analysis_count`, `get_next_candidate_id`, `get_next_candidate_parameter_id`
+- **2 new SQLite tables**: `search_observations` (web results with analysis context), `self_evolution_meta` (consolidation tracking)
+- **3 new config fields**: `evolution.consolidation_interval` (default 25), `evolution.retention_days` (default 180), `evolution.source_confidence_weight` (default 0.6)
+
+### Fixed
+
+- **Candidate principle/parameter ID collision**: ID generation now uses `MAX(id)` instead of `COUNT(*)` to avoid collisions when candidates are deleted or status-changed. Fixed in both `evolution/pipeline.py` and `evolution/self_evolve.py`
+
+### Changed
+
+- **Version**: Bumped to 0.15.0
+
 ## [0.14.0] - 2026-03-25
 
 ### Changed

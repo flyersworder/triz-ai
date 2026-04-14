@@ -15,7 +15,7 @@ AI-powered TRIZ innovation engine — analyze technical problems, classify paten
 - **Hybrid search** — finds relevant patents using both vector similarity and TRIZ principle/contradiction matching
 - **Solution directions** — generates concrete, actionable solution approaches, not just abstract principles
 - **50 engineering parameters** — extends Altshuller's 39 with modern domains (security, sustainability, scalability, etc.)
-- **Evolving principles & parameters** — discovers candidate new principles and parameters from modern patents
+- **Self-evolving** — learns from web search results during analysis; discovers candidate new principles from usage patterns and patents
 - **Provider-agnostic** — works with OpenRouter, Ollama, Anthropic, OpenAI, and 100+ providers via litellm
 - **Pluggable storage** — local SQLite by default; swap to Postgres, DynamoDB, etc. via the `PatentRepository` protocol
 - **Zero infrastructure** — works out of the box with local SQLite + built-in vector search
@@ -95,6 +95,9 @@ triz-ai discover --domain "battery technology"
 triz-ai evolve
 triz-ai evolve --review  # interactive accept/reject
 
+# Consolidate web search observations into matrix data
+triz-ai consolidate
+
 # View matrix statistics
 triz-ai matrix stats
 ```
@@ -104,6 +107,7 @@ triz-ai matrix stats
 | Command | Description |
 |---------|-------------|
 | `analyze` | Auto-routes to the best TRIZ tool (6 methods); `--method` to force one; `--deep` for full ARIZ-85C |
+| `consolidate` | Consolidate web search observations into matrix data and candidate principles |
 | `discover` | Find underused principles in a domain and generate patent-grounded ideas |
 | `evolve` | Discover candidate new TRIZ principles (`--parameters` for parameters) |
 | `ingest` | Ingest and auto-classify patents from .txt, .pdf, or .json files |
@@ -205,9 +209,9 @@ src/triz_ai/
   knowledge/           # Loaders for all TRIZ knowledge data
   engine/              # analyzer, router, ariz orchestrator, 5 pipelines, classifier, generator, evaluator
   patents/             # PatentRepository protocol + SQLite default, vector search, ingestion
-  evolution/           # Candidate principle & parameter discovery + review
+  evolution/           # Candidate principle & parameter discovery, review, and self-evolution
   llm/                 # litellm wrapper with pydantic validation
-tests/                 # 194 unit tests
+tests/                 # 227 unit tests
 ```
 
 ## Configuration
@@ -237,6 +241,9 @@ database:
 
 evolution:
   review_threshold: 0.7
+  consolidation_interval: 25       # auto-consolidate every N analyses
+  retention_days: 180              # prune consolidated observations after N days
+  source_confidence_weight: 0.6    # web results confidence discount vs patents
 ```
 
 Any [litellm-supported model string](https://docs.litellm.ai/docs/providers) works — just change the model and set the corresponding API key.
