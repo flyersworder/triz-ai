@@ -95,7 +95,7 @@ The system learns from web search results encountered during `analyze` calls. Wh
 ## References
 
 - Design spec: `docs/specs/2026-03-14-triz-ai-design.md`
-- Config: `~/.triz-ai/config.yaml` (default), overridable via `--config` CLI flag or `TRIZ_AI_CONFIG` env var
+- Config: `~/.triz-ai/config.yaml` (default), overridable via `--config` CLI flag or `TRIZ_AI_CONFIG` env var. Values support `${VAR}` and `${VAR:-default}` env var interpolation; `$$` escapes a literal `$`. Unset/empty `${VAR}` (no default) fails at startup with a field-path error (e.g. `llm.api_key: environment variable LITELLM_MASTER_KEY is not set`).
 - API keys: `.env` file (loaded via python-dotenv) or env vars per litellm conventions (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
 - SSL: For corporate proxies with internal CA certs, set `llm.ssl_verify: false` in config. This creates a custom OpenAI client with `httpx.Client(verify=False)` passed to litellm via `client=`.
 - LLM backend: `litellm` is an optional dependency (`pip install triz-ai[litellm]`). Without it, the `openai` SDK is used as fallback and requires `api_base` in config pointing to an OpenAI-compatible endpoint (e.g. a self-hosted litellm gateway). With litellm installed, any provider works directly.

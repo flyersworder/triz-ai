@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-04-16
+
+### Added
+
+- **Environment variable interpolation in YAML config**: Values in `~/.triz-ai/config.yaml` now support shell-style `${VAR}` and `${VAR:-default}` substitution, resolved once when the config file is first read (before pydantic validation). Unblocks Kubernetes/OpenShift/Docker Compose deployments where API keys arrive via Secrets as environment variables and must not be hardcoded into the YAML or baked into images. Closes [#9](https://github.com/flyersworder/triz-ai/issues/9)
+- **Fail-fast on missing secrets**: An unset or empty `${VAR}` (no default) raises `ConfigError` at startup with a field-path error message (e.g. `llm.api_key: environment variable LITELLM_MASTER_KEY is not set (or is empty). Either set it to a non-empty value, or provide a default: ${LITELLM_MASTER_KEY:-}`). This prevents missing-secret bugs from silently sending empty auth headers
+- **Shell `:-` default semantics**: Both unset and empty env vars fall back to `default`, matching Docker Compose and Helm conventions. `${VAR:-}` is the explicit opt-in for empty values
+- **`$$` escape**: Literal `$` in config values via `$$`; e.g., `$${FOO}` renders as the literal string `${FOO}`
+- **Field-path error messages**: Errors name the exact location of the malformed or missing value using dotted + bracketed notation (e.g., `database.vector_options[0].endpoint`), making debugging K8s/OpenShift deployments straightforward
+- **`ConfigError` exception**: New exception type for config-loading and interpolation failures, raised before any `LLMClient` instantiation
+
+### Changed
+
+- **`load_config()` preprocesses env vars**: Interpolation runs once between `yaml.safe_load()` and `Settings(**data)`. Pydantic models, `LLMClient`, CLI, and existing tests are unchanged. Backward compatible: YAML files without `${...}` tokens load identically to previous versions
+- **Version**: Bumped to 0.16.0
+
 ## [0.15.0] - 2026-04-14
 
 ### Added
