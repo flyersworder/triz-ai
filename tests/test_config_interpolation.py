@@ -91,6 +91,14 @@ def test_env_value_not_reinterpolated(monkeypatch):
     assert _resolve_tokens("${TRIZ_OUTER}", "f") == "${TRIZ_INNER}"
 
 
+def test_zero_string_value_is_truthy_not_empty(monkeypatch):
+    # "0" is a truthy non-empty string — must be used as the env value,
+    # NOT treated as empty/unset (which would trigger the default or raise).
+    monkeypatch.setenv("TRIZ_ZERO", "0")
+    assert _resolve_tokens("${TRIZ_ZERO}", "f") == "0"
+    assert _resolve_tokens("${TRIZ_ZERO:-fallback}", "f") == "0"
+
+
 def test_unset_var_raises(monkeypatch):
     monkeypatch.delenv("TRIZ_MISSING", raising=False)
     with pytest.raises(ConfigError) as exc_info:
