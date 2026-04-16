@@ -1,6 +1,8 @@
 """Tests for YAML config environment variable interpolation."""
 
-from triz_ai.config import _resolve_tokens
+import pytest
+
+from triz_ai.config import ConfigError, _resolve_tokens
 
 
 def test_plain_string_passthrough():
@@ -87,3 +89,63 @@ def test_env_value_not_reinterpolated(monkeypatch):
     monkeypatch.setenv("TRIZ_OUTER", "${TRIZ_INNER}")
     monkeypatch.setenv("TRIZ_INNER", "should_not_be_seen")
     assert _resolve_tokens("${TRIZ_OUTER}", "f") == "${TRIZ_INNER}"
+
+
+def test_unset_var_raises(monkeypatch):
+    monkeypatch.delenv("TRIZ_MISSING", raising=False)
+    with pytest.raises(ConfigError) as exc_info:
+        _resolve_tokens("${TRIZ_MISSING}", "llm.api_key")
+    msg = str(exc_info.value)
+    assert "llm.api_key" in msg
+    assert "TRIZ_MISSING" in msg
+
+
+def test_empty_var_raises(monkeypatch):
+    monkeypatch.setenv("TRIZ_EMPTY", "")
+    with pytest.raises(ConfigError) as exc_info:
+        _resolve_tokens("${TRIZ_EMPTY}", "llm.api_key")
+    assert "TRIZ_EMPTY" in str(exc_info.value)
+
+
+def test_error_message_suggests_default_syntax(monkeypatch):
+    monkeypatch.delenv("TRIZ_MISSING", raising=False)
+    with pytest.raises(ConfigError, match=r"\$\{TRIZ_MISSING:-\}"):
+        _resolve_tokens("${TRIZ_MISSING}", "f")
+
+
+def test_unclosed_token_raises():
+    with pytest.raises(ConfigError, match="unclosed"):
+        _resolve_tokens("${FOO", "f")
+
+
+def test_unclosed_token_with_default_raises():
+    with pytest.raises(ConfigError, match="unclosed"):
+        _resolve_tokens("${FOO:-default_but_no_brace", "f")
+
+
+def test_empty_name_raises():
+    with pytest.raises(ConfigError, match="empty variable name"):
+        _resolve_tokens("${}", "f")
+
+
+def test_empty_name_with_default_raises():
+    with pytest.raises(ConfigError, match="empty variable name"):
+        _resolve_tokens("${:-x}", "f")
+
+
+def test_nested_token_raises_invalid_char():
+    # ${FOO_${BAR}} — after parsing name "FOO_", the next char is '$'
+    # which is not a valid name continuation char and not '}' or ':-'
+    with pytest.raises(ConfigError, match="invalid character"):
+        _resolve_tokens("${FOO_${BAR}}", "f")
+
+
+def test_digit_first_char_raises():
+    # Names must start with letter/underscore
+    with pytest.raises(ConfigError, match="invalid character"):
+        _resolve_tokens("${1FOO}", "f")
+
+
+def test_lone_trailing_dollar_passes_through():
+    # Trailing '$' with nothing after it is just a literal '$'
+    assert _resolve_tokens("cost: $", "f") == "cost: $"

@@ -23,16 +23,19 @@ def _resolve_tokens(value: str, field_path: str) -> str:
     """Resolve ${VAR} and ${VAR:-default} tokens in a string value.
 
     See docs/specs/2026-04-16-env-var-interpolation-design.md for the grammar.
-    Error cases are added in Task 3.
+    Raises ConfigError on unclosed tokens, empty/invalid names, or
+    unset/empty vars without defaults.
     """
     out: list[str] = []
     i = 0
     n = len(value)
     while i < n:
+        # Escape: $$ -> $
         if value[i] == "$" and i + 1 < n and value[i + 1] == "$":
             out.append("$")
             i += 2
             continue
+        # Token: ${...}
         if value[i] == "$" and i + 1 < n and value[i + 1] == "{":
             i += 2  # past '${'
             name_start = i
@@ -41,25 +44,49 @@ def _resolve_tokens(value: str, field_path: str) -> str:
                 while i < n and value[i] in _NAME_CONT:
                     i += 1
             name = value[name_start:i]
+            if not name:
+                if i >= n:
+                    raise ConfigError(
+                        f"Config field {field_path}: unclosed '${{' in value {value!r}"
+                    )
+                if value[i] == "}" or value[i : i + 2] == ":-":
+                    raise ConfigError(
+                        f"Config field {field_path}: empty variable name in {value!r}"
+                    )
+                raise ConfigError(
+                    f"Config field {field_path}: invalid character {value[i]!r} "
+                    f"in variable name; {value!r}"
+                )
             default: str | None = None
-            if i < n and value[i] == "}":
+            if i >= n:
+                raise ConfigError(f"Config field {field_path}: unclosed '${{' in value {value!r}")
+            if value[i] == "}":
                 i += 1  # past '}'
-            elif i + 1 < n and value[i] == ":" and value[i + 1] == "-":
+            elif value[i : i + 2] == ":-":
                 i += 2  # past ':-'
-                default_end = value.find("}", i)
-                # Task 3 turns default_end == -1 into a proper error
-                default = value[i:default_end] if default_end != -1 else value[i:]
-                i = default_end + 1 if default_end != -1 else n
+                end = value.find("}", i)
+                if end == -1:
+                    raise ConfigError(
+                        f"Config field {field_path}: unclosed '${{' in value {value!r}"
+                    )
+                default = value[i:end]
+                i = end + 1  # past '}'
             else:
-                # Task 3 handles unclosed / invalid-char cases
-                i += 1
+                raise ConfigError(
+                    f"Config field {field_path}: invalid character {value[i]!r} "
+                    f"in variable name; {value!r}"
+                )
             env_val = os.environ.get(name)
             if env_val:
                 out.append(env_val)
             elif default is not None:
                 out.append(default)
             else:
-                out.append("")  # Task 3 turns this into ConfigError
+                raise ConfigError(
+                    f"Config field {field_path}: environment variable {name} is not set "
+                    f"(or is empty). Either set it to a non-empty value, or provide a "
+                    f"default: ${{{name}:-}}"
+                )
             continue
         out.append(value[i])
         i += 1
