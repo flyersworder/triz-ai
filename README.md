@@ -269,7 +269,7 @@ embeddings:
 
 ### Environment variable interpolation
 
-Config YAML values support shell-style `${VAR}` and `${VAR:-default}` substitution. Resolution happens once at load time, before pydantic validates the config. This is the recommended way to inject API keys in containerized deployments (Kubernetes Secrets, OpenShift, Docker Compose), where the YAML is baked into the image and secrets arrive as environment variables.
+Config YAML values support shell-style `${VAR}` and `${VAR:-default}` substitution. Resolution happens once when the config file is first read, before pydantic validation. This is the recommended way to inject API keys in containerized deployments (Kubernetes Secrets, OpenShift, Docker Compose), where the YAML is baked into the image and secrets arrive as environment variables.
 
 ```yaml
 llm:
@@ -285,7 +285,7 @@ Rules:
 
 - `${VAR}` — fails at startup if `VAR` is unset or empty. Use this for required secrets so missing config breaks loudly instead of sending empty auth headers.
 - `${VAR:-default}` — shell `:-` semantics: both unset and empty env vars fall back to `default`. Use for optional fields like `api_base` with a sensible production default.
-- `${VAR:-}` — explicit opt-in for empty/unset; yields the empty string.
+- `${VAR:-}` — explicit opt-in for empty/unset; yields the empty string. Useful when a field is genuinely optional and an absent value is preferable to a non-empty default.
 - `$$` — escape a literal `$`. For example, `$${FOO}` renders as the literal string `${FOO}`.
 - Nested tokens (`${FOO_${BAR}}`) are not supported; compose in the shell before starting the process.
 
