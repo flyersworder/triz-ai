@@ -14,7 +14,7 @@ This unblocks K8s / OpenShift deployments where API keys and other secrets are i
 
 - **Deployability**: config YAML can reference env-injected secrets without hardcoding them.
 - **Standard syntax**: use Docker Compose / Helm convention (`${VAR}`, `${VAR:-default}`, `$$` escape) so DevOps engineers recognize it immediately.
-- **Fail fast**: an unset `${VAR}` (with no default) raises a clear error at startup, naming the exact config field — never silently produces empty strings that get sent as auth headers.
+- **Fail fast**: an unset OR empty `${VAR}` (with no default) raises a clear error at startup, naming the exact config field — never silently produces empty strings that get sent as auth headers. Callers who want to tolerate empty/unset write `${VAR:-}` explicitly.
 - **No new dependencies**: implementation is ~40 lines of hand-written scanning logic. Alternative libraries were surveyed; none cleanly fit the chosen grammar or integration point.
 - **Backward compatible**: configs without `${...}` tokens pass through unchanged.
 
@@ -36,6 +36,8 @@ load_config(path)
   ├─ _interpolate_env(raw_dict)        → dict with tokens resolved  ← NEW
   └─ Settings(**resolved_dict)         → validated pydantic model
 ```
+
+`_interpolate_env` is the recursive walker; it delegates each string leaf to a helper `_resolve_tokens` (the scanner). Names chosen so the module-level entry point is self-describing.
 
 Nothing downstream (LLMClient, CLI, tests, pydantic models) knows interpolation exists. `--config`, `TRIZ_AI_CONFIG`, and programmatic `load_config(path)` callers all get resolution for free.
 
@@ -75,15 +77,16 @@ Implemented as a character-by-character scanner (not regex) so the grammar can g
 
 ### Scope
 
-- Applied to every **string leaf** in the parsed dict, walked recursively.
-- **List elements** are walked (path notation `key[i]`).
-- **Dict keys** are NOT interpolated.
-- **Non-string scalars** (int, bool, None, float) pass through untouched.
+- Applied to every **string leaf** in the parsed dict; non-string leaves (int, bool, None, float) pass through untouched.
+- Recursion walks into dicts and lists (including dicts nested inside lists, and lists nested inside dicts).
+- Path notation for error messages: `key.subkey` for dict nesting, `key[i]` for list elements, combinable as `key[i].subkey`.
+- **Dict keys** are NOT interpolated — keys are schema, not data.
 - **Multiple tokens per string** are supported: `"https://${HOST}:${PORT:-443}/v1"`.
+- **Single-pass resolution**: values pulled from env (or from a `:-default`) are inserted verbatim and are NOT re-interpolated. So if `$FOO='${BAR}'`, the config receives the literal string `${BAR}`, not the value of `$BAR`. This prevents surprise recursion and matches Compose's behavior.
 
 ### Non-features
 
-- Nested tokens (`${FOO_${BAR}}`) are not supported. The scanner matches the first `}` after `${`, so `${FOO_${BAR}}` parses as `${FOO_${BAR}` + trailing `}`, which raises on the odd `${` inside. Users compose in the shell.
+- Nested tokens (`${FOO_${BAR}}`) are not supported. The scanner matches the first `}` after `${`; if the resulting name contains characters outside `[A-Za-z0-9_]` (like `$` or `{`), the scanner raises `ConfigError`. Users compose in the shell before starting the process.
 - Default values cannot contain `}` or `${`. `default` is read verbatim from after `:-` up to the first `}`.
 - No transformation operators (uppercase, substring, etc.). Can be added later by extending the scanner.
 
@@ -95,20 +98,20 @@ Implemented as a character-by-character scanner (not regex) so the grammar can g
 class ConfigError(Exception):
     """Raised when config loading or interpolation fails."""
 
-def _interpolate(value: str, field_path: str) -> str:
+def _resolve_tokens(value: str, field_path: str) -> str:
     """Resolve ${VAR} and ${VAR:-default} tokens in `value`.
 
     `field_path` is used for error messages (e.g. "llm.api_key").
-    Raises ConfigError on unclosed tokens, empty names, or unset vars
-    without defaults.
+    Raises ConfigError on unclosed tokens, empty or invalid names,
+    or unset/empty vars without defaults.
     """
     # char-by-char scanner: handle $$, ${VAR}, ${VAR:-default}
 
-def _walk(data, field_path: str = ""):
+def _interpolate_env(data, field_path: str = ""):
     """Recursively walk dicts/lists, interpolating string leaves."""
-    # dict → recurse on values with "{path}.{key}"
+    # dict → recurse on values with "{path}.{key}" (or "{key}" at root)
     # list → recurse on items with "{path}[{i}]"
-    # str  → return _interpolate(data, field_path)
+    # str  → return _resolve_tokens(data, field_path)
     # else → return unchanged
 ```
 
@@ -119,7 +122,7 @@ if config_path.exists():
     import yaml
     with open(config_path) as f:
         data = yaml.safe_load(f) or {}
-    data = _walk(data)           # ← single new line
+    data = _interpolate_env(data)   # ← single new line
     return Settings(**data)
 return Settings()
 ```
@@ -128,6 +131,7 @@ return Settings()
 
 - **Unclosed `${`**: `ConfigError("Config field {path}: unclosed '${' in value {value!r}")`
 - **Empty name** (`${}`, `${:-x}`): `ConfigError("Config field {path}: empty variable name in {value!r}")`
+- **Invalid character in name** (e.g. `${FOO_${BAR}}` nesting): `ConfigError("Config field {path}: invalid character {c!r} in variable name; {value!r}")`
 - **Unset or empty var, no default**: `ConfigError("Config field {path}: environment variable {VAR} is not set (or is empty). Either set it to a non-empty value, or provide a default: ${{{VAR}:-}}")`
 
 `ConfigError` is raised from `load_config()` — before `LLMClient` instantiates — so no circular-import concern. CLI top-level error handling already catches broad exceptions and prints; no extra wiring needed.
@@ -141,8 +145,11 @@ New file: `tests/test_config_interpolation.py`.
 1. **Happy path**
    - Single `${VAR}` resolves from env
    - Multiple tokens in one string: `"http://${HOST}:${PORT}"`
-   - Nested dicts and lists walked correctly
+   - Nested dicts walked correctly
+   - Lists of strings walked correctly
+   - Dicts nested inside lists walked correctly (e.g. `vector_options: [{"endpoint": "${URL}"}]`)
    - Non-string scalars (int, bool, None) pass through unchanged
+   - Single-pass: env value `${BAR}` inserted as literal `${BAR}`, not recursively resolved
 
 2. **Defaults**
    - `${VAR:-default}` uses default when VAR unset
@@ -162,8 +169,10 @@ New file: `tests/test_config_interpolation.py`.
    - Empty-string `${VAR}` without default → same `ConfigError` (fail-fast safety)
    - Unclosed `${FOO` → `ConfigError`
    - Empty name `${}` and `${:-x}` → `ConfigError`
+   - Nested token `${FOO_${BAR}}` → `ConfigError` (invalid character in name)
    - Error message for nested field includes full dotted path (e.g. `embeddings.api_base`)
    - Error message for list element includes index (e.g. `retries[2]`)
+   - Error message for dict-in-list combines both (e.g. `database.vector_options[0].endpoint`)
 
 5. **Integration**
    - Write temp YAML with `${...}` tokens, set env vars via `monkeypatch.setenv`, call `load_config(path)`, assert resolved `Settings` values on `llm.api_key`, `llm.api_base`, etc.
@@ -176,12 +185,13 @@ Uses `pytest`'s `monkeypatch.setenv` / `monkeypatch.delenv` and `tmp_path`. No n
 1. `CLAUDE.md` — add one line under "References":
    > Config YAML values support `${VAR}` and `${VAR:-default}` env var interpolation; `$$` escapes a literal `$`.
 
-2. README — if it documents config (to be verified during implementation), add a one-paragraph K8s/OpenShift example:
+2. `README.md` — the README already documents config (around the `~/.triz-ai/config.yaml` section, ~line 230-270, showing hardcoded `api_key` examples). Add a subsection "Environment variable interpolation" with a K8s/OpenShift example:
    ```yaml
    llm:
      api_base: "${LITELLM_GATEWAY_URL:-https://openrouter.ai/api/v1}"
      api_key: "${LITELLM_MASTER_KEY}"
    ```
+   Plus a one-sentence note: "Config values support `${VAR}` and `${VAR:-default}` syntax; `$$` escapes a literal `$`. Unset or empty `${VAR}` (no default) fails at startup rather than silently producing an empty value."
 
 ## Rollout
 
