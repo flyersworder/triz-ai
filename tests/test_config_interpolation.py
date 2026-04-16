@@ -249,3 +249,65 @@ def test_walk_root_string_error_uses_root_sentinel(monkeypatch):
     monkeypatch.delenv("TRIZ_MISSING_ROOT", raising=False)
     with pytest.raises(ConfigError, match=r"<root>.*TRIZ_MISSING_ROOT"):
         _interpolate_env("${TRIZ_MISSING_ROOT}")
+
+
+# ---------------------------------------------------------------------------
+# load_config() integration tests
+# ---------------------------------------------------------------------------
+
+
+def test_load_config_resolves_env_vars(tmp_path, monkeypatch):
+    from triz_ai.config import load_config
+
+    monkeypatch.setenv("TRIZ_MY_KEY", "sk-abc")
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text(
+        "llm:\n"
+        '  api_base: "${TRIZ_API_BASE:-https://default.example.com/v1}"\n'
+        '  api_key: "${TRIZ_MY_KEY}"\n'
+    )
+    settings = load_config(cfg)
+    assert settings.llm.api_key == "sk-abc"
+    assert settings.llm.api_base == "https://default.example.com/v1"
+
+
+def test_load_config_backward_compat_hardcoded_values(tmp_path):
+    from triz_ai.config import load_config
+
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text(
+        'llm:\n  api_base: "https://gateway.example.com/v1"\n  api_key: "hardcoded-literal"\n'
+    )
+    settings = load_config(cfg)
+    assert settings.llm.api_key == "hardcoded-literal"
+    assert settings.llm.api_base == "https://gateway.example.com/v1"
+
+
+def test_load_config_missing_env_raises(tmp_path, monkeypatch):
+    from triz_ai.config import load_config
+
+    monkeypatch.delenv("TRIZ_SHOULD_EXIST", raising=False)
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text('llm:\n  api_key: "${TRIZ_SHOULD_EXIST}"\n')
+    with pytest.raises(ConfigError, match=r"llm\.api_key.*TRIZ_SHOULD_EXIST"):
+        load_config(cfg)
+
+
+def test_load_config_empty_yaml_still_works(tmp_path):
+    from triz_ai.config import load_config
+
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text("")
+    settings = load_config(cfg)
+    # Sanity: defaults still load
+    assert settings.embeddings.dimensions == 768
+
+
+def test_load_config_non_string_fields_unchanged(tmp_path):
+    from triz_ai.config import load_config
+
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text("embeddings:\n  dimensions: 768\nevolution:\n  auto_classify: true\n")
+    settings = load_config(cfg)
+    assert settings.embeddings.dimensions == 768
+    assert settings.evolution.auto_classify is True

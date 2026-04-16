@@ -187,6 +187,7 @@ def load_config(config_path: str | Path | None = None) -> Settings:
 
         with open(config_path) as f:
             data = yaml.safe_load(f) or {}
+        data = _interpolate_env(data)
         return Settings(**data)
     return Settings()
 
