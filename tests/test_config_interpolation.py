@@ -2,7 +2,7 @@
 
 import pytest
 
-from triz_ai.config import ConfigError, _resolve_tokens
+from triz_ai.config import ConfigError, _interpolate_env, _resolve_tokens
 
 
 def test_plain_string_passthrough():
@@ -157,3 +157,82 @@ def test_digit_first_char_raises():
 def test_lone_trailing_dollar_passes_through():
     # Trailing '$' with nothing after it is just a literal '$'
     assert _resolve_tokens("cost: $", "f") == "cost: $"
+
+
+# ---------------------------------------------------------------------------
+# _interpolate_env walker tests
+# ---------------------------------------------------------------------------
+
+
+def test_walk_flat_dict(monkeypatch):
+    monkeypatch.setenv("TRIZ_KEY", "sk-abc")
+    assert _interpolate_env({"api_key": "${TRIZ_KEY}"}) == {"api_key": "sk-abc"}
+
+
+def test_walk_nested_dict(monkeypatch):
+    monkeypatch.setenv("TRIZ_KEY", "secret")
+    data = {"llm": {"api_key": "${TRIZ_KEY}", "model": "gpt-4o"}}
+    assert _interpolate_env(data) == {"llm": {"api_key": "secret", "model": "gpt-4o"}}
+
+
+def test_walk_list_of_strings(monkeypatch):
+    monkeypatch.setenv("TRIZ_A", "x")
+    assert _interpolate_env(["${TRIZ_A}", "plain"]) == ["x", "plain"]
+
+
+def test_walk_dict_in_list(monkeypatch):
+    monkeypatch.setenv("TRIZ_URL", "https://db.internal")
+    data = {"database": {"vector_options": [{"endpoint": "${TRIZ_URL}"}]}}
+    result = _interpolate_env(data)
+    assert result["database"]["vector_options"][0]["endpoint"] == "https://db.internal"
+
+
+def test_walk_list_in_dict_in_list(monkeypatch):
+    monkeypatch.setenv("TRIZ_X", "x")
+    data = [{"items": ["${TRIZ_X}", "y"]}]
+    assert _interpolate_env(data) == [{"items": ["x", "y"]}]
+
+
+def test_walk_non_strings_unchanged():
+    data = {
+        "int_field": 42,
+        "bool_field": True,
+        "none_field": None,
+        "float_field": 3.14,
+        "empty_list": [],
+        "empty_dict": {},
+    }
+    assert _interpolate_env(data) == data
+
+
+def test_walk_dict_keys_not_interpolated(monkeypatch):
+    # Keys are schema — never substitute them even if they look like tokens
+    monkeypatch.setenv("TRIZ_SHOULD_NOT_APPEAR", "danger")
+    data = {"${TRIZ_SHOULD_NOT_APPEAR}": "value"}
+    assert _interpolate_env(data) == {"${TRIZ_SHOULD_NOT_APPEAR}": "value"}
+
+
+def test_walk_empty_dict_and_list():
+    assert _interpolate_env({}) == {}
+    assert _interpolate_env([]) == []
+
+
+def test_walk_error_path_dotted(monkeypatch):
+    monkeypatch.delenv("TRIZ_MISSING", raising=False)
+    data = {"llm": {"api_key": "${TRIZ_MISSING}"}}
+    with pytest.raises(ConfigError, match=r"llm\.api_key"):
+        _interpolate_env(data)
+
+
+def test_walk_error_path_list_index(monkeypatch):
+    monkeypatch.delenv("TRIZ_MISSING", raising=False)
+    data = {"retries": ["ok", "${TRIZ_MISSING}"]}
+    with pytest.raises(ConfigError, match=r"retries\[1\]"):
+        _interpolate_env(data)
+
+
+def test_walk_error_path_combined(monkeypatch):
+    monkeypatch.delenv("TRIZ_MISSING", raising=False)
+    data = {"database": {"vector_options": [{"endpoint": "${TRIZ_MISSING}"}]}}
+    with pytest.raises(ConfigError, match=r"database\.vector_options\[0\]\.endpoint"):
+        _interpolate_env(data)

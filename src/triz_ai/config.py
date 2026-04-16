@@ -93,6 +93,25 @@ def _resolve_tokens(value: str, field_path: str) -> str:
     return "".join(out)
 
 
+def _interpolate_env(data, field_path: str = ""):
+    """Recursively interpolate env vars in string leaves of a parsed YAML structure.
+
+    Walks dicts and lists; returns non-string, non-container values unchanged.
+    Dict keys are never interpolated. `field_path` is accumulated for
+    error messages (e.g., 'llm.api_key', 'database.vector_options[0].endpoint').
+    """
+    if isinstance(data, dict):
+        return {
+            k: _interpolate_env(v, f"{field_path}.{k}" if field_path else k)
+            for k, v in data.items()
+        }
+    if isinstance(data, list):
+        return [_interpolate_env(v, f"{field_path}[{idx}]") for idx, v in enumerate(data)]
+    if isinstance(data, str):
+        return _resolve_tokens(data, field_path or "<root>")
+    return data
+
+
 class LLMConfig(BaseModel):
     default_model: str = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
     classify_model: str = "openrouter/nvidia/nemotron-3-nano-30b-a3b:free"
