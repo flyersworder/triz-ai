@@ -23,7 +23,7 @@ def _resolve_tokens(value: str, field_path: str) -> str:
     """Resolve ${VAR} and ${VAR:-default} tokens in a string value.
 
     See docs/specs/2026-04-16-env-var-interpolation-design.md for the grammar.
-    Defaults and error cases are added in later tasks.
+    Error cases are added in Task 3.
     """
     out: list[str] = []
     i = 0
@@ -41,10 +41,25 @@ def _resolve_tokens(value: str, field_path: str) -> str:
                 while i < n and value[i] in _NAME_CONT:
                     i += 1
             name = value[name_start:i]
-            # Closing '}' expected (defaults added in Task 2)
-            i += 1  # past '}'
+            default: str | None = None
+            if i < n and value[i] == "}":
+                i += 1  # past '}'
+            elif i + 1 < n and value[i] == ":" and value[i + 1] == "-":
+                i += 2  # past ':-'
+                default_end = value.find("}", i)
+                # Task 3 turns default_end == -1 into a proper error
+                default = value[i:default_end] if default_end != -1 else value[i:]
+                i = default_end + 1 if default_end != -1 else n
+            else:
+                # Task 3 handles unclosed / invalid-char cases
+                i += 1
             env_val = os.environ.get(name)
-            out.append(env_val or "")
+            if env_val:
+                out.append(env_val)
+            elif default is not None:
+                out.append(default)
+            else:
+                out.append("")  # Task 3 turns this into ConfigError
             continue
         out.append(value[i])
         i += 1
