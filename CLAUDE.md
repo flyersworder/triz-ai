@@ -85,6 +85,12 @@ The system learns from web search results encountered during `analyze` calls. Wh
 - **Token budget** — only inject relevant matrix rows/principles into prompts, not full dataset. Parameters include descriptions for disambiguation.
 - **TRIZ knowledge data** — `separation_principles.json` (4 categories), `standard_solutions.json` (76 solutions, 5 classes), `evolution_trends.json` (8 trends with stages)
 
+## Release Workflow
+
+- Version source: `pyproject.toml` and `CHANGELOG.md`. Feature additions → minor bump (0.15.0 → 0.16.0); bugfixes → patch bump. `uv.lock` regenerates on any version change — include it in the release commit.
+- `gh release create vX.Y.Z --target main --title "..." --notes "..."` tags main and triggers `.github/workflows/ci-and-publish.yml` (test → publish). The publish job runs `uv build` + `pypa/gh-action-pypi-publish`.
+- **PyPI uploads are irreversible** — a filename, once uploaded and later deleted, cannot be re-uploaded. Only create a release after the PR is merged, CI is green on main, and you've confirmed the user wants to publish.
+
 ## Models
 
 - Default LLM: `openrouter/nvidia/nemotron-3-super-120b-a12b:free`
