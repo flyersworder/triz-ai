@@ -11,6 +11,46 @@ from pydantic_settings import BaseSettings
 load_dotenv()
 
 
+class ConfigError(Exception):
+    """Raised when config loading or env var interpolation fails."""
+
+
+_NAME_START = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
+_NAME_CONT = _NAME_START + "0123456789"
+
+
+def _resolve_tokens(value: str, field_path: str) -> str:
+    """Resolve ${VAR} and ${VAR:-default} tokens in a string value.
+
+    See docs/specs/2026-04-16-env-var-interpolation-design.md for the grammar.
+    Defaults and error cases are added in later tasks.
+    """
+    out: list[str] = []
+    i = 0
+    n = len(value)
+    while i < n:
+        if value[i] == "$" and i + 1 < n and value[i + 1] == "$":
+            out.append("$")
+            i += 2
+            continue
+        if value[i] == "$" and i + 1 < n and value[i + 1] == "{":
+            i += 2  # past '${'
+            name_start = i
+            if i < n and value[i] in _NAME_START:
+                i += 1
+                while i < n and value[i] in _NAME_CONT:
+                    i += 1
+            name = value[name_start:i]
+            # Closing '}' expected (defaults added in Task 2)
+            i += 1  # past '}'
+            env_val = os.environ.get(name)
+            out.append(env_val or "")
+            continue
+        out.append(value[i])
+        i += 1
+    return "".join(out)
+
+
 class LLMConfig(BaseModel):
     default_model: str = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
     classify_model: str = "openrouter/nvidia/nemotron-3-nano-30b-a3b:free"
