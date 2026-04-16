@@ -236,3 +236,16 @@ def test_walk_error_path_combined(monkeypatch):
     data = {"database": {"vector_options": [{"endpoint": "${TRIZ_MISSING}"}]}}
     with pytest.raises(ConfigError, match=r"database\.vector_options\[0\]\.endpoint"):
         _interpolate_env(data)
+
+
+def test_walk_root_string(monkeypatch):
+    # Docstring advertises root-level string handling via <root> sentinel
+    monkeypatch.setenv("TRIZ_KEY", "val")
+    assert _interpolate_env("${TRIZ_KEY}") == "val"
+
+
+def test_walk_root_string_error_uses_root_sentinel(monkeypatch):
+    # Root-level bare string with unset var: error path should name <root>
+    monkeypatch.delenv("TRIZ_MISSING_ROOT", raising=False)
+    with pytest.raises(ConfigError, match=r"<root>.*TRIZ_MISSING_ROOT"):
+        _interpolate_env("${TRIZ_MISSING_ROOT}")

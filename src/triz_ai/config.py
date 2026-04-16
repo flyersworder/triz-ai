@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -93,7 +94,7 @@ def _resolve_tokens(value: str, field_path: str) -> str:
     return "".join(out)
 
 
-def _interpolate_env(data, field_path: str = ""):
+def _interpolate_env(data: Any, field_path: str = "") -> Any:
     """Recursively interpolate env vars in string leaves of a parsed YAML structure.
 
     Walks dicts and lists; returns non-string, non-container values unchanged.
