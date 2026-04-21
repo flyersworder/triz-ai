@@ -48,7 +48,7 @@ def analyze_functions(
             )
             solution_directions = [d.model_dump() for d in directions.directions]
     except Exception:
-        logger.warning("Solution direction generation failed, continuing without")
+        logger.warning("Solution direction generation failed, continuing without", exc_info=True)
 
     problem_summary = (
         "; ".join(

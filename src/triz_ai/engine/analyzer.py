@@ -111,7 +111,9 @@ def analyze_contradiction(
             )
             solution_directions = [d.model_dump() for d in directions.directions]
         except Exception:
-            logger.warning("Solution direction generation failed, continuing without")
+            logger.warning(
+                "Solution direction generation failed, continuing without", exc_info=True
+            )
 
     improving_dict = {"id": improving.id, "name": improving.name}
     worsening_dict = {"id": worsening.id, "name": worsening.name}
@@ -196,7 +198,7 @@ def search_patents(
                     }
                 )
         except Exception:
-            logger.warning("Patent search failed, continuing without examples")
+            logger.warning("Patent search failed, continuing without examples", exc_info=True)
 
     # 2. Research tools (search stage)
     if research_tools:
@@ -232,7 +234,7 @@ def search_patents(
                         }
                     )
             except Exception:
-                logger.warning("Research tool '%s' failed, skipping", tool.name)
+                logger.warning("Research tool '%s' failed, skipping", tool.name, exc_info=True)
 
     return patent_examples
 

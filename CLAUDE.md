@@ -22,7 +22,7 @@ uv run pre-commit run --all-files  # Run all pre-commit hooks
 
 ### Pluggable Vector Database
 
-`patents/vector.py` defines a `VectorStore` protocol with 4 methods (`init`, `insert`, `search`, `close`). Default `SqliteVecStore` wraps sqlite-vec. `PatentStore` accepts an optional `vector_store` parameter — if not provided, creates `SqliteVecStore` sharing its SQLite connection. Alternative backends (Chroma, Qdrant, pgvector) can be plugged via `PatentStore(vector_store=my_store)`. Hybrid scoring (TRIZ domain logic) stays in `PatentStore`.
+`patents/vector.py` defines a `VectorStore` protocol with 4 methods (`init`, `insert`, `search`, `close`). Default `SqliteVecStore` wraps sqlite-vec. `PatentStore` accepts an optional `vector_store` parameter — if not provided, creates `SqliteVecStore` over the same db file; each class owns its own thread-local `sqlite3.Connection` so both are safe from multi-threaded callers (Flask/Gunicorn, `ThreadPoolExecutor`). Alternative backends (Chroma, Qdrant, pgvector) can be plugged via `PatentStore(vector_store=my_store)`. Hybrid scoring (TRIZ domain logic) stays in `PatentStore`.
 
 ### Multi-Tool Routing
 

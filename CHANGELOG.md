@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.1] - 2026-04-21
+
+### Fixed
+
+- **Thread-safety of `PatentStore` and `SqliteVecStore`**: `sqlite3.Connection` was cached on a single instance attribute, which Python's `sqlite3` driver forbids from use across threads. In Flask/Gunicorn workers, `ThreadPoolExecutor` callers, or the ARIZ deep-mode Pass 2 executor, any cross-thread call raised `sqlite3.ProgrammingError`. Both classes now use `threading.local()` so each thread gets its own connection over the same db file. `SqliteVecStore` loads the `sqlite_vec` extension per-connection. Closes [#12](https://github.com/flyersworder/triz-ai/issues/12)
+- **Silent observability gap in engine handlers**: `except Exception` blocks across `engine/analyzer.py`, `engine/router.py`, `engine/physical.py`, `engine/trends.py`, `engine/su_field.py`, `engine/function_analysis.py`, `engine/trimming.py`, `engine/ariz.py`, and `engine/evaluator.py` logged a generic `logger.warning(...)` without `exc_info=True`, discarding the exception type and traceback. This is the pattern that let issue #12 persist silently in production — operators saw "Patent search failed" with no trace of the underlying `sqlite3.ProgrammingError`. All fallible-pipeline handlers now preserve tracebacks
+- **`init_db(force=True)` on a live store**: closed the `PatentStore` connection before `unlink()` but left the `SqliteVecStore` holding a dangling fd to the deleted inode, causing `sqlite3.OperationalError: disk I/O error` on the next read. The vector store is now also closed before `unlink()`
+
+### Changed
+
+- **`SqliteVecStore` no longer shares a connection with `PatentStore`**: the default wiring now creates a `SqliteVecStore` with its own `db_path` rather than passing `connection=` — each class manages independent thread-local connections to the same SQLite file. The `connection=` parameter still works for callers who explicitly wire a shared connection (caller is responsible for thread-safety in that mode)
+- **`insert_patent` commits before writing the embedding**: the patent row must release SQLite's single-writer lock before the vector store's separate connection can acquire it. Consequence: on vector-insert failure the patent row is already persisted; `INSERT OR REPLACE` makes retries idempotent. Atomicity was already best-effort (the `embedding=None` path never held both writes in one transaction)
+- **`PRAGMA busy_timeout=5000` on both connections**: Python ≤3.13 defaults to 0 (immediate `database is locked`), so concurrent writers across the two connections need an explicit timeout to wait out contention. Python 3.14 happens to default to 5000 — this change removes the runtime-version dependency
+- **Version**: Bumped to 0.16.1
+
 ## [0.16.0] - 2026-04-16
 
 ### Added

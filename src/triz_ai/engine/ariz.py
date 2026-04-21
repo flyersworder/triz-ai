@@ -182,7 +182,9 @@ def _run_tools(
             try:
                 results.append(future.result())
             except Exception:
-                logger.warning("Pipeline '%s' failed in deep mode, skipping", method)
+                logger.warning(
+                    "Pipeline '%s' failed in deep mode, skipping", method, exc_info=True
+                )
 
     if not results:
         raise TrizAIError(
