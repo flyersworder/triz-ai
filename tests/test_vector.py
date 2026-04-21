@@ -1,5 +1,6 @@
 """Tests for pluggable vector store layer."""
 
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock
 
 import pytest
@@ -81,8 +82,8 @@ def test_close_owned_connection(tmp_path):
     store = SqliteVecStore(db_path=db_path, dimensions=768)
     store.init()
     store.close()
-    # After close, _conn should be None
-    assert store._conn is None
+    # After close, this thread's connection should be released.
+    assert getattr(store._tls, "conn", None) is None
 
 
 def test_close_shared_connection(tmp_path):
@@ -219,4 +220,30 @@ def test_patent_store_hybrid_delegates(tmp_path, mock_vector_store):
     assert results[0][0].id == "P1"
     # Score should be 1.0 - 0.2 = 0.8 (no classification bonus)
     assert abs(results[0][1] - 0.8) < 0.001
+    store.close()
+
+
+# --- Thread-safety regression tests (issue #12) ---
+
+
+def test_sqlite_vec_store_usable_from_worker_thread(tmp_path):
+    """SqliteVecStore initialized on main thread must be usable from a worker.
+
+    Regression for issue #12: the cached sqlite3.Connection was bound to the
+    thread that first called _get_conn, so cross-thread reads/writes raised
+    sqlite3.ProgrammingError.
+    """
+    db_path = tmp_path / "vec_threaded.db"
+    store = SqliteVecStore(db_path=db_path, dimensions=768)
+    store.init()
+    store.insert("P1", [1.0] + [0.0] * 767)
+    store.insert("P2", [0.0, 1.0] + [0.0] * 766)
+
+    query = [0.9, 0.1] + [0.0] * 766
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        results = pool.submit(store.search, query, 2).result()
+
+    assert len(results) == 2
+    assert results[0][0] == "P1"
     store.close()

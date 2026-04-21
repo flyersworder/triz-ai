@@ -87,7 +87,7 @@ def route(
         ifr = llm_client.formulate_ifr(problem_text)
         ideal_final_result = ifr.ideal_result
     except Exception:
-        logger.warning("IFR formulation failed, continuing without")
+        logger.warning("IFR formulation failed, continuing without", exc_info=True)
 
     # Step 3: Determine method
     primary_method: str
@@ -117,7 +117,9 @@ def route(
                 secondary_method = classification.secondary_method
                 method_confidence = classification.confidence
             except Exception:
-                logger.warning("Root cause analysis failed, using original classification")
+                logger.warning(
+                    "Root cause analysis failed, using original classification", exc_info=True
+                )
 
         # Normalize and validate
         primary_method = _normalize_method(primary_method)

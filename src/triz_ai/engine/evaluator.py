@@ -50,7 +50,7 @@ def evaluate(
                 {"id": patent.id, "title": patent.title, "similarity": round(similarity, 3)}
             )
     except Exception:
-        logger.warning("Patent search failed during evaluation")
+        logger.warning("Patent search failed during evaluation", exc_info=True)
 
     # Calculate novelty score based on most similar patent
     if similar_patents:

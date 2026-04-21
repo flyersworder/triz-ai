@@ -1,5 +1,7 @@
 """Tests for patent store."""
 
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 
 from triz_ai.evolution.self_evolve import SearchObservation
@@ -401,3 +403,136 @@ def test_analysis_count_tracking(store):
 
     store.reset_analysis_count()
     assert store.get_analyses_since_consolidation() == 0
+
+
+# --- Thread-safety regression tests (issue #12) ---
+
+
+def test_patent_store_usable_from_worker_thread(tmp_path):
+    """Store initialized on main thread must be queryable from a worker thread."""
+    db_path = tmp_path / "threaded.db"
+    store = PatentStore(db_path=db_path)
+    store.init_db()
+    store.insert_patent(Patent(id="P1", title="Battery Patent"))
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        patents = pool.submit(store.get_all_patents).result()
+
+    assert len(patents) == 1
+    assert patents[0].id == "P1"
+    store.close()
+
+
+def test_patent_store_vector_search_from_worker_thread(tmp_path):
+    """search_patents must not raise when called from a non-initializing thread.
+
+    Regression for issue #12: shared sqlite3.Connection between PatentStore and
+    SqliteVecStore caused sqlite3.ProgrammingError under threaded callers
+    (Flask/Gunicorn, ThreadPoolExecutor). Self-evolution silently collected
+    zero observations because router.py swallowed the exception at WARNING.
+    """
+    db_path = tmp_path / "threaded_vec.db"
+    store = PatentStore(db_path=db_path)
+    store.init_db()
+    store.insert_patent(Patent(id="P1", title="Battery"), embedding=[1.0] + [0.0] * 767)
+    store.insert_patent(Patent(id="P2", title="Motor"), embedding=[0.0, 1.0] + [0.0] * 766)
+
+    query = [0.9, 0.1] + [0.0] * 766
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        results = pool.submit(store.search_patents, query, 2).result()
+
+    assert len(results) == 2
+    assert results[0][0].id == "P1"
+    store.close()
+
+
+def test_patent_store_concurrent_writes_from_multiple_threads(tmp_path):
+    """Concurrent inserts from multiple threads must not raise and must all persist."""
+    db_path = tmp_path / "concurrent.db"
+    store = PatentStore(db_path=db_path)
+    store.init_db()
+
+    def insert(i: int) -> None:
+        store.insert_patent(Patent(id=f"P{i}", title=f"Patent {i}"))
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(insert, range(16)))
+
+    assert len(store.get_all_patents()) == 16
+    store.close()
+
+
+def test_patent_store_concurrent_writes_with_embeddings(tmp_path):
+    """Concurrent insert_patent with embeddings stresses the cross-connection
+    write lock: each call writes to the patents table on one conn and the
+    vector table on another. busy_timeout must allow them to serialize."""
+    db_path = tmp_path / "concurrent_vec.db"
+    store = PatentStore(db_path=db_path)
+    store.init_db()
+
+    def insert(i: int) -> None:
+        emb = [float(i)] + [0.0] * 767
+        store.insert_patent(Patent(id=f"P{i}", title=f"Patent {i}"), embedding=emb)
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(insert, range(16)))
+
+    assert len(store.get_all_patents()) == 16
+    # And vector search still works across threads.
+    results = store.search_patents([5.0] + [0.0] * 767, limit=3)
+    assert len(results) == 3
+    store.close()
+
+
+def test_init_db_force_on_live_store(tmp_path):
+    """init_db(force=True) on a store with open connections must not leave
+    the vector store holding a dangling fd to the unlinked inode.
+
+    Regression for issue #12 follow-up: before the fix, this raised
+    sqlite3.OperationalError: disk I/O error on the next read.
+    """
+    db_path = tmp_path / "force_reset.db"
+    store = PatentStore(db_path=db_path)
+    store.init_db()
+    store.insert_patent(Patent(id="P1", title="X"), embedding=[0.1] * 768)
+    assert len(store.get_all_patents()) == 1
+
+    store.init_db(force=True)
+    assert store.get_all_patents() == []
+
+    # Store is usable again after force-reset.
+    store.insert_patent(Patent(id="P2", title="Y"), embedding=[0.2] * 768)
+    assert len(store.get_all_patents()) == 1
+    store.close()
+
+
+def test_insert_search_observation_from_worker_thread(tmp_path):
+    """insert_search_observation from a worker thread must succeed.
+
+    This is the exact path router.py:142 hits after analyze — the failure the
+    production logs in issue #12 showed.
+    """
+    db_path = tmp_path / "obs.db"
+    store = PatentStore(db_path=db_path)
+    store.init_db()
+
+    obs = SearchObservation(
+        id="ws:1",
+        title="Example",
+        snippet="snippet",
+        url="https://example.com",
+        source_tool="web",
+        problem_text="problem",
+        analysis_method="technical_contradiction",
+        improving_param=9,
+        worsening_param=1,
+        principle_ids=[1, 14],
+        analysis_confidence=0.8,
+    )
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pool.submit(store.insert_search_observation, obs).result()
+
+    assert len(store.get_unconsolidated_observations()) == 1
+    store.close()

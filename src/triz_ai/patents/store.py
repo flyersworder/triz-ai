@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -154,21 +155,39 @@ class PatentStore:
 
             db_path = get_db_path()
         self.db_path = Path(db_path)
-        self._conn: sqlite3.Connection | None = None
+        # Per-thread connections: sqlite3.Connection is not shareable across threads.
+        self._tls = threading.local()
         self._vector_store: VectorStore | None = vector_store
 
     def _get_conn(self) -> sqlite3.Connection:
-        if self._conn is None:
+        conn = getattr(self._tls, "conn", None)
+        if conn is None:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            self._conn = sqlite3.connect(str(self.db_path))
-            self._conn.row_factory = sqlite3.Row
-            self._conn.execute("PRAGMA journal_mode=WAL")
-            self._conn.execute("PRAGMA foreign_keys=ON")
-        return self._conn
+            conn = sqlite3.connect(str(self.db_path))
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA foreign_keys=ON")
+            # Wait briefly for the write lock instead of immediately failing when
+            # another thread's connection (e.g. the vector store) holds it.
+            conn.execute("PRAGMA busy_timeout=5000")
+            self._tls.conn = conn
+        return conn
 
     def init_db(self, force: bool = False) -> None:
-        """Create database tables. If force=True, drop and recreate."""
+        """Create database tables. If force=True, drop and recreate.
+
+        Note: with thread-local connections, force-reset only closes this
+        thread's connection before unlinking. Call init_db(force=True) from a
+        single-threaded moment; other threads' connections to the same file
+        will hold it open until they exit.
+        """
         if force and self.db_path.exists() and str(self.db_path) != ":memory:":
+            # Close vector store too — if it holds an open connection (likely on
+            # the current thread), a dangling fd to the about-to-be-unlinked
+            # inode causes `disk I/O error` on the next read through the
+            # re-opened patent connection.
+            if self._vector_store is not None:
+                self._vector_store.close()
             self._close()
             self.db_path.unlink()
             logger.info("Deleted existing database at %s", self.db_path)
@@ -177,19 +196,25 @@ class PatentStore:
         conn.executescript(_SCHEMA_SQL)
         conn.commit()
 
-        # Initialize vector store — create default SqliteVecStore if none provided
+        # Initialize vector store — create default SqliteVecStore if none provided.
+        # Pass db_path (not connection) so each thread gets its own connection.
         if self._vector_store is None:
-            self._vector_store = SqliteVecStore(connection=conn)
+            self._vector_store = SqliteVecStore(db_path=self.db_path)
         self._vector_store.init(force=force)
         logger.info("Database initialized at %s", self.db_path)
 
     def _close(self) -> None:
-        if self._conn is not None:
-            self._conn.close()
-            self._conn = None
+        conn = getattr(self._tls, "conn", None)
+        if conn is not None:
+            conn.close()
+            self._tls.conn = None
 
     def close(self) -> None:
-        """Close database connection and vector store."""
+        """Close this thread's connection and the vector store.
+
+        Other threads' connections are not closed — they will be cleaned up
+        when those threads exit.
+        """
         if self._vector_store is not None:
             self._vector_store.close()
         self._close()
@@ -214,9 +239,15 @@ class PatentStore:
                 patent.source,
             ),
         )
+        # Commit the patent row before touching the vector store. This is
+        # required, not precautionary: the patent conn holds SQLite's single
+        # writer lock until commit, and the vector store's separate thread-local
+        # conn would wait busy_timeout (5s) and then raise `database is locked`.
+        # Consequence: on vector-insert failure the patent row is already
+        # persisted. INSERT OR REPLACE makes retries idempotent.
+        conn.commit()
         if embedding is not None:
             self._insert_embedding(patent.id, embedding)
-        conn.commit()
 
     def _insert_embedding(self, patent_id: str, embedding: list[float]) -> None:
         """Insert or replace a patent embedding via vector store."""
