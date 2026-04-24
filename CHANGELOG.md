@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.2] - 2026-04-24
+
+### Security
+
+- **litellm 1.83.0 → 1.83.13**: patches critical SQL injection in proxy API-key verification and high-severity server-side template injection in `/prompts/test` (both fixed upstream in 1.83.7). Resolves two open Dependabot alerts
+- **Override litellm's vulnerable transitive pins**: litellm 1.83.x hard-pins `python-dotenv==1.0.1` (GHSA-mf9w-mj56-hr94, symlink-following in `set_key()`) and `aiohttp==3.13.3` (10 open CVEs). Added `[tool.uv] override-dependencies` to force `python-dotenv>=1.2.2` and `aiohttp>=3.13.4` so the resolver ignores litellm's exact-version pins for these two transitive deps
+- **Tightened direct dep floors**: `python-dotenv>=1.2.2` and `litellm>=1.83.7` in `pyproject.toml` so future relocks start from the patched floor
+
+### Changed
+
+- **Version**: Bumped to 0.16.2
+
 ## [0.16.1] - 2026-04-21
 
 ### Fixed

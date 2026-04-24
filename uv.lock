@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.12"
 
 [options]
-exclude-newer = "2026-04-21T19:38:22.099826Z"
+exclude-newer = "2026-04-21T19:42:40.378835Z"
 exclude-newer-span = "P3D"
 
 [manifest]
@@ -1852,7 +1852,7 @@ wheels = [
 
 [[package]]
 name = "triz-ai"
-version = "0.16.1"
+version = "0.16.2"
 source = { editable = "." }
 dependencies = [
     { name = "openai" },
