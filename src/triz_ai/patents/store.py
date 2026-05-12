@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 import threading
 from datetime import UTC, datetime
@@ -149,6 +150,7 @@ class PatentStore:
         self,
         db_path: str | Path | None = None,
         vector_store: VectorStore | None = None,
+        dimensions: int | None = None,
     ):
         if db_path is None:
             from triz_ai.config import get_db_path
@@ -158,6 +160,15 @@ class PatentStore:
         # Per-thread connections: sqlite3.Connection is not shareable across threads.
         self._tls = threading.local()
         self._vector_store: VectorStore | None = vector_store
+        # Source the embedding dim from config so the vec0 table matches whatever
+        # the analyzer will produce at query time. Resolved lazily (only if no
+        # vector_store was injected) to avoid surprise config reads in callers
+        # that supply their own store.
+        if dimensions is None and vector_store is None:
+            from triz_ai.config import load_config
+
+            dimensions = load_config().embeddings.dimensions
+        self._dimensions = dimensions
 
     def _get_conn(self) -> sqlite3.Connection:
         conn = getattr(self._tls, "conn", None)
@@ -196,10 +207,36 @@ class PatentStore:
         conn.executescript(_SCHEMA_SQL)
         conn.commit()
 
+        # Detect a stale vec0 table built at a different dim than this config
+        # expects. Without this, CREATE TABLE IF NOT EXISTS silently leaves the
+        # old schema in place and every subsequent search raises
+        # `sqlite3.OperationalError: Dimension mismatch` — which the analyzer
+        # swallows as "no patent examples". See issue #17.
+        if not force and self._dimensions is not None:
+            row = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE name='patent_embeddings'"
+            ).fetchone()
+            if row and row[0]:
+                # Case-insensitive hedge against future vec0 versions that may
+                # emit lowercase `float[N]`.
+                m = re.search(r"FLOAT\[(\d+)\]", row[0], re.IGNORECASE)
+                if m and int(m.group(1)) != self._dimensions:
+                    raise ValueError(
+                        f"Existing patents.db at {self.db_path} was built at "
+                        f"embedding dim {m.group(1)}; current config expects "
+                        f"{self._dimensions}. Pass init_db(force=True) to "
+                        f"rebuild (DESTRUCTIVE)."
+                    )
+
         # Initialize vector store — create default SqliteVecStore if none provided.
         # Pass db_path (not connection) so each thread gets its own connection.
+        # Forward the configured dim so the vec0 table matches what the analyzer
+        # will produce at query time.
         if self._vector_store is None:
-            self._vector_store = SqliteVecStore(db_path=self.db_path)
+            kwargs: dict = {"db_path": self.db_path}
+            if self._dimensions is not None:
+                kwargs["dimensions"] = self._dimensions
+            self._vector_store = SqliteVecStore(**kwargs)
         self._vector_store.init(force=force)
         logger.info("Database initialized at %s", self.db_path)
 
