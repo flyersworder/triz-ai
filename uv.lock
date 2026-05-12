@@ -2,6 +2,10 @@ version = 1
 revision = 3
 requires-python = ">=3.12"
 
+[options]
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer-span = "P3D"
+
 [manifest]
 overrides = [
     { name = "aiohttp", specifier = ">=3.13.4" },
@@ -1848,7 +1852,7 @@ wheels = [
 
 [[package]]
 name = "triz-ai"
-version = "0.16.2"
+version = "0.16.3"
 source = { editable = "." }
 dependencies = [
     { name = "openai" },

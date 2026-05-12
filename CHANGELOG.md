@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.3] - 2026-05-12
+
+### Security
+
+- **urllib3 2.6.3 → 2.7.0**: patches two high-severity advisories. **GHSA-mf9v-mfxr-j63j** — decompression-bomb safeguards bypassed in the streaming API: when `HTTPResponse.drain_conn()` ran after a partial read, and during the second `HTTPResponse.read(amt=N)`/`stream(amt=N)` call against a Brotli-decoded response. **GHSA-qccp-gfcp-xxvc** — pools created via `ProxyManager.connection_from_url` did not strip headers in `Retry.remove_headers_on_redirect` when redirecting to a different host, so sensitive headers (e.g. `Authorization`) leaked across origins through proxied low-level redirects. Resolves Dependabot alerts #21 and #22. PR [#16](https://github.com/flyersworder/triz-ai/pull/16)
+
+### Fixed
+
+- **`PatentStore` now honors `EmbeddingsConfig.dimensions`**: previously `PatentStore.init_db()` always created `SqliteVecStore` at the library default `dimensions=768`, regardless of the configured embedding model. Any non-768-d model (e.g. `text-embedding-3-small` → 1536) produced `sqlite3.OperationalError: Dimension mismatch` on every search, which `engine/analyzer.py` swallowed as "Patent search failed, continuing without examples" — so analyses ran indefinitely with zero patent retrieval and no operator-visible signal. `PatentStore.__init__` now accepts `dimensions=` (defaults to `EmbeddingsConfig.dimensions` when no `vector_store` is injected) and forwards it to the auto-created `SqliteVecStore`. `init_db()` additionally inspects `sqlite_master` for an existing `patent_embeddings` schema and raises `ValueError` on dim mismatch with the configured value, pointing users at `init_db(force=True)` to rebuild. Closes [#17](https://github.com/flyersworder/triz-ai/issues/17)
+
+  **Action required for existing deployments**: if your `patents.db` was built at a different embedding dim than your current `EmbeddingsConfig.dimensions` (a strong possibility if you ever overrode the default model — until now, the table was always written at 768-d regardless), the next `analyze`/`init` invocation will now raise `ValueError` instead of silently returning zero patent results. Run `triz-ai init --force` to rebuild the database at the configured dim, then re-ingest patents.
+
+### Changed
+
+- **Version**: Bumped to 0.16.3
+
 ## [0.16.2] - 2026-04-24
 
 ### Security
