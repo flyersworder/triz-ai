@@ -609,12 +609,13 @@ def deep_reformulation_prompt(research_tool_descriptions=None) -> str:
 
 
 def solution_verification_prompt() -> str:
-    """System prompt implementing ARIZ Part 7 (solution verification and
-    synthesis across multiple candidate solutions)."""
+    """System prompt implementing ARIZ Part 7 (solution verification, concordance
+    clustering, and synthesis across multiple candidate solutions)."""
     return (
         "You are a TRIZ expert performing ARIZ-85C solution verification (Part 7).\n\n"
-        "Given the original problem, its Ideal Final Result (IFR), and a set of "
-        "candidate solutions from different TRIZ tools, perform the following:\n\n"
+        "Given the original problem, its Ideal Final Result (IFR), and candidate "
+        "solutions from different TRIZ tools (each candidate exposes its full "
+        "solution directions, not just titles), perform the following:\n\n"
         "1. **Verify each candidate** against the IFR:\n"
         "   - Does it fully satisfy the IFR?\n"
         "   - What gap remains between the candidate and the IFR?\n"
@@ -622,11 +623,47 @@ def solution_verification_prompt() -> str:
         "     * Useful function achieved (0.0-0.4)\n"
         "     * No harmful side effects (0.0-0.3)\n"
         "     * Minimal resources consumed (0.0-0.3)\n\n"
-        "2. **Synthesize combined solutions** by taking the best elements from "
-        "multiple candidates. A synthesized solution may combine principles from "
-        "different methods to get closer to the IFR.\n\n"
-        "3. **Identify supersystem changes** needed — changes to the environment, "
-        "interfaces, or adjacent systems required for each synthesized solution.\n\n"
+        "2. **Cluster solution directions across methods by inventive idea.**\n"
+        "   Pool every solution direction from every candidate (across all "
+        "methods). Group two directions into the same cluster when they "
+        "describe the same underlying inventive idea — judge by the *mechanism* "
+        "(e.g. 'adaptive gate-slew shaping with dv/dt feedback'), not by surface "
+        "wording. Use principles_applied as a strong hint: directions tagged "
+        "with the same inventive principle from different methods are usually "
+        "in the same cluster.\n"
+        "   Independent methods converging on one cluster is a positive signal "
+        "(multi-method concordance), not redundancy to discard.\n"
+        "   A direction supported by only one method is still valid; do not "
+        "drop it just because it lacks cross-method support.\n\n"
+        "3. **Synthesize one combined solution per cluster.** Each synthesized "
+        "solution corresponds to exactly one cluster (never one input "
+        "direction). Merge complementary details across the cluster's "
+        "members rather than picking one and discarding the rest:\n"
+        "   - Title: a precise label for the unified idea.\n"
+        "   - Description: union the concrete mechanisms, framings, and "
+        "implementation hints the clustered directions emphasized; do not "
+        "summarize so aggressively that distinguishing details are lost.\n"
+        "   - principles_applied: union of inventive principles across the "
+        "cluster.\n"
+        "   - supported_by_methods: distinct TRIZ methods whose candidates "
+        "contributed directions to this cluster (e.g. "
+        '["technical_contradiction", "su_field"]).\n'
+        "   - source_direction_titles: the exact titles of the input "
+        "directions that were merged into this cluster (for traceability).\n"
+        "   - ideality_score: re-score the merged solution (0.0-1.0) using "
+        "the rubric above.\n\n"
+        "4. **Identify supersystem changes** for each synthesized solution — "
+        "changes to environment, interfaces, or adjacent systems required.\n\n"
+        "Output discipline:\n"
+        "- principles_applied is a JSON array of STRINGS (e.g. "
+        '["Principle 15: Dynamics", "Principle 3: Local quality"]), not objects.\n'
+        "- supported_by_methods uses the exact method identifiers from the "
+        'candidates (e.g. "technical_contradiction", "su_field").\n'
+        "- source_direction_titles must be exact, character-for-character "
+        "matches of titles from the input candidates.\n"
+        "- Emit every verified_candidates entry as a full object with all "
+        "five fields (method, satisfies_ifr, ifr_gap, ideality_score, "
+        "key_insight) — never abbreviate to just a method name.\n\n"
         "Respond with JSON:\n"
         '{"verified_candidates": [{'
         '"method": "<method>", '
@@ -637,9 +674,11 @@ def solution_verification_prompt() -> str:
         '"any_satisfies_ifr": <bool>, '
         '"synthesized_solutions": [{'
         '"title": "<title>", '
-        '"description": "<description>", '
-        '"principles_applied": ["<principle>", "..."], '
+        '"description": "<merged description>", '
+        '"principles_applied": ["<principle string>", "..."], '
         '"supersystem_changes": ["<change>", "..."], '
-        '"ideality_score": <float>}], '
-        '"reasoning": "<verification reasoning>"}'
+        '"ideality_score": <float>, '
+        '"supported_by_methods": ["<method id>", "..."], '
+        '"source_direction_titles": ["<exact direction title>", "..."]}], '
+        '"reasoning": "<verification + clustering reasoning>"}'
     )

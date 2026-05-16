@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-05-16
+
+### Added
+
+- **Concordance metadata for deep ARIZ-85C synthesis** (issue [#19](https://github.com/flyersworder/triz-ai/issues/19)). When multiple TRIZ tools in a deep-mode run converge on the same inventive idea — a frequent pattern for sharply-defined contradictions where the strongest principle is unambiguous — Pass 3 now clusters the cross-method solution directions and annotates each `SynthesizedSolution` with `supported_by_methods` and `source_direction_titles`. The CLI surfaces this as a `[N methods agree: ...]` badge next to each solution title and a `Merged from: ...` traceability line. Multi-method convergence is a positive ARIZ signal (multi-tool validation), not duplication noise — this change reframes it accordingly rather than hiding it. Single-method directions are still preserved with no badge.
+
+  Under the hood: `solution_verification_prompt` now instructs the LLM to cluster directions by underlying mechanism (using `principles_applied` as a strong cross-method hint) and emit one synthesized solution per cluster — never one per input direction. Pass 3 receives full per-direction context (title + description + principles) instead of the prior title-only summary; `max_tokens` for `verify_and_synthesize` raised 4096 → 6144 to accommodate the expanded output schema.
+
+### Changed
+
+- **Deep-mode CLI rendering reordered.** Synthesized solutions now appear *above* per-tool dumps, which are demoted to a "Method Details" section below. The per-tool transparency is retained — deep-mode users paying for redundant multi-tool coverage still see every pipeline's findings — but the primary clustered answer is what they see first.
+- **Defense in depth against LLM provenance hallucination.** `verify_and_synthesize` clamps LLM-returned `source_direction_titles` and `supported_by_methods` against the actual input candidate set. Even when the prompt instructs "exact, character-for-character matches," LLMs paraphrase under heavier prompts; the post-call clamp guarantees the `Merged from:` and `[N methods agree]` rendering reflect only real inputs. Mirrors the `validated_obs_ids` pattern from PR [#8](https://github.com/flyersworder/triz-ai/pull/8).
+
+### Dependencies
+
+- **`uv lock --upgrade` refresh** (22 packages). Notable: **litellm 1.83.10 → 1.83.14** (patch updates on the LLM gateway; both ends carry the SQL/template injection fixes from 1.83.7+), **rich 14.3.4 → 15.0.0** (major bump on the CLI rendering library — full deep-mode rendering re-validated, all 291 tests green), **cryptography → 48.0.0** (transitive), **pydantic-settings 2.13 → 2.14**, **ruff 0.15.10 → 0.15.12**, **pre-commit 4.5 → 4.6**. `openai` held at 2.24.0 by litellm's transitive cap (latest litellm caps openai <2.27); deliberately preferred the patched-litellm path over a newer-openai one.
+
 ## [0.16.3] - 2026-05-12
 
 ### Security

@@ -41,12 +41,14 @@ IFR is always formulated first. If classifier confidence < 0.4, RCA reformulates
 `analyze --deep` bypasses the router entirely and runs a 3-pass ARIZ-85C orchestrator (`engine/ariz.py`):
 - **Pass 1**: Single LLM call reformulates the problem deeply — identifies both TCs (intensified), physical contradiction (macro+micro), IFR, resource inventory, and recommends 2-4 tools
 - **Pass 2**: Runs selected pipelines in parallel via `ThreadPoolExecutor` (IO-bound, GIL not an issue)
-- **Pass 3**: Verifies each candidate against IFR, scores ideality, synthesizes best elements
+- **Pass 3**: Verifies each candidate against IFR, scores ideality, and **clusters cross-method solution directions by underlying mechanism** — emits one `SynthesizedSolution` per cluster with `supported_by_methods` and `source_direction_titles` (concordance metadata, since 0.17.0). Multi-method convergence is a positive ARIZ signal, surfaced as `[N methods agree]` in the CLI.
+- `verify_and_synthesize` post-call clamps LLM-returned `source_direction_titles` / `supported_by_methods` to the actual input set — guards against paraphrase/hallucination even when the prompt instructs exact matches. Same pattern as `validated_obs_ids` in `evolution/self_evolve.py`.
 - **Escape hatch**: If no candidate satisfies IFR, swaps TC1↔TC2 and re-runs Passes 2-3 once
 - `--deep` and `--method` are mutually exclusive
 - `deep_model` and `reasoning_effort` are configurable in `~/.triz-ai/config.yaml` under `llm`; CLI flags `--deep-model` and `--reasoning-effort` override config
 - Pass 2 pipelines always use `default_model` (via `--model`); Passes 1 & 3 use `deep_model` (falls back to `default_model`)
 - `reasoning_effort` accepts `low|medium|high`; litellm translates across providers (Anthropic, OpenAI o-series, DeepSeek R1, etc.)
+- **Model choice matters more in deep mode.** The default free `nemotron-3-super-120b-a12b:free` regularly malforms the complex multi-pass JSON schemas (verified empirically against the SiC MOSFET EMI canonical problem, 2026-05-16). For reliable deep-mode runs, set `--model openrouter/google/gemini-3.1-flash-lite-preview` (cheap, $0.25/$1.50 per M tokens), or use a stronger reasoning model via `--deep-model` for Passes 1 & 3 only.
 
 ### Pluggable Research Tools (Stage-Aware)
 

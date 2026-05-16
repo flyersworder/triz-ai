@@ -66,6 +66,11 @@ class SynthesizedSolution(BaseModel):
     principles_applied: list[str]
     supersystem_changes: list[str]
     ideality_score: float
+    # Concordance metadata: which methods proposed flavors of this solution.
+    # When >1, multiple independent TRIZ tools converged on the same inventive
+    # principle — a positive signal in ARIZ practice, not noise.
+    supported_by_methods: list[str] = []
+    source_direction_titles: list[str] = []
 
 
 class SolutionVerification(BaseModel):

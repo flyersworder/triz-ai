@@ -657,15 +657,31 @@ class LLMClient:
         """
         from triz_ai.engine.ariz import SolutionVerification
 
-        # Build compact user prompt from problem model and candidates
+        # Build user prompt with full per-direction context so Pass 3 can
+        # cluster near-duplicates across methods (concordance signal) rather
+        # than receive a lossy title-only summary.
         candidate_summaries = []
         for c in candidates:
             dirs = c.get("solution_directions", [])
-            dir_titles = ", ".join(d.get("title", "") for d in dirs)
+            if dirs:
+                dir_lines = []
+                for d in dirs:
+                    title = d.get("title", "")
+                    desc = d.get("description", "")
+                    principles = d.get("principles_applied", []) or []
+                    principles_str = ", ".join(principles) if principles else "—"
+                    dir_lines.append(
+                        f"  - Title: {title}\n"
+                        f"    Description: {desc}\n"
+                        f"    Principles: {principles_str}"
+                    )
+                directions_block = "Solution directions:\n" + "\n".join(dir_lines)
+            else:
+                directions_block = "Solution directions: (none)"
             summary = (
                 f"Method: {c['method']}\n"
                 f"Reasoning: {c.get('reasoning', 'N/A')}\n"
-                f"Solution directions: {dir_titles}"
+                f"{directions_block}"
             )
             candidate_summaries.append(summary)
 
@@ -679,14 +695,32 @@ class LLMClient:
             f"Candidates:\n\n" + "\n---\n".join(candidate_summaries)
         )
 
-        return self._complete(
+        result = self._complete(
             solution_verification_prompt(),
             user_prompt,
             SolutionVerification,
             model=model,
-            max_tokens=4096,
+            # Pass 3 now emits supported_by_methods + source_direction_titles
+            # per synthesized solution; the bigger output schema needs headroom.
+            max_tokens=6144,
             reasoning_effort=reasoning_effort,
         )
+
+        # Clamp LLM-returned concordance fields to the known input set. The
+        # prompt instructs exact, character-for-character matches, but LLM
+        # paraphrasing is a known failure mode — without this filter the CLI
+        # would print fabricated "Merged from:" provenance. Same guardrail
+        # pattern as `validated_obs_ids` in evolution/self_evolve.py.
+        input_titles = {
+            d.get("title", "") for c in candidates for d in c.get("solution_directions", [])
+        }
+        input_methods = {c["method"] for c in candidates}
+        for sol in result.synthesized_solutions:
+            sol.source_direction_titles = [
+                t for t in sol.source_direction_titles if t in input_titles
+            ]
+            sol.supported_by_methods = [m for m in sol.supported_by_methods if m in input_methods]
+        return result
 
     def get_embedding(self, text: str) -> list[float]:
         """Get embedding vector for text."""

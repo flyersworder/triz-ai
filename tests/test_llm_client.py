@@ -169,6 +169,205 @@ class TestValidateObservations:
         assert len(results.validations[0].validated_principles) == 2
 
 
+class TestVerifyAndSynthesizePayload:
+    """Tests for the verify_and_synthesize user-prompt payload shape."""
+
+    def test_user_prompt_includes_direction_descriptions_and_principles(self, client):
+        """Pass 3 must see full direction context, not just titles — without
+        descriptions and principles_applied it cannot cluster across methods."""
+        from triz_ai.engine.ariz import (
+            PhysicalContradictionModel,
+            ResourceInventory,
+            SolutionVerification,
+            StructuredProblemModel,
+            TechnicalContradiction,
+        )
+
+        captured: dict = {}
+
+        def fake_complete(system_prompt, user_prompt, response_model, **kwargs):
+            captured["system"] = system_prompt
+            captured["user"] = user_prompt
+            return SolutionVerification(
+                verified_candidates=[],
+                any_satisfies_ifr=False,
+                synthesized_solutions=[],
+                reasoning="stub",
+            )
+
+        client._complete = fake_complete
+
+        problem_model = StructuredProblemModel(
+            original_problem="orig",
+            reformulated_problem="reformulated",
+            technical_contradiction_1=TechnicalContradiction(
+                improving_param_id=9,
+                improving_param_name="Speed",
+                worsening_param_id=31,
+                worsening_param_name="Harmful side effects",
+                intensified_description="Faster switching → more EMI",
+            ),
+            technical_contradiction_2=TechnicalContradiction(
+                improving_param_id=31,
+                improving_param_name="Harmful side effects",
+                worsening_param_id=9,
+                worsening_param_name="Speed",
+                intensified_description="Less EMI → slower switching",
+            ),
+            physical_contradiction=PhysicalContradictionModel(
+                property="dv/dt",
+                macro_requirement="fast",
+                micro_requirement="slow",
+            ),
+            ideal_final_result="The system itself switches fast without EMI",
+            resource_inventory=ResourceInventory(
+                substances=[], fields=[], time_resources=[], space_resources=[]
+            ),
+            recommended_tools=["technical_contradiction"],
+            reasoning="r",
+        )
+
+        candidates = [
+            {
+                "method": "technical_contradiction",
+                "reasoning": "TC reasoning",
+                "solution_directions": [
+                    {
+                        "title": "Closed-loop dv/dt control",
+                        "description": "Sense phase-node ringing and adjust gate drive",
+                        "principles_applied": ["Principle 15: Dynamics"],
+                    },
+                ],
+            },
+            {
+                "method": "su_field",
+                "reasoning": "Su-Field reasoning",
+                "solution_directions": [
+                    {
+                        "title": "Two-level gate drive",
+                        "description": "Fast-through-Miller, slow-at-excitation window",
+                        "principles_applied": ["Principle 15: Dynamics"],
+                    },
+                ],
+            },
+        ]
+
+        client.verify_and_synthesize(problem_model, candidates)
+
+        user = captured["user"]
+        # Descriptions, not just titles, must reach Pass 3
+        assert "Sense phase-node ringing and adjust gate drive" in user
+        assert "Fast-through-Miller, slow-at-excitation window" in user
+        # Principles must reach Pass 3 — they are the strongest cross-method
+        # clustering hint
+        assert "Principle 15: Dynamics" in user
+        # Method labels still present
+        assert "technical_contradiction" in user
+        assert "su_field" in user
+
+    def test_clamps_hallucinated_source_titles_and_methods(self, client):
+        """LLM may paraphrase titles or invent methods despite the prompt's
+        'exact match' instruction. The post-call clamp must drop entries that
+        aren't present in the input candidates — otherwise the CLI prints
+        fabricated 'Merged from:' provenance and inflated concordance badges."""
+        from triz_ai.engine.ariz import (
+            ResourceInventory,
+            SolutionVerification,
+            StructuredProblemModel,
+            SynthesizedSolution,
+            TechnicalContradiction,
+        )
+
+        # LLM returns a mix of valid + hallucinated titles and methods
+        hallucinated_response = SolutionVerification(
+            verified_candidates=[],
+            any_satisfies_ifr=True,
+            synthesized_solutions=[
+                SynthesizedSolution(
+                    title="Adaptive gate-slew",
+                    description="merged",
+                    principles_applied=["Principle 15: Dynamics"],
+                    supersystem_changes=[],
+                    ideality_score=0.8,
+                    supported_by_methods=[
+                        "technical_contradiction",  # valid
+                        "su_field",  # valid
+                        "imagined_method",  # hallucinated — not in candidates
+                    ],
+                    source_direction_titles=[
+                        "Closed-loop dv/dt control",  # exact match
+                        "Adaptive dv/dt closed-loop control",  # paraphrase
+                        "Two-level gate drive",  # exact match
+                    ],
+                ),
+            ],
+            reasoning="r",
+        )
+
+        client._complete = lambda *a, **kw: hallucinated_response
+
+        problem_model = StructuredProblemModel(
+            original_problem="o",
+            reformulated_problem="r",
+            technical_contradiction_1=TechnicalContradiction(
+                improving_param_id=9,
+                improving_param_name="Speed",
+                worsening_param_id=31,
+                worsening_param_name="Harmful side effects",
+                intensified_description="x",
+            ),
+            technical_contradiction_2=TechnicalContradiction(
+                improving_param_id=31,
+                improving_param_name="Harmful side effects",
+                worsening_param_id=9,
+                worsening_param_name="Speed",
+                intensified_description="y",
+            ),
+            ideal_final_result="ifr",
+            resource_inventory=ResourceInventory(
+                substances=[], fields=[], time_resources=[], space_resources=[]
+            ),
+            recommended_tools=["technical_contradiction"],
+            reasoning="r",
+        )
+
+        candidates = [
+            {
+                "method": "technical_contradiction",
+                "reasoning": "tc",
+                "solution_directions": [
+                    {
+                        "title": "Closed-loop dv/dt control",
+                        "description": "d",
+                        "principles_applied": ["Principle 15: Dynamics"],
+                    }
+                ],
+            },
+            {
+                "method": "su_field",
+                "reasoning": "sf",
+                "solution_directions": [
+                    {
+                        "title": "Two-level gate drive",
+                        "description": "d",
+                        "principles_applied": ["Principle 15: Dynamics"],
+                    }
+                ],
+            },
+        ]
+
+        result = client.verify_and_synthesize(problem_model, candidates)
+        sol = result.synthesized_solutions[0]
+
+        # Paraphrased title is dropped; exact matches preserved
+        assert sol.source_direction_titles == [
+            "Closed-loop dv/dt control",
+            "Two-level gate drive",
+        ]
+        # Hallucinated method is dropped; valid methods preserved in order
+        assert sol.supported_by_methods == ["technical_contradiction", "su_field"]
+
+
 class TestGetEmbedding:
     """Tests for get_embedding."""
 

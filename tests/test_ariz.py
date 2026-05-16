@@ -303,3 +303,35 @@ class TestOrchestrateDeep:
             # deep_reformulate should receive enriched problem text
             call_args = mock_llm.deep_reformulate.call_args[0]
             assert "Extra context data" in call_args[0]
+
+
+class TestSynthesizedSolutionConcordance:
+    """SynthesizedSolution should accept concordance metadata additively."""
+
+    def test_defaults_empty_when_omitted(self):
+        sol = SynthesizedSolution(
+            title="t",
+            description="d",
+            principles_applied=["P1"],
+            supersystem_changes=[],
+            ideality_score=0.5,
+        )
+        assert sol.supported_by_methods == []
+        assert sol.source_direction_titles == []
+
+    def test_accepts_concordance_fields(self):
+        sol = SynthesizedSolution(
+            title="Adaptive gate-slew control",
+            description="merged description",
+            principles_applied=["Principle 15: Dynamics"],
+            supersystem_changes=[],
+            ideality_score=0.82,
+            supported_by_methods=["technical_contradiction", "su_field", "physical_contradiction"],
+            source_direction_titles=[
+                "Closed-loop dv/dt control",
+                "Two-level gate drive",
+                "Two-slope dv/dt shaping",
+            ],
+        )
+        assert len(sol.supported_by_methods) == 3
+        assert "Closed-loop dv/dt control" in sol.source_direction_titles

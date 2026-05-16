@@ -429,6 +429,21 @@ def _render_patents(result) -> None:
         )
 
 
+def _concordance_badge(supporting_methods: list[str]) -> str:
+    """Format a concordance badge for synthesized solutions.
+
+    Multi-method support is a positive ARIZ signal (independent tools converging
+    on the same inventive idea), not redundancy. Single-method support is
+    unbadged — still valid, just unique to one method.
+    """
+    n = len(supporting_methods)
+    if n < 2:
+        return ""
+    labels = ", ".join(m.replace("_", " ").title() for m in supporting_methods)
+    style = "bold cyan" if n >= 3 else "cyan"
+    return f" [{style}][{n} methods agree: {labels}][/{style}]"
+
+
 def _render_solution_directions(result) -> None:
     """Render solution directions (common across all methods)."""
     if result.solution_directions:
@@ -490,17 +505,8 @@ def _render_deep_analysis(problem: str, result) -> None:
     tools_str = ", ".join(t.replace("_", " ").title() for t in result.tools_used)
     console.print(f"\n[bold]Tools Used:[/bold] [cyan]{tools_str}[/cyan]\n")
 
-    # 4. Per-tool findings
-    for tool_result in result.tool_results:
-        method_label = tool_result.method.replace("_", " ").title()
-        console.print(f"\n[bold]── {method_label} ──[/bold]")
-        _render_method_details(tool_result)
-        _render_patents(tool_result)
-        _render_solution_directions(tool_result)
-
-    # 5. Verification table
+    # 4. Verification table (alongside synthesis — both summarize Pass 3)
     if result.verification.verified_candidates:
-        console.print()
         vtable = Table(title="IFR Verification")
         vtable.add_column("Method", style="cyan")
         vtable.add_column("Satisfies IFR", style="bold")
@@ -516,13 +522,16 @@ def _render_deep_analysis(problem: str, result) -> None:
             )
         console.print(vtable)
 
-    # 6. Synthesized Solutions
+    # 5. Synthesized Solutions (primary output — concordance-annotated)
     if result.verification.synthesized_solutions:
         console.print("\n[bold]Synthesized Solutions:[/bold]")
         for i, sol in enumerate(result.verification.synthesized_solutions, 1):
+            supporting = getattr(sol, "supported_by_methods", []) or []
+            badge = _concordance_badge(supporting)
             console.print(
                 f"\n  [cyan]{i}.[/cyan] [bold]{sol.title}[/bold] "
                 f"[dim](ideality: {sol.ideality_score:.2f})[/dim]"
+                f"{badge}"
             )
             console.print(f"     {sol.description}")
             if sol.principles_applied:
@@ -532,6 +541,23 @@ def _render_deep_analysis(problem: str, result) -> None:
                     f"     [yellow]Supersystem changes: "
                     f"{', '.join(sol.supersystem_changes)}[/yellow]"
                 )
+            sources = getattr(sol, "source_direction_titles", []) or []
+            if sources:
+                console.print(f"     [dim]Merged from: {'; '.join(sources)}[/dim]")
+
+    # 6. Per-tool findings (method details — below synthesis, retained for transparency)
+    if result.tool_results:
+        console.print("\n[bold]── Method Details ──[/bold]")
+        console.print(
+            "[dim]Each TRIZ tool's individual findings, before clustering. "
+            "Synthesized solutions above merge directions across methods.[/dim]"
+        )
+        for tool_result in result.tool_results:
+            method_label = tool_result.method.replace("_", " ").title()
+            console.print(f"\n[bold cyan]{method_label}[/bold cyan]")
+            _render_method_details(tool_result)
+            _render_patents(tool_result)
+            _render_solution_directions(tool_result)
 
     # 7. Escape hatch note
     if result.used_escape_hatch:
