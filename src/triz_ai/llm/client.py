@@ -1,8 +1,9 @@
 """LLM client wrapping litellm (optional) or openai for TRIZ operations."""
 
+import copy
 import json
 import logging
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import openai
 from pydantic import BaseModel
@@ -217,6 +218,49 @@ def _friendly_error(e: Exception) -> TrizAIError:
     return TrizAIError(f"LLM request failed: {e}")
 
 
+def _strictify_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Transform a pydantic JSON Schema into OpenAI strict-mode shape.
+
+    Strict structured-output schemas require, on every object:
+      - ``additionalProperties: false``
+      - every property listed in ``required`` (optional pydantic fields express
+        nullability via ``anyOf`` with ``"type": "null"``, not by being absent)
+
+    They also forbid ``default`` keys anywhere in the schema. Returns a fresh
+    deep copy — callers may reuse the input dict.
+
+    Walks ``$defs`` separately so nested type definitions are strictified too.
+
+    Limitation: OpenAI strict mode supports ``anyOf`` (which pydantic uses for
+    ``X | None`` nullability) but has caveats around ``oneOf`` and ``allOf``.
+    This helper walks into them and applies the object-level rules to their
+    branches, but it does not rewrite the keywords themselves. None of the
+    current response models in ``triz-ai`` emit ``oneOf``/``allOf`` (verified
+    by ``test_no_oneof_or_allof_in_response_models``); a future model that
+    adds ``Annotated[X | Y, Discriminator(...)]`` may need additional handling.
+    """
+    out = copy.deepcopy(schema)
+
+    def _walk(node: Any) -> None:
+        if isinstance(node, dict):
+            node.pop("default", None)
+            if node.get("type") == "object" or "properties" in node:
+                node["additionalProperties"] = False
+                props = node.get("properties")
+                if isinstance(props, dict) and props:
+                    node["required"] = list(props.keys())
+            for v in node.values():
+                _walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                _walk(v)
+
+    _walk(out)
+    for d in out.get("$defs", {}).values():
+        _walk(d)
+    return out
+
+
 def _is_retryable(e: Exception) -> bool:
     """Check if an error is worth retrying with a stricter prompt.
 
@@ -326,8 +370,15 @@ class LLMClient:
     ) -> T:
         """Call LLM and validate response against pydantic model.
 
-        On malformed response, retry once with stricter prompt, then fail.
-        Auth/network errors are raised immediately without retry.
+        Output shape is enforced server-side via ``response_format={"type":
+        "json_schema", strict: True}`` (since 0.18.0) — the strictified schema
+        from :func:`_strictify_schema` is the wire contract, translated to
+        provider-native mechanisms (Anthropic tool-use, etc.) by LiteLLM.
+        Pydantic validation runs as a post-response sanity check; on the rare
+        malformed response that slips past server-side enforcement, the call
+        retries once with a stricter prompt (the same strictified schema
+        repeated textually), then fails. Auth/network errors are raised
+        immediately without retry.
 
         Uses litellm if installed (supports any provider), otherwise falls
         back to the openai SDK (requires api_base pointing to an
@@ -347,6 +398,14 @@ class LLMClient:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": response_model.__name__,
+                "schema": _strictify_schema(response_model.model_json_schema()),
+                "strict": True,
+            },
+        }
 
         try:
             if HAS_LITELLM:
@@ -358,7 +417,7 @@ class LLMClient:
                 response = litellm.completion(
                     model=use_model,
                     messages=messages,
-                    response_format={"type": "json_object"},
+                    response_format=response_format,
                     **kwargs,
                 )
                 raw = response.choices[0].message.content
@@ -367,7 +426,7 @@ class LLMClient:
                 oai_kwargs: dict = {
                     "model": use_model,
                     "messages": messages,
-                    "response_format": {"type": "json_object"},
+                    "response_format": response_format,
                 }
                 if max_tokens is not None:
                     oai_kwargs["max_tokens"] = max_tokens
@@ -381,10 +440,13 @@ class LLMClient:
         except Exception as e:
             if retry and _is_retryable(e):
                 logger.debug("First attempt failed (%s), retrying with stricter prompt", e)
+                # Use the same strictified schema as the wire contract — otherwise
+                # the text hint contradicts the server-side strict_json_schema
+                # (e.g. `default: null` in the raw form, forbidden in strict).
                 strict_system = (
                     system_prompt
                     + "\n\nIMPORTANT: You MUST respond with valid JSON matching this exact"
-                    f" schema: {response_model.model_json_schema()}"
+                    f" schema: {_strictify_schema(response_model.model_json_schema())}"
                 )
                 return self._complete(
                     strict_system,

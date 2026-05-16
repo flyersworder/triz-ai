@@ -11,6 +11,7 @@ from triz_ai.llm.client import (
     LLMClient,
     PatentClassification,
     TrizAIError,
+    _strictify_schema,
 )
 
 
@@ -469,6 +470,102 @@ class TestOpenAIFallback:
             with pytest.raises(TrizAIError, match="No LLM backend available"):
                 client._complete("system", "user", ExtractedContradiction)
 
+    def test_complete_openai_fallback_retries_on_malformed_response(self):
+        """The retry-with-stricter-prompt fallback must also work on the
+        openai-SDK path (the litellm path is covered by
+        TestComplete.test_retries_on_malformed_response). This guards against
+        accidentally branching the retry logic to only one backend.
+        """
+        invalid_json = '{"bad": "data"}'
+        valid_json = json.dumps(
+            {
+                "improving_param": 5,
+                "worsening_param": 10,
+                "reasoning": "retried successfully on openai path",
+            }
+        )
+
+        def make_response(content):
+            message = MagicMock()
+            message.content = content
+            choice = MagicMock()
+            choice.message = message
+            r = MagicMock()
+            r.choices = [choice]
+            return r
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.side_effect = [
+            make_response(invalid_json),
+            make_response(valid_json),
+        ]
+
+        with (
+            patch("triz_ai.llm.client.load_config") as mock_config,
+            patch("triz_ai.llm.client.HAS_LITELLM", False),
+            patch("triz_ai.llm.client.openai.OpenAI", return_value=mock_client),
+        ):
+            mock_settings = MagicMock()
+            mock_settings.llm.default_model = "test-model"
+            mock_settings.llm.api_base = "http://localhost:4000"
+            mock_settings.llm.api_key = "test-key"
+            mock_settings.llm.ssl_verify = True
+            mock_settings.embeddings.model = "test-embed-model"
+            mock_config.return_value = mock_settings
+
+            client = LLMClient()
+            result = client._complete("system", "user", ExtractedContradiction)
+            assert result.improving_param == 5
+            assert mock_client.chat.completions.create.call_count == 2
+
+    def test_complete_openai_fallback_uses_json_schema_strict(self):
+        """openai-SDK fallback must also send response_format=json_schema strict.
+
+        Issue #18 fix: previously this path also used json_object loose mode.
+        Both backends share the same upgrade.
+        """
+        valid_json = json.dumps(
+            {
+                "improving_param": 1,
+                "worsening_param": 2,
+                "reasoning": "strict openai path",
+            }
+        )
+        message = MagicMock()
+        message.content = valid_json
+        choice = MagicMock()
+        choice.message = message
+        mock_response = MagicMock()
+        mock_response.choices = [choice]
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_response
+
+        with (
+            patch("triz_ai.llm.client.load_config") as mock_config,
+            patch("triz_ai.llm.client.HAS_LITELLM", False),
+            patch("triz_ai.llm.client.openai.OpenAI", return_value=mock_client),
+        ):
+            mock_settings = MagicMock()
+            mock_settings.llm.default_model = "test-model"
+            mock_settings.llm.api_base = "http://localhost:4000"
+            mock_settings.llm.api_key = "test-key"
+            mock_settings.llm.ssl_verify = True
+            mock_settings.embeddings.model = "test-embed-model"
+            mock_config.return_value = mock_settings
+
+            client = LLMClient()
+            client._complete("system", "user", ExtractedContradiction)
+
+        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+        rf = call_kwargs["response_format"]
+        assert rf["type"] == "json_schema"
+        assert rf["json_schema"]["name"] == "ExtractedContradiction"
+        assert rf["json_schema"]["strict"] is True
+        schema = rf["json_schema"]["schema"]
+        assert schema["additionalProperties"] is False
+        assert set(schema["required"]) == set(schema["properties"].keys())
+
     def test_raises_when_no_litellm_and_no_embedding_api_base(self):
         """When HAS_LITELLM is False and no embedding_api_base, raise TrizAIError."""
         with (
@@ -488,3 +585,325 @@ class TestOpenAIFallback:
             client = LLMClient()
             with pytest.raises(TrizAIError, match="embeddings.api_base"):
                 client.get_embedding("test text")
+
+
+class TestCompleteResponseFormat:
+    """Issue #18 fix: _complete must request strict json_schema, not loose json_object.
+
+    The behavior change is in the `response_format` argument passed to the LLM.
+    Loose json_object lets the model emit malformed JSON (reproducibly on
+    nemotron-3-super-120b-a12b:free with deep-mode schemas — see CLAUDE.md
+    pre-0.18.0 note); strict json_schema enforces the pydantic shape
+    server-side and across providers via LiteLLM's translation layer.
+    """
+
+    def test_litellm_path_sends_json_schema_strict(self, client):
+        """litellm.completion must receive response_format.type=json_schema strict."""
+        valid_json = json.dumps(
+            {
+                "improving_param": 1,
+                "worsening_param": 2,
+                "reasoning": "strict litellm path",
+            }
+        )
+        with patch(
+            "litellm.completion",
+            return_value=_make_completion_response(valid_json),
+        ) as mock_completion:
+            client._complete("system", "user", ExtractedContradiction)
+
+        kwargs = mock_completion.call_args.kwargs
+        rf = kwargs["response_format"]
+        assert rf["type"] == "json_schema"
+        assert rf["json_schema"]["name"] == "ExtractedContradiction"
+        assert rf["json_schema"]["strict"] is True
+        # Schema is strictified inline — additionalProperties=false and full required.
+        schema = rf["json_schema"]["schema"]
+        assert schema["additionalProperties"] is False
+        assert set(schema["required"]) == set(schema["properties"].keys())
+
+    def test_litellm_path_strictifies_nested_pydantic_models(self, client):
+        """Nested models (StructuredProblemModel) must be strictified end-to-end.
+
+        Deep schemas with $defs / $ref / Optional fields with default=None are
+        the case the bug was about. The strictifier must reach into $defs too.
+        """
+        from triz_ai.engine.ariz import (
+            ResourceInventory,
+            StructuredProblemModel,
+            TechnicalContradiction,
+        )
+
+        sample = StructuredProblemModel(
+            original_problem="o",
+            reformulated_problem="r",
+            technical_contradiction_1=TechnicalContradiction(
+                improving_param_id=1,
+                improving_param_name="x",
+                worsening_param_id=2,
+                worsening_param_name="y",
+                intensified_description="z",
+            ),
+            technical_contradiction_2=TechnicalContradiction(
+                improving_param_id=2,
+                improving_param_name="y",
+                worsening_param_id=1,
+                worsening_param_name="x",
+                intensified_description="z",
+            ),
+            ideal_final_result="ifr",
+            resource_inventory=ResourceInventory(
+                substances=[],
+                fields=[],
+                time_resources=[],
+                space_resources=[],
+            ),
+            recommended_tools=["technical_contradiction"],
+            reasoning="r",
+        )
+        with patch(
+            "litellm.completion",
+            return_value=_make_completion_response(sample.model_dump_json()),
+        ) as mock_completion:
+            client._complete("system", "user", StructuredProblemModel)
+
+        schema = mock_completion.call_args.kwargs["response_format"]["json_schema"]["schema"]
+        # $defs nested objects must each have additionalProperties=false too
+        for def_name, def_schema in schema.get("$defs", {}).items():
+            assert def_schema.get("additionalProperties") is False, (
+                f"$defs.{def_name} missing additionalProperties=false"
+            )
+            assert set(def_schema.get("required", [])) == set(
+                def_schema.get("properties", {}).keys()
+            ), f"$defs.{def_name} required != properties"
+        # Optional field (physical_contradiction) must appear in required
+        # (strict mode forbids omission — nullability is via anyOf+null, not absence)
+        assert "physical_contradiction" in schema["required"]
+
+        # `default` keys must be stripped everywhere
+        def _no_defaults(node):
+            if isinstance(node, dict):
+                assert "default" not in node, f"default key still present: {node!r}"
+                for v in node.values():
+                    _no_defaults(v)
+            elif isinstance(node, list):
+                for v in node:
+                    _no_defaults(v)
+
+        _no_defaults(schema)
+
+
+class TestStrictifySchema:
+    """Unit tests for _strictify_schema — covers edge cases the integration
+    tests touch but don't isolate (e.g. nested objects without `type: object`,
+    deeply-nested $defs, idempotency)."""
+
+    def test_adds_additional_properties_false_on_object(self):
+        schema = {"type": "object", "properties": {"a": {"type": "string"}}}
+        out = _strictify_schema(schema)
+        assert out["additionalProperties"] is False
+
+    def test_required_covers_all_properties(self):
+        schema = {
+            "type": "object",
+            "properties": {"a": {"type": "string"}, "b": {"type": "integer"}},
+            "required": ["a"],  # incomplete required — must be expanded
+        }
+        out = _strictify_schema(schema)
+        assert set(out["required"]) == {"a", "b"}
+
+    def test_strips_default_keys_everywhere(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "a": {"type": "string", "default": "hello"},
+                "b": {
+                    "anyOf": [{"type": "integer"}, {"type": "null"}],
+                    "default": None,
+                },
+            },
+        }
+        out = _strictify_schema(schema)
+        assert "default" not in out["properties"]["a"]
+        assert "default" not in out["properties"]["b"]
+
+    def test_preserves_anyof_null_unions(self):
+        """Optional pydantic fields (`X | None = None`) become anyOf+null.
+        Strict mode handles this via type-union nullability — must NOT be
+        rewritten to a non-nullable shape."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "maybe": {
+                    "anyOf": [{"type": "string"}, {"type": "null"}],
+                    "default": None,
+                }
+            },
+        }
+        out = _strictify_schema(schema)
+        # anyOf shape preserved
+        assert out["properties"]["maybe"]["anyOf"] == [
+            {"type": "string"},
+            {"type": "null"},
+        ]
+        # default stripped, field is required
+        assert "default" not in out["properties"]["maybe"]
+        assert "maybe" in out["required"]
+
+    def test_recurses_into_defs(self):
+        schema = {
+            "$defs": {
+                "Inner": {
+                    "type": "object",
+                    "properties": {"x": {"type": "integer", "default": 0}},
+                }
+            },
+            "type": "object",
+            "properties": {"a": {"$ref": "#/$defs/Inner"}},
+        }
+        out = _strictify_schema(schema)
+        inner = out["$defs"]["Inner"]
+        assert inner["additionalProperties"] is False
+        assert inner["required"] == ["x"]
+        assert "default" not in inner["properties"]["x"]
+
+    def test_recurses_into_array_items(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {"id": {"type": "integer", "default": 0}},
+                    },
+                }
+            },
+        }
+        out = _strictify_schema(schema)
+        item = out["properties"]["rows"]["items"]
+        assert item["additionalProperties"] is False
+        assert item["required"] == ["id"]
+        assert "default" not in item["properties"]["id"]
+
+    def test_does_not_mutate_input(self):
+        """Strictifier must return a defensive copy — pydantic callers may
+        reuse the schema dict, and mutation would surprise them."""
+        schema = {
+            "type": "object",
+            "properties": {"a": {"type": "string", "default": "x"}},
+        }
+        original = json.loads(json.dumps(schema))  # deep snapshot
+        _strictify_schema(schema)
+        assert schema == original, "input schema was mutated"
+
+    def test_idempotent(self):
+        """Applying the strictifier twice should yield the same result."""
+        from triz_ai.llm.client import ProblemClassification
+
+        once = _strictify_schema(ProblemClassification.model_json_schema())
+        twice = _strictify_schema(once)
+        assert once == twice
+
+    def test_walks_into_oneof_and_allof_branches(self):
+        """Strictifier walks into oneOf/allOf branches and applies object rules.
+
+        The strictifier doesn't rewrite the oneOf/allOf keywords themselves —
+        OpenAI strict mode has caveats around them — but each branch's object
+        rules (additionalProperties=false, required = all properties, no
+        default keys) must still be applied so that if a future schema does
+        use these keywords, branch-level shape is correct.
+        """
+        schema = {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {"a": {"type": "string", "default": "x"}},
+                },
+                {"type": "object", "properties": {"b": {"type": "integer"}}},
+            ],
+            "allOf": [
+                {
+                    "type": "object",
+                    "properties": {"c": {"type": "boolean", "default": True}},
+                },
+            ],
+        }
+        out = _strictify_schema(schema)
+        # oneOf keyword preserved, but branches strictified
+        for branch in out["oneOf"]:
+            assert branch["additionalProperties"] is False
+            assert set(branch["required"]) == set(branch["properties"].keys())
+            for prop_schema in branch["properties"].values():
+                assert "default" not in prop_schema
+        # allOf same
+        for branch in out["allOf"]:
+            assert branch["additionalProperties"] is False
+            assert set(branch["required"]) == set(branch["properties"].keys())
+
+    def test_no_oneof_or_allof_in_response_models(self):
+        """Canary: none of the response models passed to _complete should
+        emit oneOf/allOf today. If pydantic starts emitting them (e.g. someone
+        adds a discriminated union), the strictifier's docstring caveat needs
+        revisiting — branches get walked but the keywords themselves pass
+        through, and OpenAI strict mode does not fully support them.
+        """
+        from triz_ai.engine.ariz import SolutionVerification, StructuredProblemModel
+        from triz_ai.llm.client import (
+            CandidateParameterProposal,
+            CandidatePrincipleProposal,
+            ExtractedContradiction,
+            FunctionAnalysisResult,
+            IdeaBatch,
+            IdealFinalResult,
+            MatrixSeedResult,
+            ObservationValidationBatch,
+            PatentClassification,
+            PhysicalContradictionResult,
+            ProblemClassification,
+            RootCauseAnalysis,
+            SolutionDirectionBatch,
+            SuFieldResult,
+            TrendsResult,
+            TrimmingResult,
+        )
+
+        response_models = [
+            ExtractedContradiction,
+            PatentClassification,
+            IdeaBatch,
+            SolutionDirectionBatch,
+            CandidatePrincipleProposal,
+            CandidateParameterProposal,
+            MatrixSeedResult,
+            ObservationValidationBatch,
+            ProblemClassification,
+            IdealFinalResult,
+            RootCauseAnalysis,
+            PhysicalContradictionResult,
+            SuFieldResult,
+            FunctionAnalysisResult,
+            TrimmingResult,
+            TrendsResult,
+            StructuredProblemModel,
+            SolutionVerification,
+        ]
+
+        def _contains_keyword(node, keyword):
+            if isinstance(node, dict):
+                if keyword in node:
+                    return True
+                return any(_contains_keyword(v, keyword) for v in node.values())
+            if isinstance(node, list):
+                return any(_contains_keyword(v, keyword) for v in node)
+            return False
+
+        for model in response_models:
+            schema = model.model_json_schema()
+            assert not _contains_keyword(schema, "oneOf"), (
+                f"{model.__name__} emits oneOf — strictifier docstring caveat applies; "
+                "verify OpenAI strict mode accepts it on your provider before shipping."
+            )
+            assert not _contains_keyword(schema, "allOf"), (
+                f"{model.__name__} emits allOf — strictifier docstring caveat applies."
+            )

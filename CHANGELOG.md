@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-05-16
+
+### Fixed
+
+- **Deep-mode JSON malformation on free models** (issue [#18](https://github.com/flyersworder/triz-ai/issues/18)). `LLMClient._complete` previously requested structured output via `response_format={"type": "json_object"}` — OpenAI's *loose* JSON mode, which only hints to the model that valid JSON is expected and leaves shape enforcement to post-hoc pydantic validation. On the default free `nvidia/nemotron-3-super-120b-a12b:free` model with deep ARIZ-85C schemas (`StructuredProblemModel`, `SolutionVerification`), this reproducibly produced malformed output containing literal junk keys (`"," : ":"`, leading colons on enum-like fields) — verified empirically against the SiC MOSFET EMI canonical problem on 2026-05-16. The single retry-with-stricter-prompt fallback was not enough to recover, so deep mode was effectively broken on the free model and the workaround was "switch to a paid model."
+
+  `_complete` now requests `response_format={"type": "json_schema", "json_schema": {..., "strict": True}}` — OpenAI's Structured Outputs (GA Aug 2024), which enforces the schema *server-side* across all providers. LiteLLM translates the contract to provider-native mechanisms (Anthropic tool-use for Claude, schema-typed function calling for Gemini, OpenRouter pass-through for everything else), so the provider-portability story is unchanged. End-to-end smoke-tested against `nemotron-3-super-120b-a12b:free` + deep mode + the canonical broken problem: now produces a complete `StructuredProblemModel` + clustered synthesis where it previously failed.
+
+  Why not migrate to the Responses API (as issue #18 originally proposed)? Path probing in `scripts/probe_responses_api.py` showed that the bug is in the *output-shape contract* (loose `json_object` vs. strict `json_schema`), which is orthogonal to API surface. Both contracts are available on `chat.completions` too — and staying on `litellm.completion()` avoids the less-mature LiteLLM `responses()` shim, keeps LiteLLM as the single provider-portability layer (no second abstraction), and means no `api_style` config knob, no dual-mode plumbing, no future maintenance of two code paths. Single-argument change; minimum-blast-radius fix.
+
+### Added
+
+- **`_strictify_schema(dict) -> dict` helper in `llm/client.py`.** OpenAI strict-mode schemas have three non-default-pydantic requirements: every object needs `additionalProperties: false`; every property must appear in `required` (optional fields express nullability via `anyOf` with `"type": "null"`, not by omission); and `default` keys are forbidden anywhere. The helper walks the pydantic-emitted JSON Schema tree, applies all three rewrites, and recurses into `$defs` so referenced types are strictified too. Returns a fresh deep copy — callers may reuse the input dict.
+
 ## [0.17.0] - 2026-05-16
 
 ### Added
