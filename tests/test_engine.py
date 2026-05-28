@@ -9,6 +9,7 @@ from triz_ai.engine.classifier import classify
 from triz_ai.engine.evaluator import evaluate
 from triz_ai.engine.generator import discover
 from triz_ai.llm.client import (
+    ContradictionPair,
     ExtractedContradiction,
     Idea,
     IdeaBatch,
@@ -38,7 +39,7 @@ def mock_llm():
     )
     client.classify_patent.return_value = PatentClassification(
         principle_ids=[1, 14, 35],
-        contradiction={"improving": 9, "worsening": 1},
+        contradiction=ContradictionPair(improving=9, worsening=1),
         confidence=0.85,
         reasoning="Uses segmentation and curvature",
     )

@@ -37,8 +37,8 @@ def analyze_trimming(
         if result.trimming_candidates:
             principles = [
                 {
-                    "name": f"Trim {tc['component']}",
-                    "description": f"{tc['reason']} (Rule {tc['rule']})",
+                    "name": f"Trim {tc.component}",
+                    "description": f"{tc.reason} (Rule {tc.rule})",
                 }
                 for tc in result.trimming_candidates
             ]
@@ -65,8 +65,10 @@ def analyze_trimming(
         solution_directions=solution_directions,
         enrichment=enrichment,
         details={
-            "components": result.components,
-            "trimming_candidates": result.trimming_candidates,
-            "redistributed_functions": result.redistributed_functions,
+            "components": [c.model_dump() for c in result.components],
+            "trimming_candidates": [tc.model_dump() for tc in result.trimming_candidates],
+            "redistributed_functions": [
+                rf.model_dump(by_alias=True) for rf in result.redistributed_functions
+            ],
         },
     )

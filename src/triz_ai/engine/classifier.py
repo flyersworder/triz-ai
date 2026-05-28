@@ -42,11 +42,12 @@ def classify(
         llm_client = LLMClient()
 
     classification = llm_client.classify_patent(patent_text)
+    contradiction = classification.contradiction.model_dump()
 
     result = ClassificationResult(
         patent_id=patent_id,
         principle_ids=classification.principle_ids,
-        contradiction=classification.contradiction,
+        contradiction=contradiction,
         confidence=classification.confidence,
         reasoning=classification.reasoning,
     )
@@ -57,15 +58,15 @@ def classify(
             Classification(
                 patent_id=patent_id,
                 principle_ids=classification.principle_ids,
-                contradiction=classification.contradiction,
+                contradiction=contradiction,
                 confidence=classification.confidence,
             )
         )
         logger.info("Stored classification for patent %s", patent_id)
 
         # Auto-record matrix observations for each principle
-        improving = classification.contradiction.get("improving")
-        worsening = classification.contradiction.get("worsening")
+        improving = contradiction.get("improving")
+        worsening = contradiction.get("worsening")
         if improving and worsening:
             for pid in classification.principle_ids:
                 try:

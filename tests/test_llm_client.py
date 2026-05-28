@@ -27,6 +27,50 @@ def _make_embedding_response(embedding: list[float]):
     return SimpleNamespace(data=[{"embedding": embedding}])
 
 
+def _response_models_for_complete():
+    """Every pydantic model passed to ``LLMClient._complete`` as a response
+    schema. Shared by the strict-schema canary tests so the list has one
+    source of truth."""
+    from triz_ai.engine.ariz import SolutionVerification, StructuredProblemModel
+    from triz_ai.llm.client import (
+        CandidateParameterProposal,
+        CandidatePrincipleProposal,
+        FunctionAnalysisResult,
+        IdeaBatch,
+        IdealFinalResult,
+        MatrixSeedResult,
+        ObservationValidationBatch,
+        PhysicalContradictionResult,
+        ProblemClassification,
+        RootCauseAnalysis,
+        SolutionDirectionBatch,
+        SuFieldResult,
+        TrendsResult,
+        TrimmingResult,
+    )
+
+    return [
+        ExtractedContradiction,
+        PatentClassification,
+        IdeaBatch,
+        SolutionDirectionBatch,
+        CandidatePrincipleProposal,
+        CandidateParameterProposal,
+        MatrixSeedResult,
+        ObservationValidationBatch,
+        ProblemClassification,
+        IdealFinalResult,
+        RootCauseAnalysis,
+        PhysicalContradictionResult,
+        SuFieldResult,
+        FunctionAnalysisResult,
+        TrimmingResult,
+        TrendsResult,
+        StructuredProblemModel,
+        SolutionVerification,
+    ]
+
+
 @pytest.fixture
 def client():
     with patch("triz_ai.llm.client.load_config") as mock_config:
@@ -848,46 +892,6 @@ class TestStrictifySchema:
         revisiting — branches get walked but the keywords themselves pass
         through, and OpenAI strict mode does not fully support them.
         """
-        from triz_ai.engine.ariz import SolutionVerification, StructuredProblemModel
-        from triz_ai.llm.client import (
-            CandidateParameterProposal,
-            CandidatePrincipleProposal,
-            ExtractedContradiction,
-            FunctionAnalysisResult,
-            IdeaBatch,
-            IdealFinalResult,
-            MatrixSeedResult,
-            ObservationValidationBatch,
-            PatentClassification,
-            PhysicalContradictionResult,
-            ProblemClassification,
-            RootCauseAnalysis,
-            SolutionDirectionBatch,
-            SuFieldResult,
-            TrendsResult,
-            TrimmingResult,
-        )
-
-        response_models = [
-            ExtractedContradiction,
-            PatentClassification,
-            IdeaBatch,
-            SolutionDirectionBatch,
-            CandidatePrincipleProposal,
-            CandidateParameterProposal,
-            MatrixSeedResult,
-            ObservationValidationBatch,
-            ProblemClassification,
-            IdealFinalResult,
-            RootCauseAnalysis,
-            PhysicalContradictionResult,
-            SuFieldResult,
-            FunctionAnalysisResult,
-            TrimmingResult,
-            TrendsResult,
-            StructuredProblemModel,
-            SolutionVerification,
-        ]
 
         def _contains_keyword(node, keyword):
             if isinstance(node, dict):
@@ -898,7 +902,7 @@ class TestStrictifySchema:
                 return any(_contains_keyword(v, keyword) for v in node)
             return False
 
-        for model in response_models:
+        for model in _response_models_for_complete():
             schema = model.model_json_schema()
             assert not _contains_keyword(schema, "oneOf"), (
                 f"{model.__name__} emits oneOf — strictifier docstring caveat applies; "
@@ -906,4 +910,34 @@ class TestStrictifySchema:
             )
             assert not _contains_keyword(schema, "allOf"), (
                 f"{model.__name__} emits allOf — strictifier docstring caveat applies."
+            )
+
+    def test_no_property_less_objects_in_response_models(self):
+        """Canary: no response model may emit a property-less object once
+        strictified. A bare ``dict`` / ``list[dict]`` field serializes to
+        ``{"type": "object", "additionalProperties": false}`` with no
+        ``properties`` — which OpenAI/Azure strict structured-output mode
+        rejects with a 400 (issue #21). Every object must declare a fixed
+        ``properties`` set. Replace bare dicts with concrete submodels.
+        """
+
+        def _property_less_paths(node, path="root"):
+            bad = []
+            if isinstance(node, dict):
+                if node.get("type") == "object" and not node.get("properties"):
+                    bad.append(path)
+                for k, v in node.items():
+                    bad += _property_less_paths(v, f"{path}/{k}")
+            elif isinstance(node, list):
+                for i, v in enumerate(node):
+                    bad += _property_less_paths(v, f"{path}[{i}]")
+            return bad
+
+        for model in _response_models_for_complete():
+            strict = _strictify_schema(model.model_json_schema())
+            bad = _property_less_paths(strict)
+            assert not bad, (
+                f"{model.__name__} emits property-less object(s) at {bad} — "
+                "strict structured-output mode rejects these. Replace the bare "
+                "dict/list[dict] field(s) with a concrete pydantic submodel."
             )

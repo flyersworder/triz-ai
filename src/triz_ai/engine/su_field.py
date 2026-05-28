@@ -35,8 +35,7 @@ def analyze_su_field(
     solution_directions = []
     try:
         principles = [
-            {"name": ss["name"], "description": ss.get("applicability", "")}
-            for ss in result.standard_solutions
+            {"name": ss.name, "description": ss.applicability} for ss in result.standard_solutions
         ]
         if principles:
             directions = llm_client.generate_solution_directions(
@@ -65,6 +64,6 @@ def analyze_su_field(
             "substances": result.substances,
             "field": result.field,
             "problem_type": result.problem_type,
-            "standard_solutions": result.standard_solutions,
+            "standard_solutions": [ss.model_dump() for ss in result.standard_solutions],
         },
     )

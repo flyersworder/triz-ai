@@ -39,7 +39,7 @@ def analyze_physical(
             improving_param=result.requirement_a,
             worsening_param=result.requirement_b,
             principles=[
-                {"name": sp["name"], "description": sp.get("technique", "")}
+                {"name": sp.name, "description": sp.technique}
                 for sp in result.separation_principles
             ],
             patent_examples=patent_examples,
@@ -64,6 +64,6 @@ def analyze_physical(
             "requirement_a": result.requirement_a,
             "requirement_b": result.requirement_b,
             "separation_type": result.separation_type,
-            "separation_principles": result.separation_principles,
+            "separation_principles": [sp.model_dump() for sp in result.separation_principles],
         },
     )

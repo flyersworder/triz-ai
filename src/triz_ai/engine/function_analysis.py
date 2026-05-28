@@ -52,7 +52,7 @@ def analyze_functions(
 
     problem_summary = (
         "; ".join(
-            f"{pf['subject']} {pf['action']} {pf['object']}: {pf['problem']}"
+            f"{pf.subject} {pf.action} {pf.object}: {pf.problem}"
             for pf in result.problem_functions
         )
         if result.problem_functions
@@ -71,9 +71,9 @@ def analyze_functions(
         solution_directions=solution_directions,
         enrichment=enrichment,
         details={
-            "components": result.components,
-            "functions": result.functions,
-            "problem_functions": result.problem_functions,
+            "components": [c.model_dump() for c in result.components],
+            "functions": [f.model_dump() for f in result.functions],
+            "problem_functions": [pf.model_dump() for pf in result.problem_functions],
             "recommendations": result.recommendations,
         },
     )

@@ -57,16 +57,16 @@ def analyze_trends(
         problem=problem_text,
         method="trends",
         ideal_final_result=ideal_final_result,
-        reasoning=f"Technology is at Stage {current.get('stage', '?')} "
-        f"({current.get('stage_name', '?')}) of trend "
+        reasoning=f"Technology is at Stage {current.stage} "
+        f"({current.stage_name}) of trend "
         f"'{result.trend_name}'",
         patent_examples=patent_examples,
         solution_directions=solution_directions,
         enrichment=enrichment,
         details={
-            "current_stage": result.current_stage,
+            "current_stage": result.current_stage.model_dump(),
             "trend_name": result.trend_name,
-            "next_stages": result.next_stages,
+            "next_stages": [ns.model_dump() for ns in result.next_stages],
             "predictions": result.predictions,
         },
     )

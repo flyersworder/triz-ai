@@ -6,7 +6,7 @@ import logging
 from typing import Any, TypeVar
 
 import openai
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from triz_ai.config import load_config
 from triz_ai.llm.prompts import (
@@ -60,9 +60,14 @@ class ExtractedContradiction(BaseModel):
     confidence: float = 1.0
 
 
+class ContradictionPair(BaseModel):
+    improving: int | None = None
+    worsening: int | None = None
+
+
 class PatentClassification(BaseModel):
     principle_ids: list[int]
-    contradiction: dict  # {"improving": int, "worsening": int}
+    contradiction: ContradictionPair
     confidence: float
     reasoning: str
 
@@ -148,38 +153,103 @@ class RootCauseAnalysis(BaseModel):
     reasoning: str
 
 
+class SeparationPrinciple(BaseModel):
+    id: int
+    name: str
+    technique: str
+
+
 class PhysicalContradictionResult(BaseModel):
     property: str
     requirement_a: str
     requirement_b: str
     separation_type: str  # one of the 4 separation categories
-    separation_principles: list[dict]  # [{"id": int, "name": str, "technique": str}]
+    separation_principles: list[SeparationPrinciple]
+
+
+class StandardSolution(BaseModel):
+    id: str
+    name: str
+    applicability: str
 
 
 class SuFieldResult(BaseModel):
     substances: list[str]
     field: str
     problem_type: str  # incomplete | harmful | inefficient
-    standard_solutions: list[dict]  # [{"id": str, "name": str, "applicability": str}]
+    standard_solutions: list[StandardSolution]
+
+
+class FunctionComponent(BaseModel):
+    name: str
+    role: str
+
+
+class FunctionRelation(BaseModel):
+    subject: str
+    action: str
+    object: str
+    type: str  # useful | harmful | insufficient | excessive
+
+
+class ProblemFunction(BaseModel):
+    subject: str
+    action: str
+    object: str
+    problem: str
 
 
 class FunctionAnalysisResult(BaseModel):
-    components: list[dict]  # [{"name": str, "role": str}]
-    functions: list[dict]  # [{"subject": str, "action": str, "object": str, "type": str}]
-    problem_functions: list[dict]  # [{subject, action, object, problem}]
+    components: list[FunctionComponent]
+    functions: list[FunctionRelation]
+    problem_functions: list[ProblemFunction]
     recommendations: list[str]
 
 
+class TrimmingComponent(BaseModel):
+    name: str
+    function: str
+    cost: str  # high | medium | low
+
+
+class TrimmingCandidate(BaseModel):
+    component: str
+    reason: str
+    rule: str  # A | B | C
+
+
+class RedistributedFunction(BaseModel):
+    # ``from`` is a Python keyword; alias maps it to the JSON key the prompt asks for.
+    model_config = ConfigDict(populate_by_name=True)
+
+    function: str
+    from_: str = Field(alias="from")
+    to: str
+
+
 class TrimmingResult(BaseModel):
-    components: list[dict]  # [{"name": str, "function": str, "cost": str}]
-    trimming_candidates: list[dict]  # [{"component": str, "reason": str, "rule": str}]
-    redistributed_functions: list[dict]  # [{"function": str, "from": str, "to": str}]
+    components: list[TrimmingComponent]
+    trimming_candidates: list[TrimmingCandidate]
+    redistributed_functions: list[RedistributedFunction]
+
+
+class TrendStage(BaseModel):
+    trend_id: int
+    trend_name: str
+    stage: int
+    stage_name: str
+
+
+class NextStage(BaseModel):
+    stage: int
+    name: str
+    description: str
 
 
 class TrendsResult(BaseModel):
-    current_stage: dict  # {"trend_id": int, "trend_name": str, "stage": int, "stage_name": str}
+    current_stage: TrendStage
     trend_name: str
-    next_stages: list[dict]  # [{"stage": int, "name": str, "description": str}]
+    next_stages: list[NextStage]
     predictions: list[str]
 
 

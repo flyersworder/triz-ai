@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.1] - 2026-05-28
+
+### Fixed
+
+- **Strict structured-output 400 on free-form schema fields** (issue [#21](https://github.com/flyersworder/triz-ai/issues/21)). The 0.18.0 strict-schema switch (`response_format={"type": "json_schema", "strict": True}`) exposed a latent footgun: six response models passed bare `dict` / `list[dict]` fields to `_complete`, which pydantic serializes to a property-less object (`{"type": "object"}`). `_strictify_schema` correctly stamps `additionalProperties: false` on every object, but cannot synthesize `properties` for an untyped dict — so the field stayed `{"type": "object", "additionalProperties": false}`, which OpenAI/Azure strict mode rejects with *"'required' is required to be supplied and to be an array including every key in properties."* This 400'd **5 of the 6 routable methods** — `physical_contradiction`, `su_field`, `function_analysis`, `trimming`, and `trends` — plus `classify_patent` (patent ingestion). Only `technical_contradiction` (the default/fallback, whose models already had concrete schemas) was safe, which is why contradiction-shaped problems worked while everything else crashed; non-TRIZ exploratory queries (e.g. *"find applications for automotive-grade dual 3D magnetic sensor"*, which the router classifies as trends) reliably hit the dead path. Observed in production on gpt-5.2 via Azure/litellm.
+
+  Every bare `dict` / `list[dict]` is now a concrete pydantic submodel so the strict schema carries real `properties` + `required`: `ContradictionPair` (`PatentClassification`), `SeparationPrinciple` (`PhysicalContradictionResult`), `StandardSolution` (`SuFieldResult`), `FunctionComponent` / `FunctionRelation` / `ProblemFunction` (`FunctionAnalysisResult`), `TrimmingComponent` / `TrimmingCandidate` / `RedistributedFunction` (`TrimmingResult`), and `TrendStage` / `NextStage` (`TrendsResult`). `RedistributedFunction` aliases its `from_` field to the JSON key `"from"` (a Python keyword) so the wire schema still matches the prompt. Engine consumers switched from dict-subscript to attribute access and now `.model_dump()` into `AnalysisResult.details` (with `by_alias=True` for the redistribution case), keeping the CLI renderers and JSON output unchanged. Verified end-to-end: all 6 methods now complete a live strict-mode call (DeepSeek V4 via OpenRouter), including the issue's original failing trends query.
+
+### Added
+
+- **Regression canary `test_no_property_less_objects_in_response_models`.** Mirrors the existing `test_no_oneof_or_allof_in_response_models` guard: strictifies every response model passed to `_complete` and asserts none emits a property-less object — the exact shape strict structured-output rejects. The shared model list was extracted into a `_response_models_for_complete()` helper so both canaries have a single source of truth. A future bare-`dict` field now fails CI instead of reaching a strict provider.
+
+### Dependencies
+
+- **`uv lock --upgrade` refresh** (24 packages). Notable: **litellm 1.83.14 → 1.86.2** (the LLM gateway carrying the strict-schema translation); **openai 2.24.0 → 2.38.0** — freed to float forward now that litellm 1.86 relaxed the `<2.27` transitive cap that had held it at 2.24.0 since 0.17.0; **pydantic 2.12.5 → 2.13.4 / pydantic-core 2.41.5 → 2.46.4** — the validation layer this release's alias + strict-schema fix depends on, re-verified green (306 tests + live 6-method smoke); **typer 0.23.1 → 0.26.2**, **click 8.1.8 → 8.4.1**, **ruff 0.15.12 → 0.15.15**, **tiktoken 0.12.0 → 0.13.0**, **tokenizers 0.22.2 → 0.23.1**, **huggingface-hub 1.14.0 → 1.16.1**.
+
 ## [0.18.0] - 2026-05-16
 
 ### Fixed

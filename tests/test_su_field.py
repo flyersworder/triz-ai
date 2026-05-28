@@ -6,6 +6,7 @@ from triz_ai.engine.su_field import analyze_su_field
 from triz_ai.llm.client import (
     SolutionDirection,
     SolutionDirectionBatch,
+    StandardSolution,
     SuFieldResult,
 )
 
@@ -17,11 +18,11 @@ def test_analyze_su_field_returns_result():
         field="ultrasonic",
         problem_type="incomplete",
         standard_solutions=[
-            {
-                "id": "1.1.1",
-                "name": "Complete an incomplete Su-Field",
-                "applicability": "Add missing detection field",
-            }
+            StandardSolution(
+                id="1.1.1",
+                name="Complete an incomplete Su-Field",
+                applicability="Add missing detection field",
+            )
         ],
     )
     mock_llm.generate_solution_directions.return_value = SolutionDirectionBatch(

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from triz_ai.llm.client import PatentClassification
+from triz_ai.llm.client import ContradictionPair, PatentClassification
 from triz_ai.patents.ingest import ingest_directory, ingest_file
 from triz_ai.patents.store import PatentStore
 
@@ -70,7 +70,7 @@ def test_ingest_with_classify(store):
     mock_llm = MagicMock()
     mock_llm.classify_patent.return_value = PatentClassification(
         principle_ids=[1, 14],
-        contradiction={"improving": 9, "worsening": 1},
+        contradiction=ContradictionPair(improving=9, worsening=1),
         confidence=0.85,
         reasoning="Uses segmentation",
     )

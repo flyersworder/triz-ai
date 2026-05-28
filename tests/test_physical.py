@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 from triz_ai.engine.physical import analyze_physical
 from triz_ai.llm.client import (
     PhysicalContradictionResult,
+    SeparationPrinciple,
     SolutionDirection,
     SolutionDirectionBatch,
 )
@@ -18,7 +19,9 @@ def test_analyze_physical_returns_result():
         requirement_b="flexible for thermal cycling",
         separation_type="separation_in_time",
         separation_principles=[
-            {"id": 1, "name": "Separation in Time", "technique": "Alternate between states"}
+            SeparationPrinciple(
+                id=1, name="Separation in Time", technique="Alternate between states"
+            )
         ],
     )
     mock_llm.generate_solution_directions.return_value = SolutionDirectionBatch(
