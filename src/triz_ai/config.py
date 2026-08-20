@@ -133,6 +133,13 @@ class LLMConfig(BaseModel):
     # call. Measured at 52s and 115s on a simple problem with the free default model,
     # so the ordinary 120s bound would cut off legitimate work.
     deep_request_timeout: float = 600.0
+    # Output budget for ARIZ pass 3 (verify + synthesize), the largest generation in
+    # the system: it judges every candidate from every method in one response.
+    # Measured at 8.5k-10.5k completion tokens on a simple problem, so the previous
+    # hard-coded 6144 truncated it -- and a model that reasons in the content field
+    # spends the whole budget before emitting any JSON, so truncation surfaced as a
+    # parse error at character 0 rather than as anything mentioning a limit.
+    deep_max_output_tokens: int = 16384
     # Provider-level retries. Applies to completions AND to the openai-fallback
     # embedding path, so raising it widens the embedding bound too. The timeout is
     # PER ATTEMPT, so the worst case for one call is

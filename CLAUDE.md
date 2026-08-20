@@ -101,6 +101,10 @@ Every provider call is bounded. Without an explicit timeout litellm applies its 
 - `llm.request_timeout` (default **120s**) — per-attempt limit for completions. Generous on purpose: a deep-mode pass on a reasoning model can legitimately run long.
 - `llm.deep_request_timeout` (default **600s**) — per-attempt limit for ARIZ deep-mode passes 1 & 3, which are far heavier than a normal completion. Pass 3 verifies every candidate from every method in one call; measured at 52s / 70s / 102s / 115s / 122s / 159s / 283s across runs on both the free model and `deepseek-v4-flash`. Under the ordinary 120s bound a slow pass burns two full timeouts before the application-level retry rescues it — one observed run spent 283s on a call that needed ~40s of actual work.
 - `llm.max_retries` (default **1**) — provider-level retries per completion.
+- `llm.deep_max_output_tokens` (default **16384**) — output budget for ARIZ pass 3, the largest generation in the system. Measured at 8.5k–11.5k completion tokens; the previous hard-coded 6144 truncated it.
+
+**Output-budget overruns are detected explicitly.** `_complete` checks `finish_reason == "length"` and raises `TruncatedResponseError` naming the budget and the config key. Without that check the overrun reached `json.loads` — and because a model that reasons inside the content field spends the whole budget before emitting any JSON, the message was `Expecting value: line 1 column 1 (char 0)`, which points at malformed JSON rather than a token limit. `TruncatedResponseError` is in `_is_retryable`'s non-retryable set: the same budget overruns again, and pass 3 costs 70–200s per attempt.
+
 - `embeddings.request_timeout` (default **30s**) — separate, and deliberately much smaller. See below.
 
 **The timeout is per attempt, not per call.** Worst-case wall clock for one completion is `request_timeout * (max_retries + 1)` plus backoff — 240s at the defaults. Raising the timeout raises the hang proportionally.
