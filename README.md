@@ -227,7 +227,7 @@ Example:
 ```yaml
 llm:
   default_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
-  classify_model: openrouter/nvidia/nemotron-3-nano-30b-a3b:free
+  classify_model: openrouter/deepseek/deepseek-v4-flash
   # router_model: null           # model for problem classification (defaults to classify_model)
   # deep_model: null             # model for ARIZ deep passes 1 & 3 (defaults to default_model)
   # reasoning_effort: null       # low/medium/high for reasoning models in deep mode

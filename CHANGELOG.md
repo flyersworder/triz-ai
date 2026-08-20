@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`analyze` hung indefinitely because the default classify model does not support structured outputs.** `llm.classify_model` defaulted to `openrouter/nvidia/nemotron-3-nano-30b-a3b:free`, which is still listed on OpenRouter but does not advertise `structured_outputs` in its `supported_parameters`. Since 0.18.0 every `_complete` call ships `response_format={"type": "json_schema", "strict": True}`, and a model without that capability does not reject the request — it stalls until the client timeout. Because problem routing runs on `classify_model`, this took out `analyze` entirely: the command sat for the full timeout and then reported *"Request timed out. The LLM provider may be slow or unreachable."*, which points at the network rather than the real cause. The default is now `openrouter/deepseek/deepseek-v4-flash` ($0.089/$0.177 per M tokens, 1M context, structured outputs supported) — the same model family already used to verify the 0.18.1 strict-mode fix end-to-end. Verified with a live `analyze` run that completes routing, patent search, and solution generation.
+
 ## [0.18.1] - 2026-05-28
 
 ### Fixed

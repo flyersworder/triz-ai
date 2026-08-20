@@ -97,9 +97,10 @@ The system learns from web search results encountered during `analyze` calls. Wh
 ## Models
 
 - Default LLM: `openrouter/nvidia/nemotron-3-super-120b-a12b:free`
-- Default classify model: `openrouter/nvidia/nemotron-3-nano-30b-a3b:free` (smaller model used for patent classification during ingest)
+- Default classify model: `openrouter/deepseek/deepseek-v4-flash` (smaller/cheaper model used for problem routing and for patent classification during ingest). Not free, but at $0.089/$0.177 per M tokens the cost of a classification call is negligible. **It must support structured outputs** — since 0.18.0 every call ships a strict `json_schema`, and a model without that support stalls instead of erroring (see the `openrouter/nvidia/nemotron-3-nano-30b-a3b:free` regression).
 - Default embeddings: `openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free`
-- Alternative classify model: `openrouter/google/gemini-3.1-flash-lite-preview` — not free but extremely cheap ($0.25/$1.50 per M tokens), works within OpenRouter's default free testing allowance. Use via `--classify-model` flag or `llm.classify_model` in config. `classify_patent()` sets `max_tokens=1024` to avoid reserving the full 65K output window against credits.
+- Alternative classify model: `openrouter/google/gemini-3.1-flash-lite-preview` ($0.25/$1.50 per M tokens — pricier than the default, but a useful second opinion if DeepSeek is degraded). Set either via the `--classify-model` flag or `llm.classify_model` in config. `classify_patent()` sets `max_tokens=1024` to avoid reserving the full 65K output window against credits.
+- **Free classify models are a trap.** Most free-tier OpenRouter models do not advertise `structured_outputs`, and the failure is silent: the request hangs until the client timeout rather than returning an error. Check `supported_parameters` on `https://openrouter.ai/api/v1/models` before switching.
 
 ## References
 
