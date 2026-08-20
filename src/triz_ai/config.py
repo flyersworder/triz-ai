@@ -122,11 +122,26 @@ class LLMConfig(BaseModel):
     api_base: str | None = None  # Custom API base URL (e.g., litellm proxy)
     api_key: str | None = None  # Custom API key (overrides env var)
     ssl_verify: bool = True  # Set to false for corporate proxies with internal CA certs
+    # Per-attempt wall-clock limit for a single completion. Without this litellm
+    # applies its own default of 6000s (100 minutes), so an unresponsive provider
+    # hangs the CLI instead of failing. Kept generous because a deep-mode pass on a
+    # reasoning model can legitimately run long; lower it if you would rather fail
+    # fast than wait out a slow provider.
+    request_timeout: float = 120.0
+    # Provider-level retries per completion. The timeout is PER ATTEMPT, so the
+    # worst case for one call is request_timeout * (max_retries + 1), plus backoff.
+    max_retries: int = 1
 
 
 class EmbeddingsConfig(BaseModel):
     model: str = "openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free"
     dimensions: int = 768
+    # Separate from llm.request_timeout, and deliberately much smaller: embedding
+    # calls return in well under a second in practice, and litellm.embedding retries
+    # ~3 times internally no matter what `num_retries` / `max_retries` say — so the
+    # worst case here is roughly request_timeout * 3, and a generous value would
+    # reintroduce the multi-minute hang this bound exists to prevent.
+    request_timeout: float = 30.0
     api_base: str | None = None  # Custom API base URL for embeddings
     api_key: str | None = None  # Custom API key for embeddings
 

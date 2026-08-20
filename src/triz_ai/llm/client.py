@@ -356,6 +356,9 @@ class LLMClient:
         self.api_base = config.llm.api_base
         self.api_key = config.llm.api_key
         self.ssl_verify = config.llm.ssl_verify
+        self.request_timeout = config.llm.request_timeout
+        self.max_retries = config.llm.max_retries
+        self.embedding_request_timeout = config.embeddings.request_timeout
         self.embedding_model = config.embeddings.model
         self.embedding_dimensions = config.embeddings.dimensions
         self.embedding_api_base = config.embeddings.api_base
@@ -364,9 +367,19 @@ class LLMClient:
         self._openai_client: openai.OpenAI | None = None
         self._openai_embedding_client: openai.OpenAI | None = None
 
-    def _build_openai_client(self, api_base: str | None, api_key: str | None) -> openai.OpenAI:
-        """Build an OpenAI client for direct API access (no litellm)."""
-        client_kwargs: dict = {}
+    def _build_openai_client(
+        self, api_base: str | None, api_key: str | None, timeout: float | None = None
+    ) -> openai.OpenAI:
+        """Build an OpenAI client for direct API access (no litellm).
+
+        Timeout and retries are set on the client so every call through it is
+        bounded; the SDK otherwise retries twice on its own, which silently
+        triples the wall clock a caller thinks it asked for.
+        """
+        client_kwargs: dict = {
+            "timeout": self.request_timeout if timeout is None else timeout,
+            "max_retries": self.max_retries,
+        }
         if api_base:
             client_kwargs["base_url"] = api_base
         if api_key:
@@ -387,13 +400,18 @@ class LLMClient:
         """Get or create cached openai client for embeddings."""
         if self._openai_embedding_client is None:
             self._openai_embedding_client = self._build_openai_client(
-                self.embedding_api_base, self.embedding_api_key
+                self.embedding_api_base,
+                self.embedding_api_key,
+                timeout=self.embedding_request_timeout,
             )
         return self._openai_embedding_client
 
     def _litellm_completion_kwargs(self) -> dict:
         """Build optional kwargs for litellm.completion."""
-        kwargs: dict = {}
+        kwargs: dict = {
+            "timeout": self.request_timeout,
+            "num_retries": self.max_retries,
+        }
         if self.api_base:
             kwargs["api_base"] = self.api_base
         if self.api_key:
@@ -403,8 +421,17 @@ class LLMClient:
         return kwargs
 
     def _litellm_embedding_kwargs(self) -> dict:
-        """Build optional kwargs for litellm.embedding."""
-        kwargs: dict = {}
+        """Build optional kwargs for litellm.embedding.
+
+        `num_retries` is passed for completeness but litellm.embedding ignores it
+        and retries ~3 times regardless, so the effective bound is
+        `embeddings.request_timeout * 3`. That is why it defaults far lower than
+        `llm.request_timeout`.
+        """
+        kwargs: dict = {
+            "timeout": self.embedding_request_timeout,
+            "num_retries": self.max_retries,
+        }
         if self.embedding_api_base:
             kwargs["api_base"] = self.embedding_api_base
         if self.embedding_api_key:

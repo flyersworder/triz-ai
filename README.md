@@ -231,10 +231,13 @@ llm:
   # router_model: null           # model for problem classification (defaults to classify_model)
   # deep_model: null             # model for ARIZ deep passes 1 & 3 (defaults to default_model)
   # reasoning_effort: null       # low/medium/high for reasoning models in deep mode
+  request_timeout: 120           # seconds, PER ATTEMPT (see note below)
+  max_retries: 1                 # retries per completion
 
 embeddings:
   model: openrouter/nvidia/llama-nemotron-embed-vl-1b-v2:free
   dimensions: 768
+  request_timeout: 30            # seconds; kept low, litellm triples it internally
 
 database:
   path: ~/.triz-ai/patents.db
@@ -245,6 +248,14 @@ evolution:
   retention_days: 180              # prune consolidated observations after N days
   source_confidence_weight: 0.6    # web results confidence discount vs patents
 ```
+
+### Timeouts
+
+Every provider call is bounded, because litellm's own default is **6000 seconds** (100 minutes) — an unresponsive provider would otherwise hang the CLI rather than fail.
+
+**`request_timeout` is per attempt, not per call.** The worst case for one completion is `request_timeout × (max_retries + 1)`, so the defaults above give roughly 240s before `analyze` gives up. Lower `request_timeout` if you would rather fail fast; raise it if you run deep mode against a slow reasoning model and see legitimate calls cut off.
+
+`embeddings.request_timeout` is separate and much smaller on purpose: `litellm.embedding` retries about three times internally and offers no way to disable it, so its effective bound is roughly `request_timeout × 3`. Sharing a single 120s value would mean a ~390s embedding hang.
 
 Any [litellm-supported model string](https://docs.litellm.ai/docs/providers) works — just change the model and set the corresponding API key.
 
