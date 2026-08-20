@@ -12,6 +12,10 @@ name: Dependabot auto-merge
 #
 # Must live on the default branch to trigger (a workflow_run requirement).
 #
+# Concurrency: PRs that go green together race for the merge; the loser gets
+# "Base branch was modified". The merge step retries those, re-checking the
+# head SHA each time so only the CI-validated commit is ever merged.
+#
 # Security: untrusted workflow_run fields (head_sha, head_branch) are passed
 # only as quoted env vars / jq --arg values, never interpolated into a shell
 # or jq program. The author gate is an exact match against dependabot's login,
@@ -81,4 +85,42 @@ jobs:
             exit 0
           fi
           echo "PR #$PR is patch/minor/security with green CI — squash-merging."
-          gh pr merge "$PR" --repo "$REPO" --squash --delete-branch
+          # One workflow_run fires per PR, so PRs that go green together race:
+          # GitHub serializes the merges and every loser gets "Base branch was
+          # modified" with no retry, silently leaving the PR open. Retry those.
+          #
+          # Security: re-assert the head SHA before every attempt. The merge is
+          # only ever allowed for the exact commit CI validated — if anything
+          # was pushed to the branch while we waited, bail out rather than merge
+          # code no green run ever covered.
+          for attempt in 1 2 3 4 5; do
+            head=$(gh pr view "$PR" --repo "$REPO" --json headRefOid,state \
+                     --jq 'select(.state == "OPEN") | .headRefOid')
+            if [ -z "$head" ]; then
+              echo "PR #$PR is no longer open — nothing to do."
+              exit 0
+            fi
+            if [ "$head" != "$HEAD_SHA" ]; then
+              echo "PR #$PR moved to $head since CI ran on $HEAD_SHA — not merging."
+              exit 0
+            fi
+            if err=$(gh pr merge "$PR" --repo "$REPO" --squash --delete-branch 2>&1); then
+              printf '%s\n' "$err"
+              echo "Merged PR #$PR."
+              exit 0
+            fi
+            printf '%s\n' "$err"
+            case "$err" in
+              *"Base branch was modified"*)
+                backoff=$((attempt * 5))
+                echo "Lost the merge race (attempt $attempt/5) — retrying in ${backoff}s."
+                sleep "$backoff"
+                ;;
+              *)
+                echo "Merge failed for a reason a retry will not fix."
+                exit 1
+                ;;
+            esac
+          done
+          echo "Still losing the merge race after 5 attempts — leaving PR #$PR open."
+          exit 1
