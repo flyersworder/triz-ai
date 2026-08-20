@@ -286,6 +286,26 @@ embeddings:
   api_key: your-proxy-token
 ```
 
+**The right model-name form depends on whether the `litellm` extra is installed.** The two backends disagree, so this is worth getting right before writing configs for a team:
+
+| model name | `triz-ai[litellm]` | `triz-ai` (no extra) |
+|------------|--------------------|----------------------|
+| `gpt-4o` (a name litellm knows) | ✅ gateway gets `gpt-4o` | ✅ gateway gets `gpt-4o` |
+| `openai/gpt-4o` | ✅ gateway gets `gpt-4o` (prefix stripped) | ❌ gateway gets `openai/gpt-4o` |
+| `my-internal-llama` (custom) | ❌ `LLM Provider NOT provided` | ✅ gateway gets `my-internal-llama` |
+| `openai/my-internal-llama` | ✅ gateway gets `my-internal-llama` | ❌ gateway gets `openai/my-internal-llama` |
+
+Two rules follow:
+
+- **If your gateway exposes standard model names** (`gpt-4o`, `text-embedding-3-small`), write them bare, as in the example above. That works on both installs.
+- **If your gateway exposes custom names**, there is no single value that works on both. With the `litellm` extra you must write `openai/my-internal-llama` — litellm needs a provider prefix to route and strips it before sending. Without the extra you must write `my-internal-llama` bare, because the openai SDK sends the string verbatim and your gateway has no model called `openai/my-internal-llama`.
+
+Since `triz-ai[litellm]` is the usual install, a gateway with custom model names generally wants the `openai/` prefix.
+
+`api_key` accepts `${VAR}` interpolation, which is usually what you want for a gateway token: `api_key: ${LITELLM_MASTER_KEY}`. An unset variable fails at startup naming the field (`llm.api_key: environment variable LITELLM_MASTER_KEY is not set`) rather than surfacing later as an auth error.
+
+Whatever you point `classify_model` at **must support structured outputs** — every call ships a strict `json_schema`, and a model without that support hangs instead of erroring. See [Timeouts](#timeouts).
+
 ### Environment variable interpolation
 
 Config YAML values support shell-style `${VAR}` and `${VAR:-default}` substitution. Resolution happens once when the config file is first read, before pydantic validation. This is the recommended way to inject API keys in containerized deployments (Kubernetes Secrets, OpenShift, Docker Compose), where the YAML is baked into the image and secrets arrive as environment variables.
