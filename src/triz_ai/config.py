@@ -133,8 +133,10 @@ class LLMConfig(BaseModel):
     # call. Measured at 52s and 115s on a simple problem with the free default model,
     # so the ordinary 120s bound would cut off legitimate work.
     deep_request_timeout: float = 600.0
-    # Provider-level retries per completion. The timeout is PER ATTEMPT, so the
-    # worst case for one call is request_timeout * (max_retries + 1), plus backoff.
+    # Provider-level retries. Applies to completions AND to the openai-fallback
+    # embedding path, so raising it widens the embedding bound too. The timeout is
+    # PER ATTEMPT, so the worst case for one call is
+    # request_timeout * (max_retries + 1), plus backoff.
     max_retries: int = 1
 
 

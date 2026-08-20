@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   A third bound, `llm.deep_request_timeout` (default 600s), covers ARIZ deep-mode passes 1 and 3. Pass 3 verifies every candidate from every method in one call and was measured at 52s / 70s / 102s / 115s / 122s / 159s / 283s across runs on both the free default model and `deepseek-v4-flash` — so the ordinary 120s bound would cut off legitimate work. One run under the 120s bound spent 283s on a single verification, burning two full timeouts before the application-level retry succeeded; the separate bound avoids paying that.
 
+  The application-level retry in `_complete` forwards the caller's `timeout` through its recursion. It previously did not, so a deep-mode rescue attempt silently dropped from `deep_request_timeout` back to the ordinary `request_timeout` — defeating the longer bound in precisely the case it exists for, since that retry is what rescues a slow pass 3.
+
+  When `ssl_verify: false`, litellm is handed a client built with `max_retries=0`. litellm applies its own `num_retries` on top of the client's, so a retrying client multiplied the bound — `(num_retries + 1) * (max_retries + 1)` attempts, up to ~480s against the 240s documented — rather than adding to it.
+
   Also adds `tenacity` to the `litellm` extra. litellm imports it lazily to honour an explicit `num_retries`, but does not declare it, so any retryable failure died with *"tenacity import failed"* — masking the real error. This surfaced immediately once `num_retries` started being passed: a deep run reported the tenacity error where the actual cause was the free model rejecting `reasoning_effort`.
 
   Both are pinned by `tests/test_request_timeout.py`, which drives the real client against the black-hole server. `test_embedding_retries_are_not_controllable` fails if a future litellm makes the internal retries controllable, at which point the embedding default can be raised.

@@ -369,7 +369,11 @@ class LLMClient:
         self._openai_embedding_client: openai.OpenAI | None = None
 
     def _build_openai_client(
-        self, api_base: str | None, api_key: str | None, timeout: float | None = None
+        self,
+        api_base: str | None,
+        api_key: str | None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
     ) -> openai.OpenAI:
         """Build an OpenAI client for direct API access (no litellm).
 
@@ -379,7 +383,7 @@ class LLMClient:
         """
         client_kwargs: dict = {
             "timeout": self.request_timeout if timeout is None else timeout,
-            "max_retries": self.max_retries,
+            "max_retries": self.max_retries if max_retries is None else max_retries,
         }
         if api_base:
             client_kwargs["base_url"] = api_base
@@ -418,7 +422,12 @@ class LLMClient:
         if self.api_key:
             kwargs["api_key"] = self.api_key
         if not self.ssl_verify:
-            kwargs["client"] = self._get_openai_client()
+            # litellm applies its own `num_retries` on top of whatever the client
+            # does, so a retrying client would multiply the bound rather than add
+            # to it -- (num_retries + 1) * (max_retries + 1) attempts.
+            kwargs["client"] = self._build_openai_client(
+                self.api_base, self.api_key, max_retries=0
+            )
         return kwargs
 
     def _litellm_embedding_kwargs(self) -> dict:
@@ -438,7 +447,12 @@ class LLMClient:
         if self.embedding_api_key:
             kwargs["api_key"] = self.embedding_api_key
         if not self.ssl_verify:
-            kwargs["client"] = self._get_openai_embedding_client()
+            kwargs["client"] = self._build_openai_client(
+                self.embedding_api_base,
+                self.embedding_api_key,
+                timeout=self.embedding_request_timeout,
+                max_retries=0,
+            )
         return kwargs
 
     def _require_api_base(self, for_embeddings: bool = False) -> None:
@@ -559,6 +573,10 @@ class LLMClient:
                     model=use_model,
                     max_tokens=max_tokens,
                     reasoning_effort=reasoning_effort,
+                    # Must carry the caller's bound. Dropping it sends a deep-mode
+                    # rescue attempt back to the ordinary 120s request_timeout --
+                    # and this retry is precisely what saves a slow pass 3.
+                    timeout=timeout,
                 )
             raise _friendly_error(e) from e
 

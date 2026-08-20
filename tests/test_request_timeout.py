@@ -17,7 +17,11 @@ import time
 import pytest
 from pydantic import BaseModel
 
-from triz_ai.llm.client import LLMClient, TrizAIError
+from triz_ai.llm.client import HAS_LITELLM, LLMClient, TrizAIError
+
+requires_litellm = pytest.mark.skipif(
+    not HAS_LITELLM, reason="retry semantics differ on the openai fallback path"
+)
 
 
 class _Answer(BaseModel):
@@ -48,7 +52,7 @@ def black_hole():
         c.close()
 
 
-def _write_config(tmp_path, base, timeout, retries):
+def _write_config(tmp_path, base, timeout, retries, embed_timeout):
     cfg = tmp_path / "config.yaml"
     cfg.write_text(
         f"""
@@ -64,7 +68,7 @@ embeddings:
   api_base: {base}
   api_key: sk-test
   dimensions: 768
-  request_timeout: {timeout}
+  request_timeout: {embed_timeout}
 """
     )
     return cfg
@@ -72,8 +76,12 @@ embeddings:
 
 @pytest.fixture
 def configured(tmp_path, black_hole, monkeypatch):
-    def _make(timeout=2.0, retries=0):
-        cfg = _write_config(tmp_path, black_hole, timeout, retries)
+    def _make(timeout=2.0, retries=0, embed_timeout=None):
+        # Distinct by default: identical values would let a client that ignored
+        # the embedding timeout still pass the "each has its own" assertion.
+        if embed_timeout is None:
+            embed_timeout = timeout
+        cfg = _write_config(tmp_path, black_hole, timeout, retries, embed_timeout)
         monkeypatch.setenv("TRIZ_AI_CONFIG", str(cfg))
         return LLMClient()
 
@@ -109,6 +117,7 @@ def test_openai_fallback_times_out_instead_of_hanging(configured, monkeypatch):
     assert time.time() - start < 20, "openai fallback did not honor request_timeout"
 
 
+@requires_litellm
 @pytest.mark.timeout(120)
 def test_completion_retries_multiply_the_timeout(configured):
     """Completion wall clock is request_timeout * (max_retries + 1).
@@ -134,6 +143,7 @@ def test_completion_retries_multiply_the_timeout(configured):
     )
 
 
+@requires_litellm
 @pytest.mark.timeout(120)
 def test_embedding_retries_are_not_controllable(configured):
     """litellm.embedding retries ~3x internally regardless of num_retries.
@@ -169,14 +179,32 @@ def test_timeout_and_retries_reach_the_provider_kwargs(configured):
 
 
 def test_openai_clients_are_built_with_bounds(configured):
-    """Both openai fallback clients carry them, each with its own timeout."""
-    client = configured(timeout=7.0, retries=3)
+    """Both openai fallback clients carry bounds, each with its OWN timeout.
+
+    The two timeouts are deliberately different: with one shared value, a client
+    that ignored `embeddings.request_timeout` and fell back to
+    `llm.request_timeout` would still satisfy this test.
+    """
+    client = configured(timeout=7.0, retries=3, embed_timeout=4.0)
     completion_client = client._get_openai_client()
     assert completion_client.timeout == 7.0
     assert completion_client.max_retries == 3
     embedding_client = client._get_openai_embedding_client()
-    assert embedding_client.timeout == 7.0
+    assert embedding_client.timeout == 4.0
     assert embedding_client.max_retries == 3
+
+
+def test_litellm_is_handed_a_non_retrying_client(configured):
+    """With ssl_verify: false, litellm gets a client with retries disabled.
+
+    litellm applies its own `num_retries` on top of the client's, so a retrying
+    client multiplies the bound -- (num_retries + 1) * (max_retries + 1) attempts
+    -- rather than adding to it.
+    """
+    client = configured(timeout=7.0, retries=3)
+    client.ssl_verify = False
+    for kwargs in (client._litellm_completion_kwargs(), client._litellm_embedding_kwargs()):
+        assert kwargs["client"].max_retries == 0
 
 
 def test_embedding_timeout_defaults_below_completion_timeout():
@@ -200,10 +228,41 @@ def test_deep_passes_get_a_longer_bound():
     assert s.llm.deep_request_timeout > s.llm.request_timeout
 
 
-def test_complete_accepts_a_timeout_override(configured):
-    """The per-call override reaches the provider kwargs."""
-    import inspect
+@requires_litellm
+def test_complete_forwards_timeout_to_the_provider(configured, monkeypatch):
+    """The per-call override must actually reach litellm, not just be accepted."""
+    seen = []
 
-    from triz_ai.llm.client import LLMClient
+    def fake_completion(**kwargs):
+        seen.append(kwargs.get("timeout"))
+        raise RuntimeError("boom")
 
-    assert "timeout" in inspect.signature(LLMClient._complete).parameters
+    monkeypatch.setattr("triz_ai.llm.client.litellm.completion", fake_completion)
+    client = configured(timeout=11.0, retries=0)
+    with pytest.raises(TrizAIError):
+        client._complete("sys", "user", _Answer, retry=False, timeout=99.0)
+    assert seen == [99.0], f"timeout did not reach litellm: {seen}"
+
+
+@requires_litellm
+def test_application_retry_preserves_the_timeout(configured, monkeypatch):
+    """The stricter-prompt retry must keep the caller's bound.
+
+    Regression guard: `_complete` recursed without forwarding `timeout`, so a
+    deep-mode rescue attempt silently dropped from deep_request_timeout back to
+    the ordinary request_timeout -- defeating the longer bound in exactly the
+    case it exists for.
+    """
+    seen = []
+
+    def fake_completion(**kwargs):
+        seen.append(kwargs.get("timeout"))
+        raise ValueError("malformed json")  # retryable -> triggers the recursion
+
+    monkeypatch.setattr("triz_ai.llm.client.litellm.completion", fake_completion)
+    client = configured(timeout=11.0, retries=0)
+    with pytest.raises(TrizAIError):
+        client._complete("sys", "user", _Answer, retry=True, timeout=99.0)
+
+    assert len(seen) == 2, f"expected an initial attempt and one retry, got {seen}"
+    assert seen == [99.0, 99.0], f"retry lost the caller's timeout: {seen}"
