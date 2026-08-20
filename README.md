@@ -233,6 +233,7 @@ llm:
   # reasoning_effort: null       # low/medium/high for reasoning models in deep mode
   request_timeout: 120           # seconds, PER ATTEMPT (see note below)
   deep_request_timeout: 600      # seconds; --deep passes 1 & 3 run much longer
+  deep_max_output_tokens: 16384  # output budget for --deep pass 3
   max_retries: 1                 # retries per completion
 
 embeddings:
@@ -255,6 +256,8 @@ evolution:
 Every provider call is bounded, because litellm's own default is **6000 seconds** (100 minutes) — an unresponsive provider would otherwise hang the CLI rather than fail.
 
 **`request_timeout` is per attempt, not per call.** The worst case for one completion is `request_timeout × (max_retries + 1)`, so the defaults above give roughly 240s before `analyze` gives up. Lower `request_timeout` if you would rather fail fast; raise it if you run deep mode against a slow reasoning model and see legitimate calls cut off.
+
+If a model runs out of output budget mid-response you get a `TruncatedResponseError` naming the limit and the setting to raise, rather than a JSON parse error. Models that emit reasoning into the response body are the usual cause — they can spend the entire budget before any JSON appears.
 
 **Deep mode gets its own, much larger bound.** `--deep` pass 3 verifies every candidate from every method in a single call and routinely runs 1-3 minutes (measured up to 283s). It uses `deep_request_timeout` rather than `request_timeout`, because the ordinary bound would cut it off mid-flight and force a retry — costing more wall clock than simply waiting.
 

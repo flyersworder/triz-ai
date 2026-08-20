@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Deep mode failed on pass 3 with a misleading JSON parse error.** `verify_and_synthesize` hard-coded `max_tokens=6144`, but pass 3 is the largest generation in the system — it judges every candidate from every method in a single response. Measured completion tokens on a simple heat-sink problem: **8492, 10558, 11547**. Every one overruns 6144, so the call came back with `finish_reason: "length"`.
+
+  The overrun then reached `json.loads`, and because the default model emits its chain of thought into the content field, it spent the entire budget reasoning before emitting any JSON at all — so the content began `"We need to verify each candidate..."` and the error was `Expecting value: line 1 column 1 (char 0)`. That points at malformed JSON, which is why this looked like intermittent flakiness from a bad model rather than a fixed budget being too small. It was deterministic all along: it failed whenever the candidate set was large enough to need more than 6144 tokens.
+
+  Three changes: the budget is now `llm.deep_max_output_tokens` (default 16384); `_complete` checks `finish_reason` and raises `TruncatedResponseError` naming the budget and the config key to raise; and that error is non-retryable, since retrying under the same budget overruns it again at 70–200s per attempt.
+
+  Verified with a live deep run: completes in 181s with `finish_reason: stop` at 11547 completion tokens.
+
 ## [0.20.0] - 2026-08-20
 
 ### Added

@@ -344,8 +344,49 @@ def _is_retryable(e: Exception) -> bool:
         "Timeout",
         "NotFoundError",
         "BudgetExceededError",
+        # Retrying under the same output budget overruns it again -- and pass 3
+        # costs 70-200s per attempt, so the retry is pure waste.
+        "TruncatedResponseError",
     }
     return not any(name in error_type for name in non_retryable)
+
+
+class TruncatedResponseError(TrizAIError):
+    """The model hit its output budget before finishing the JSON object.
+
+    Distinct from a malformed response: retrying under the same budget cannot
+    help, so `_is_retryable` refuses it rather than burning a second expensive
+    call on a guaranteed failure.
+    """
+
+
+def _raise_if_truncated(response, model: str, max_tokens: int | None) -> None:
+    """Turn an output-budget overrun into an error that names the budget.
+
+    Without this the failure surfaces as `json.JSONDecodeError` -- and when the
+    model reasons inside the content field it spends the entire budget before
+    emitting any JSON, so the message is "Expecting value: line 1 column 1
+    (char 0)", which points at malformed JSON rather than at a token limit.
+    """
+    try:
+        finish_reason = response.choices[0].finish_reason
+    except (AttributeError, IndexError):  # pragma: no cover - defensive
+        return
+    if finish_reason != "length":
+        return
+    used = getattr(getattr(response, "usage", None), "completion_tokens", None)
+    budget = (
+        f"{max_tokens} tokens" if max_tokens is not None else "the model's default output limit"
+    )
+    raise TruncatedResponseError(
+        f"{model} hit its output budget ({budget}"
+        + (f", used {used}" if used else "")
+        + ") before completing the JSON response.\n"
+        "Raise the output budget for this call, or use a less verbose model.\n"
+        "  - ARIZ deep mode pass 3: llm.deep_max_output_tokens in ~/.triz-ai/config.yaml\n"
+        "Models that emit reasoning into the response body spend the budget before\n"
+        "any JSON appears, which is why this can look like a JSON parse failure."
+    )
 
 
 class LLMClient:
@@ -358,6 +399,7 @@ class LLMClient:
         self.ssl_verify = config.llm.ssl_verify
         self.request_timeout = config.llm.request_timeout
         self.deep_request_timeout = config.llm.deep_request_timeout
+        self.deep_max_output_tokens = config.llm.deep_max_output_tokens
         self.max_retries = config.llm.max_retries
         self.embedding_request_timeout = config.embeddings.request_timeout
         self.embedding_model = config.embeddings.model
@@ -535,6 +577,7 @@ class LLMClient:
                     response_format=response_format,
                     **kwargs,
                 )
+                _raise_if_truncated(response, use_model, max_tokens)
                 raw = response.choices[0].message.content
             else:
                 client = self._get_openai_client()
@@ -550,6 +593,7 @@ class LLMClient:
                 if reasoning_effort is not None:
                     oai_kwargs["reasoning_effort"] = reasoning_effort
                 response = client.chat.completions.create(**oai_kwargs)
+                _raise_if_truncated(response, use_model, max_tokens)
                 raw = response.choices[0].message.content
 
             data = json.loads(raw)
@@ -886,9 +930,12 @@ class LLMClient:
             user_prompt,
             SolutionVerification,
             model=model,
-            # Pass 3 now emits supported_by_methods + source_direction_titles
-            # per synthesized solution; the bigger output schema needs headroom.
-            max_tokens=6144,
+            # Pass 3 emits supported_by_methods + source_direction_titles per
+            # synthesized solution while judging every candidate from every
+            # method, making it the largest generation in the system. Measured at
+            # 8.5k-10.5k completion tokens on a simple problem, so the previous
+            # hard-coded 6144 truncated it.
+            max_tokens=self.deep_max_output_tokens,
             reasoning_effort=reasoning_effort,
             # Pass 3 verifies every candidate from every method in a single call;
             # measured at 52s and 115s on a simple problem with the free model.
