@@ -99,6 +99,7 @@ The system learns from web search results encountered during `analyze` calls. Wh
 Every provider call is bounded. Without an explicit timeout litellm applies its own default of **6000 seconds (100 minutes)**, which is how a dead provider used to hang the CLI instead of failing (fixed after 0.19.0).
 
 - `llm.request_timeout` (default **120s**) — per-attempt limit for completions. Generous on purpose: a deep-mode pass on a reasoning model can legitimately run long.
+- `llm.deep_request_timeout` (default **600s**) — per-attempt limit for ARIZ deep-mode passes 1 & 3, which are far heavier than a normal completion. Pass 3 verifies every candidate from every method in one call; measured at 52s / 70s / 102s / 115s / 122s / 159s / 283s across runs on both the free model and `deepseek-v4-flash`. Under the ordinary 120s bound a slow pass burns two full timeouts before the application-level retry rescues it — one observed run spent 283s on a call that needed ~40s of actual work.
 - `llm.max_retries` (default **1**) — provider-level retries per completion.
 - `embeddings.request_timeout` (default **30s**) — separate, and deliberately much smaller. See below.
 

@@ -357,6 +357,7 @@ class LLMClient:
         self.api_key = config.llm.api_key
         self.ssl_verify = config.llm.ssl_verify
         self.request_timeout = config.llm.request_timeout
+        self.deep_request_timeout = config.llm.deep_request_timeout
         self.max_retries = config.llm.max_retries
         self.embedding_request_timeout = config.embeddings.request_timeout
         self.embedding_model = config.embeddings.model
@@ -464,6 +465,7 @@ class LLMClient:
         model: str | None = None,
         max_tokens: int | None = None,
         reasoning_effort: str | None = None,
+        timeout: float | None = None,
     ) -> T:
         """Call LLM and validate response against pydantic model.
 
@@ -507,6 +509,8 @@ class LLMClient:
         try:
             if HAS_LITELLM:
                 kwargs = self._litellm_completion_kwargs()
+                if timeout is not None:
+                    kwargs["timeout"] = timeout
                 if max_tokens is not None:
                     kwargs["max_tokens"] = max_tokens
                 if reasoning_effort is not None:
@@ -525,6 +529,8 @@ class LLMClient:
                     "messages": messages,
                     "response_format": response_format,
                 }
+                if timeout is not None:
+                    oai_kwargs["timeout"] = timeout
                 if max_tokens is not None:
                     oai_kwargs["max_tokens"] = max_tokens
                 if reasoning_effort is not None:
@@ -799,6 +805,9 @@ class LLMClient:
             model=model,
             max_tokens=4096,
             reasoning_effort=reasoning_effort,
+            # Deep passes are far heavier than a normal completion, so they get
+            # their own bound; the ordinary request_timeout would cut them off.
+            timeout=self.deep_request_timeout,
         )
 
     def verify_and_synthesize(
@@ -863,6 +872,9 @@ class LLMClient:
             # per synthesized solution; the bigger output schema needs headroom.
             max_tokens=6144,
             reasoning_effort=reasoning_effort,
+            # Pass 3 verifies every candidate from every method in a single call;
+            # measured at 52s and 115s on a simple problem with the free model.
+            timeout=self.deep_request_timeout,
         )
 
         # Clamp LLM-returned concordance fields to the known input set. The

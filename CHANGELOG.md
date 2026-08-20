@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **The timeout is per attempt, not per call.** Worst case for one completion is `request_timeout * (max_retries + 1)` plus backoff — 240s at the defaults. `litellm.completion` honours this exactly: 5s/0 retries measured 5.02s, 5s/2 retries measured 16.28s.
   - **`litellm.embedding` retries ~3 times internally and cannot be stopped.** `num_retries=0`, `max_retries=0`, and passing a pre-built `openai.OpenAI(max_retries=0)` client all produced the same ~3.25x multiple of the timeout. So the embedding bound is separate from and far below the completion one: sharing a single 120s value would have meant a ~390s embedding hang, worse than the bug being fixed.
 
+  A third bound, `llm.deep_request_timeout` (default 600s), covers ARIZ deep-mode passes 1 and 3. Pass 3 verifies every candidate from every method in one call and was measured at 52s / 70s / 102s / 115s / 122s / 159s / 283s across runs on both the free default model and `deepseek-v4-flash` — so the ordinary 120s bound would cut off legitimate work. One run under the 120s bound spent 283s on a single verification, burning two full timeouts before the application-level retry succeeded; the separate bound avoids paying that.
+
+  Also adds `tenacity` to the `litellm` extra. litellm imports it lazily to honour an explicit `num_retries`, but does not declare it, so any retryable failure died with *"tenacity import failed"* — masking the real error. This surfaced immediately once `num_retries` started being passed: a deep run reported the tenacity error where the actual cause was the free model rejecting `reasoning_effort`.
+
   Both are pinned by `tests/test_request_timeout.py`, which drives the real client against the black-hole server. `test_embedding_retries_are_not_controllable` fails if a future litellm makes the internal retries controllable, at which point the embedding default can be raised.
 
   Documented in README (`### Timeouts`) and CLAUDE.md (`## Timeouts and Retries`). A live `analyze` completes in ~29s, well inside the new bounds.

@@ -128,6 +128,11 @@ class LLMConfig(BaseModel):
     # reasoning model can legitimately run long; lower it if you would rather fail
     # fast than wait out a slow provider.
     request_timeout: float = 120.0
+    # Per-attempt limit for ARIZ deep-mode passes 1 & 3, which are much heavier than
+    # a normal completion: pass 3 verifies every candidate from every method in one
+    # call. Measured at 52s and 115s on a simple problem with the free default model,
+    # so the ordinary 120s bound would cut off legitimate work.
+    deep_request_timeout: float = 600.0
     # Provider-level retries per completion. The timeout is PER ATTEMPT, so the
     # worst case for one call is request_timeout * (max_retries + 1), plus backoff.
     max_retries: int = 1

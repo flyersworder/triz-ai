@@ -185,3 +185,25 @@ def test_embedding_timeout_defaults_below_completion_timeout():
 
     s = Settings()
     assert s.embeddings.request_timeout < s.llm.request_timeout
+
+
+def test_deep_passes_get_a_longer_bound():
+    """ARIZ deep passes 1 & 3 must not inherit the ordinary completion bound.
+
+    Pass 3 verifies every candidate from every method in one call; measured at
+    52s and 115s on a simple problem with the free default model, so the 120s
+    `request_timeout` would cut off legitimate work.
+    """
+    from triz_ai.config import Settings
+
+    s = Settings()
+    assert s.llm.deep_request_timeout > s.llm.request_timeout
+
+
+def test_complete_accepts_a_timeout_override(configured):
+    """The per-call override reaches the provider kwargs."""
+    import inspect
+
+    from triz_ai.llm.client import LLMClient
+
+    assert "timeout" in inspect.signature(LLMClient._complete).parameters
