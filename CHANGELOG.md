@@ -5,11 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.19.0] - 2026-08-20
+
+### Changed
+
+- **Default cost change — `llm.classify_model` is no longer free.** It is now `openrouter/deepseek/deepseek-v4-flash` ($0.089/$0.177 per M tokens, 1M context), where it was previously `openrouter/nvidia/nemotron-3-nano-30b-a3b:free`. This is a fix for a hard failure (see below), not a preference change, but it does mean a fresh install now needs an OpenRouter account with credit rather than a free-tier account. Classification prompts are small, so the practical spend is minimal.
+
+  To restore a free model, set `llm.classify_model` in `~/.triz-ai/config.yaml`. Two things must hold, and both fail silently as a hang rather than an error: the model must actually be **serving** (still being listed on OpenRouter is not the same thing), and it must advertise **`structured_outputs`** in `supported_parameters` at <https://openrouter.ai/api/v1/models> — as of this release only 8 of OpenRouter's 20 free models qualify on the second count. `llm.default_model` is unchanged and still free.
 
 ### Fixed
 
-- **`analyze` hung indefinitely because the default classify model does not support structured outputs.** `llm.classify_model` defaulted to `openrouter/nvidia/nemotron-3-nano-30b-a3b:free`, which is still listed on OpenRouter but does not advertise `structured_outputs` in its `supported_parameters`. Since 0.18.0 every `_complete` call ships `response_format={"type": "json_schema", "strict": True}`, and a model without that capability does not reject the request — it stalls until the client timeout. Because problem routing runs on `classify_model`, this took out `analyze` entirely: the command sat for the full timeout and then reported *"Request timed out. The LLM provider may be slow or unreachable."*, which points at the network rather than the real cause. The default is now `openrouter/deepseek/deepseek-v4-flash` ($0.089/$0.177 per M tokens, 1M context, structured outputs supported) — the same model family already used to verify the 0.18.1 strict-mode fix end-to-end. Verified with a live `analyze` run that completes routing, patent search, and solution generation.
+- **`analyze` hung indefinitely on the default classify model.** `llm.classify_model` defaulted to `openrouter/nvidia/nemotron-3-nano-30b-a3b:free`, which stopped serving. It is *still listed* on OpenRouter — so the model catalogue gives no warning — but every request to it now hangs until the client timeout instead of erroring. Measured across three request shapes: plain (300.3s), `json_object` (302.7s), and strict `json_schema` (300.2s) all timed out, so this is the endpoint being dead rather than anything schema-specific. Independently, that model also does not advertise `structured_outputs` in its `supported_parameters`, which means it was never a valid choice for this codebase after 0.18.0 started shipping `response_format={"type": "json_schema", "strict": True}` on every call — two separate defects, either one sufficient to break it. Because problem routing runs on `classify_model`, this took out `analyze` entirely: the command sat for the full timeout and then reported *"Request timed out. The LLM provider may be slow or unreachable."*, which points at the network rather than the real cause. The default is now `openrouter/deepseek/deepseek-v4-flash` ($0.089/$0.177 per M tokens, 1M context, structured outputs supported) — the same model family already used to verify the 0.18.1 strict-mode fix end-to-end. Verified with a live `analyze` run that completes routing, patent search, and solution generation.
+
+### Dependencies
+
+- Upgraded all 38 packages to latest, every one staying in-major: `openai` 2.38.0 → 2.54.0, `litellm` 1.86.2 → 1.97.0, `pydantic-settings` 2.14.2 → 2.15.0, `typer` 0.26.2 → 0.27.1, `pytest` 9.0.3 → 9.1.1, `ruff` 0.15.15 → 0.16.3, `pdfminer-six` 20251230 → 20260107, plus 31 transitive. `uvx uv-secure uv.lock` reports clean.
+
+  Because the unit tests mock both `litellm` and `openai`, a green suite cannot detect an SDK breaking change. The upgrade was verified separately by introspecting every openai kwarg and response path the code touches, then driving both backends against a local mock API server (19 assertions on the actual wire traffic, covering the litellm path, the openai fallback, and the `ssl_verify=False` httpx path).
+
+  `httpx` stays at 0.28.1 deliberately: httpx 2.x ships under a separate distribution name (`httpx2`), `openai` takes it only via the opt-in `openai[httpx2]` extra, and `litellm` still requires `httpx>=0.28.0,<1` — so the httpx2 path is unavailable while litellm is the default backend.
 
 ## [0.18.1] - 2026-05-28
 
