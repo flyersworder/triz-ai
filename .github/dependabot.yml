@@ -20,6 +20,15 @@ updates:
     # The `security` CI job scans the whole uv.lock, so bundling security
     # updates lets one PR clear every advisory at once instead of each
     # individual bump failing on the others still being vulnerable.
+    #
+    # Grouping alone is NOT sufficient, and it is worth knowing why before
+    # relying on it: dependabot batches advisories surfaced in the same run, so
+    # alerts arriving at different times still open separate PRs. aiohttp (#38)
+    # and cryptography (#39) came in 7 hours apart across a day boundary and
+    # deadlocked each other for two weeks, exactly as #25/#26/#27 had before.
+    # The actual fix is in CI: pull requests are now scanned against the base
+    # branch, so a PR only has to avoid introducing advisories rather than
+    # clear every open one. See .github/scripts/security-scan.sh.
     groups:
       minor-and-patch:
         applies-to: version-updates
