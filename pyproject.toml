@@ -31,7 +31,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-litellm = ["litellm>=1.83.7"]
+# tenacity is what litellm imports -- lazily, only when it actually retries -- to
+# honour an explicit `num_retries`. It is not declared by litellm itself, so
+# without it any retryable failure dies with "tenacity import failed" instead of
+# the real error. Pinned here because we always pass num_retries.
+litellm = ["litellm>=1.83.7", "tenacity>=8.0"]
 
 [tool.uv]
 # Override litellm's strict transitive pins to pull in security patches.

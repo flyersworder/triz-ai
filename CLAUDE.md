@@ -94,6 +94,21 @@ The system learns from web search results encountered during `analyze` calls. Wh
 - `gh release create vX.Y.Z --target main --title "..." --notes "..."` tags main and triggers `.github/workflows/ci-and-publish.yml` (test → publish). The publish job runs `uv build` + `pypa/gh-action-pypi-publish`.
 - **PyPI uploads are irreversible** — a filename, once uploaded and later deleted, cannot be re-uploaded. Only create a release after the PR is merged, CI is green on main, and you've confirmed the user wants to publish.
 
+## Timeouts and Retries
+
+Every provider call is bounded. Without an explicit timeout litellm applies its own default of **6000 seconds (100 minutes)**, which is how a dead provider used to hang the CLI instead of failing (fixed after 0.19.0).
+
+- `llm.request_timeout` (default **120s**) — per-attempt limit for completions. Generous on purpose: a deep-mode pass on a reasoning model can legitimately run long.
+- `llm.deep_request_timeout` (default **600s**) — per-attempt limit for ARIZ deep-mode passes 1 & 3, which are far heavier than a normal completion. Pass 3 verifies every candidate from every method in one call; measured at 52s / 70s / 102s / 115s / 122s / 159s / 283s across runs on both the free model and `deepseek-v4-flash`. Under the ordinary 120s bound a slow pass burns two full timeouts before the application-level retry rescues it — one observed run spent 283s on a call that needed ~40s of actual work.
+- `llm.max_retries` (default **1**) — provider-level retries per completion.
+- `embeddings.request_timeout` (default **30s**) — separate, and deliberately much smaller. See below.
+
+**The timeout is per attempt, not per call.** Worst-case wall clock for one completion is `request_timeout * (max_retries + 1)` plus backoff — 240s at the defaults. Raising the timeout raises the hang proportionally.
+
+**`litellm.embedding` retries ~3 times internally and there is no way to turn it off.** Verified against a black-hole server: `num_retries=0`, `max_retries=0`, and passing a pre-built `openai.OpenAI(max_retries=0)` client all produce the same ~3.25x multiple of the timeout. So the effective embedding bound is `embeddings.request_timeout * 3` (~98s at the default), which is why that value is separate from and far below `llm.request_timeout` — sharing one 120s value would have meant a 390s embedding hang, worse than the bug being fixed. `tests/test_request_timeout.py::test_embedding_retries_are_not_controllable` fails if a future litellm makes this controllable, at which point the default can be raised.
+
+Note these compose with the *application-level* retry in `_complete` (one re-attempt with a stricter prompt on malformed JSON), so a pathological completion can reach roughly `2 * request_timeout * (max_retries + 1)`.
+
 ## Models
 
 - Default LLM: `openrouter/nvidia/nemotron-3-super-120b-a12b:free`

@@ -356,6 +356,10 @@ class LLMClient:
         self.api_base = config.llm.api_base
         self.api_key = config.llm.api_key
         self.ssl_verify = config.llm.ssl_verify
+        self.request_timeout = config.llm.request_timeout
+        self.deep_request_timeout = config.llm.deep_request_timeout
+        self.max_retries = config.llm.max_retries
+        self.embedding_request_timeout = config.embeddings.request_timeout
         self.embedding_model = config.embeddings.model
         self.embedding_dimensions = config.embeddings.dimensions
         self.embedding_api_base = config.embeddings.api_base
@@ -364,9 +368,23 @@ class LLMClient:
         self._openai_client: openai.OpenAI | None = None
         self._openai_embedding_client: openai.OpenAI | None = None
 
-    def _build_openai_client(self, api_base: str | None, api_key: str | None) -> openai.OpenAI:
-        """Build an OpenAI client for direct API access (no litellm)."""
-        client_kwargs: dict = {}
+    def _build_openai_client(
+        self,
+        api_base: str | None,
+        api_key: str | None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
+    ) -> openai.OpenAI:
+        """Build an OpenAI client for direct API access (no litellm).
+
+        Timeout and retries are set on the client so every call through it is
+        bounded; the SDK otherwise retries twice on its own, which silently
+        triples the wall clock a caller thinks it asked for.
+        """
+        client_kwargs: dict = {
+            "timeout": self.request_timeout if timeout is None else timeout,
+            "max_retries": self.max_retries if max_retries is None else max_retries,
+        }
         if api_base:
             client_kwargs["base_url"] = api_base
         if api_key:
@@ -387,30 +405,54 @@ class LLMClient:
         """Get or create cached openai client for embeddings."""
         if self._openai_embedding_client is None:
             self._openai_embedding_client = self._build_openai_client(
-                self.embedding_api_base, self.embedding_api_key
+                self.embedding_api_base,
+                self.embedding_api_key,
+                timeout=self.embedding_request_timeout,
             )
         return self._openai_embedding_client
 
     def _litellm_completion_kwargs(self) -> dict:
         """Build optional kwargs for litellm.completion."""
-        kwargs: dict = {}
+        kwargs: dict = {
+            "timeout": self.request_timeout,
+            "num_retries": self.max_retries,
+        }
         if self.api_base:
             kwargs["api_base"] = self.api_base
         if self.api_key:
             kwargs["api_key"] = self.api_key
         if not self.ssl_verify:
-            kwargs["client"] = self._get_openai_client()
+            # litellm applies its own `num_retries` on top of whatever the client
+            # does, so a retrying client would multiply the bound rather than add
+            # to it -- (num_retries + 1) * (max_retries + 1) attempts.
+            kwargs["client"] = self._build_openai_client(
+                self.api_base, self.api_key, max_retries=0
+            )
         return kwargs
 
     def _litellm_embedding_kwargs(self) -> dict:
-        """Build optional kwargs for litellm.embedding."""
-        kwargs: dict = {}
+        """Build optional kwargs for litellm.embedding.
+
+        `num_retries` is passed for completeness but litellm.embedding ignores it
+        and retries ~3 times regardless, so the effective bound is
+        `embeddings.request_timeout * 3`. That is why it defaults far lower than
+        `llm.request_timeout`.
+        """
+        kwargs: dict = {
+            "timeout": self.embedding_request_timeout,
+            "num_retries": self.max_retries,
+        }
         if self.embedding_api_base:
             kwargs["api_base"] = self.embedding_api_base
         if self.embedding_api_key:
             kwargs["api_key"] = self.embedding_api_key
         if not self.ssl_verify:
-            kwargs["client"] = self._get_openai_embedding_client()
+            kwargs["client"] = self._build_openai_client(
+                self.embedding_api_base,
+                self.embedding_api_key,
+                timeout=self.embedding_request_timeout,
+                max_retries=0,
+            )
         return kwargs
 
     def _require_api_base(self, for_embeddings: bool = False) -> None:
@@ -437,6 +479,7 @@ class LLMClient:
         model: str | None = None,
         max_tokens: int | None = None,
         reasoning_effort: str | None = None,
+        timeout: float | None = None,
     ) -> T:
         """Call LLM and validate response against pydantic model.
 
@@ -480,6 +523,8 @@ class LLMClient:
         try:
             if HAS_LITELLM:
                 kwargs = self._litellm_completion_kwargs()
+                if timeout is not None:
+                    kwargs["timeout"] = timeout
                 if max_tokens is not None:
                     kwargs["max_tokens"] = max_tokens
                 if reasoning_effort is not None:
@@ -498,6 +543,8 @@ class LLMClient:
                     "messages": messages,
                     "response_format": response_format,
                 }
+                if timeout is not None:
+                    oai_kwargs["timeout"] = timeout
                 if max_tokens is not None:
                     oai_kwargs["max_tokens"] = max_tokens
                 if reasoning_effort is not None:
@@ -526,6 +573,10 @@ class LLMClient:
                     model=use_model,
                     max_tokens=max_tokens,
                     reasoning_effort=reasoning_effort,
+                    # Must carry the caller's bound. Dropping it sends a deep-mode
+                    # rescue attempt back to the ordinary 120s request_timeout --
+                    # and this retry is precisely what saves a slow pass 3.
+                    timeout=timeout,
                 )
             raise _friendly_error(e) from e
 
@@ -772,6 +823,9 @@ class LLMClient:
             model=model,
             max_tokens=4096,
             reasoning_effort=reasoning_effort,
+            # Deep passes are far heavier than a normal completion, so they get
+            # their own bound; the ordinary request_timeout would cut them off.
+            timeout=self.deep_request_timeout,
         )
 
     def verify_and_synthesize(
@@ -836,6 +890,9 @@ class LLMClient:
             # per synthesized solution; the bigger output schema needs headroom.
             max_tokens=6144,
             reasoning_effort=reasoning_effort,
+            # Pass 3 verifies every candidate from every method in a single call;
+            # measured at 52s and 115s on a simple problem with the free model.
+            timeout=self.deep_request_timeout,
         )
 
         # Clamp LLM-returned concordance fields to the known input set. The

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Bounded LLM and embedding calls.** New `llm.request_timeout` (default 120s), `llm.max_retries` (default 1), and `embeddings.request_timeout` (default 30s). Previously no timeout was passed at all, so calls inherited litellm's own default of **6000 seconds** — 100 minutes. That is why a dead provider hung the CLI instead of failing, and why the 0.19.0 classify-model outage took five minutes to surface rather than seconds.
+
+  Two behaviours were measured against a black-hole server (a socket that accepts connections and never replies) rather than assumed, because both determine the defaults:
+
+  - **The timeout is per attempt, not per call.** Worst case for one completion is `request_timeout * (max_retries + 1)` plus backoff — 240s at the defaults. `litellm.completion` honours this exactly: 5s/0 retries measured 5.02s, 5s/2 retries measured 16.28s.
+  - **`litellm.embedding` retries ~3 times internally and cannot be stopped.** `num_retries=0`, `max_retries=0`, and passing a pre-built `openai.OpenAI(max_retries=0)` client all produced the same ~3.25x multiple of the timeout. So the embedding bound is separate from and far below the completion one: sharing a single 120s value would have meant a ~390s embedding hang, worse than the bug being fixed.
+
+  A third bound, `llm.deep_request_timeout` (default 600s), covers ARIZ deep-mode passes 1 and 3. Pass 3 verifies every candidate from every method in one call and was measured at 52s / 70s / 102s / 115s / 122s / 159s / 283s across runs on both the free default model and `deepseek-v4-flash` — so the ordinary 120s bound would cut off legitimate work. One run under the 120s bound spent 283s on a single verification, burning two full timeouts before the application-level retry succeeded; the separate bound avoids paying that.
+
+  The application-level retry in `_complete` forwards the caller's `timeout` through its recursion. It previously did not, so a deep-mode rescue attempt silently dropped from `deep_request_timeout` back to the ordinary `request_timeout` — defeating the longer bound in precisely the case it exists for, since that retry is what rescues a slow pass 3.
+
+  When `ssl_verify: false`, litellm is handed a client built with `max_retries=0`. litellm applies its own `num_retries` on top of the client's, so a retrying client multiplied the bound — `(num_retries + 1) * (max_retries + 1)` attempts, up to ~480s against the 240s documented — rather than adding to it.
+
+  Also adds `tenacity` to the `litellm` extra. litellm imports it lazily to honour an explicit `num_retries`, but does not declare it, so any retryable failure died with *"tenacity import failed"* — masking the real error. This surfaced immediately once `num_retries` started being passed: a deep run reported the tenacity error where the actual cause was the free model rejecting `reasoning_effort`.
+
+  Both are pinned by `tests/test_request_timeout.py`, which drives the real client against the black-hole server. `test_embedding_retries_are_not_controllable` fails if a future litellm makes the internal retries controllable, at which point the embedding default can be raised.
+
+  Documented in README (`### Timeouts`) and CLAUDE.md (`## Timeouts and Retries`). A live `analyze` completes in ~29s, well inside the new bounds.
+
 ## [0.19.0] - 2026-08-20
 
 ### Changed
