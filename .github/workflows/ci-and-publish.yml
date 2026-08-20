@@ -30,14 +30,40 @@ jobs:
       - run: uv sync --all-extras --dev --frozen
       - run: uv run pytest
 
+  # Scans uv.lock for known advisories. See .github/scripts/security-scan.sh for
+  # why it retries (transient advisory-database fetch failures were failing the
+  # job, and dependabot-auto-merge waits on this gate) and why pull requests are
+  # judged against the base branch rather than absolutely (a whole-lockfile scan
+  # otherwise deadlocks every single-package security PR against the others).
   security:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Need the base commit's lockfile for the comparison below.
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-      - run: uvx uv-secure uv.lock
+      - name: Extract the base branch lockfile
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          mkdir -p /tmp/base
+          # Untrusted only in the sense that it is an event field; used as a git
+          # revision via a quoted env var, never interpolated into the shell.
+          git show "$BASE_SHA:uv.lock" > /tmp/base/uv.lock \
+            || rm -f /tmp/base/uv.lock   # no lockfile on base -> strict check
+      - name: Scan uv.lock for advisories
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+        run: |
+          if [ "$IS_PR" = "true" ] && [ -f /tmp/base/uv.lock ]; then
+            .github/scripts/security-scan.sh uv.lock /tmp/base/uv.lock
+          else
+            .github/scripts/security-scan.sh uv.lock
+          fi
 
   publish:
     needs: [test, security]
