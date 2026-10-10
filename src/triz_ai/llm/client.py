@@ -387,6 +387,8 @@ def _raise_if_truncated(response, model: str, max_tokens: int | None) -> None:
         + ") before completing the JSON response.\n"
         "Raise the output budget for this call, or use a less verbose model.\n"
         "  - ARIZ deep mode pass 3: llm.deep_max_output_tokens in ~/.triz-ai/config.yaml\n"
+        "  - Classification and validation calls have a fixed 1024-token budget; use a\n"
+        "    model that reasons less (or a lower reasoning effort) for those roles.\n"
         "Models that emit reasoning into the response body spend the budget before\n"
         "any JSON appears, which is why this can look like a JSON parse failure."
     )

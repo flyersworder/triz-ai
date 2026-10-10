@@ -161,7 +161,7 @@ def probe_chat_completions(
                 {"role": "user", "content": user_prompt},
             ],
             response_format={"type": "json_object"},
-            max_tokens=max_tokens,
+            max_completion_tokens=max_tokens,
         )
         latency = time.monotonic() - t0
         raw = cast(ModelResponse, response).choices[0].message.content or ""
@@ -219,7 +219,7 @@ def probe_chat_completions_json_schema(
                     "strict": True,
                 },
             },
-            max_tokens=max_tokens,
+            max_completion_tokens=max_tokens,
         )
         latency = time.monotonic() - t0
         raw = cast(ModelResponse, response).choices[0].message.content or ""

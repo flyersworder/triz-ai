@@ -113,3 +113,6 @@ def test_litellm_translates_the_cap_per_provider(model, provider, wire_key):
         model=model, custom_llm_provider=provider, max_completion_tokens=1024
     )
     assert params.get(wire_key) == 1024
+    if wire_key != "max_tokens":
+        # Both on the wire would still trip the #53 rejection.
+        assert "max_tokens" not in params
