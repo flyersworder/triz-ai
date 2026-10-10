@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Newer OpenAI models rejected every call with `Unsupported parameter: 'max_tokens'`** (#53). `_complete` capped output with `max_tokens`, which OpenAI has deprecated in favour of `max_completion_tokens`; reasoning models such as `gpt-6-luna` return a 400 for it. Gateways only rewrite the parameter for models they already recognise, so a new model name received it as sent. Both backends were affected: the `openai` SDK passes kwargs through untouched, and litellm forwards `max_tokens` verbatim for any openai/azure model missing from its registry. The cap now goes on the wire as `max_completion_tokens` in both branches. litellm still translates it per provider (Anthropic `max_tokens`, Gemini `max_output_tokens`), and OpenRouter accepts it natively, so the 1024-token cap on classify calls survives. For reasoning models the budget now includes reasoning tokens.
+- A reply with no message content (a refusal or an empty response) now raises a clear `ValueError` naming the model, instead of `TypeError` from `json.loads(None)`. It is still retried once, as before.
+
 ### Changed
 
 - Dependencies upgraded (`uv lock --upgrade`), including litellm 1.97.0 → 1.104.2 and pydantic 2.13 → 2.14. litellm now pulls in `boto3`. Its widened return-type stubs needed `cast`s in `LLMClient`.

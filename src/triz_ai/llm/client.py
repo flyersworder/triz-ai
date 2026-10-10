@@ -545,7 +545,9 @@ class LLMClient:
         Args:
             model: Optional model override (defaults to self.model).
             max_tokens: Optional max output tokens (useful for structured
-                responses to avoid reserving large output windows).
+                responses to avoid reserving large output windows). Sent on
+                the wire as ``max_completion_tokens``; for reasoning models
+                the budget includes reasoning tokens.
             reasoning_effort: Optional reasoning effort level for reasoning
                 models (low/medium/high). Passed to litellm which translates
                 across providers (Anthropic, OpenAI o-series, DeepSeek, etc.).
@@ -571,7 +573,11 @@ class LLMClient:
                 if timeout is not None:
                     kwargs["timeout"] = timeout
                 if max_tokens is not None:
-                    kwargs["max_tokens"] = max_tokens
+                    # Not `max_tokens`: newer OpenAI models reject it, and litellm
+                    # forwards it verbatim for any model missing from its registry.
+                    # litellm maps this name to each provider's own (Anthropic
+                    # `max_tokens`, Gemini `max_output_tokens`, ...).
+                    kwargs["max_completion_tokens"] = max_tokens
                 if reasoning_effort is not None:
                     kwargs["reasoning_effort"] = reasoning_effort
                 # Non-streaming sync call: always a ModelResponse at runtime. The
@@ -597,7 +603,7 @@ class LLMClient:
                 if timeout is not None:
                     oai_kwargs["timeout"] = timeout
                 if max_tokens is not None:
-                    oai_kwargs["max_tokens"] = max_tokens
+                    oai_kwargs["max_completion_tokens"] = max_tokens
                 if reasoning_effort is not None:
                     oai_kwargs["reasoning_effort"] = reasoning_effort
                 response = client.chat.completions.create(**oai_kwargs)
@@ -605,6 +611,7 @@ class LLMClient:
                 raw = response.choices[0].message.content
 
             if raw is None:
+                # A refusal or empty reply; retryable like any malformed response.
                 raise ValueError(f"{use_model} returned no message content")
             data = json.loads(raw)
             return response_model.model_validate(data)
