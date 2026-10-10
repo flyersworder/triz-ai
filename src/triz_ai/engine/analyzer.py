@@ -92,7 +92,7 @@ def analyze_contradiction(
         problem_text,
         llm_client,
         store,
-        principle_ids=[p["id"] for p in recommended_principles],
+        principle_ids=[pid for pid in principle_ids if pid in all_principles],
         improving_param=contradiction.improving_param,
         worsening_param=contradiction.worsening_param,
         research_tools=research_tools,

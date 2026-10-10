@@ -1,11 +1,15 @@
 repos:
   # Linting + formatting (Astral)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.6
+    rev: v0.17.0
     hooks:
-      - id: ruff
+      # Python only: since 0.17 the hooks also format code blocks in Markdown,
+      # which would rewrite historical specs and plans under docs/.
+      - id: ruff-check
         args: [--fix]
+        types_or: [python, pyi]
       - id: ruff-format
+        types_or: [python, pyi]
 
   # File quality + security
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -24,7 +28,7 @@ repos:
 
   # Validate pyproject.toml against PEP 621
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.25
+    rev: '0.26'
     hooks:
       - id: validate-pyproject
 

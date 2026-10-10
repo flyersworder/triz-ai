@@ -3,7 +3,7 @@
 import copy
 import json
 import logging
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import openai
 from pydantic import BaseModel, ConfigDict, Field
@@ -30,6 +30,9 @@ from triz_ai.llm.prompts import (
     trimming_analysis_prompt,
     validate_observations_prompt,
 )
+
+if TYPE_CHECKING:
+    from litellm import EmbeddingResponse, ModelResponse
 
 try:
     import litellm
@@ -571,11 +574,16 @@ class LLMClient:
                     kwargs["max_tokens"] = max_tokens
                 if reasoning_effort is not None:
                     kwargs["reasoning_effort"] = reasoning_effort
-                response = litellm.completion(
-                    model=use_model,
-                    messages=messages,
-                    response_format=response_format,
-                    **kwargs,
+                # Non-streaming sync call: always a ModelResponse at runtime. The
+                # stub's union also covers stream=True and the async variant.
+                response = cast(
+                    "ModelResponse",
+                    litellm.completion(
+                        model=use_model,
+                        messages=messages,
+                        response_format=response_format,
+                        **kwargs,
+                    ),
                 )
                 _raise_if_truncated(response, use_model, max_tokens)
                 raw = response.choices[0].message.content
@@ -596,6 +604,8 @@ class LLMClient:
                 _raise_if_truncated(response, use_model, max_tokens)
                 raw = response.choices[0].message.content
 
+            if raw is None:
+                raise ValueError(f"{use_model} returned no message content")
             data = json.loads(raw)
             return response_model.model_validate(data)
         except Exception as e:
@@ -963,11 +973,14 @@ class LLMClient:
         self._require_api_base(for_embeddings=True)
         try:
             if HAS_LITELLM:
-                response = litellm.embedding(
-                    model=self.embedding_model,
-                    input=[text],
-                    dimensions=self.embedding_dimensions,
-                    **self._litellm_embedding_kwargs(),
+                response = cast(
+                    "EmbeddingResponse",
+                    litellm.embedding(
+                        model=self.embedding_model,
+                        input=[text],
+                        dimensions=self.embedding_dimensions,
+                        **self._litellm_embedding_kwargs(),
+                    ),
                 )
                 return response.data[0]["embedding"]
             else:
