@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.2] - 2026-10-10
+
+### Fixed
+
+- **Newer OpenAI models rejected every call with `Unsupported parameter: 'max_tokens'`** (#53). `_complete` capped output with `max_tokens`, which OpenAI has deprecated in favour of `max_completion_tokens`; reasoning models such as `gpt-6-luna` return a 400 for it. Gateways only rewrite the parameter for models they already recognise, so a new model name received it as sent. Both backends were affected: the `openai` SDK passes kwargs through untouched, and litellm forwards `max_tokens` verbatim for any openai/azure model missing from its registry. The cap now goes on the wire as `max_completion_tokens` in both branches. litellm still translates it per provider (Anthropic `max_tokens`, Gemini `max_output_tokens`), and OpenRouter accepts it natively, so the 1024-token cap on classify calls survives. For reasoning models the budget now includes reasoning tokens.
+- The `openai` dependency floor was `>=1.0`, but `_complete` sends `reasoning_effort` (added in openai 1.58) and now `max_completion_tokens` (1.45). An older SDK pinned by another package raised `TypeError: unexpected keyword argument`. The floor is now `>=1.58.0`.
+- The output-budget error now also covers the fixed 1024-token classification and validation calls, not only `llm.deep_max_output_tokens`, which does not apply to them.
+- A reply with no message content (a refusal or an empty response) now raises a clear `ValueError` naming the model, instead of `TypeError` from `json.loads(None)`. It is still retried once, as before.
+
+### Changed
+
+- Dependencies upgraded (`uv lock --upgrade`), including litellm 1.97.0 → 1.104.2 and pydantic 2.13 → 2.14. litellm now pulls in `boto3`. Its widened return-type stubs needed `cast`s in `LLMClient`.
+- Pre-commit hooks updated: ruff v0.15.6 → v0.17.0 (now the `ruff-check` hook id) and validate-pyproject v0.25 → 0.26. The ruff hooks are limited to Python files because ruff 0.17 also formats code blocks in Markdown.
+
 ## [0.20.1] - 2026-08-20
 
 ### Fixed

@@ -1,6 +1,7 @@
 """Idea evaluation against prior art."""
 
 import logging
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -39,7 +40,7 @@ def evaluate(
         store.init_db()
 
     # Search for similar patents
-    similar_patents = []
+    similar_patents: list[dict[str, Any]] = []
     try:
         query_embedding = llm_client.get_embedding(idea)
         results = store.search_patents(query_embedding, limit=5)

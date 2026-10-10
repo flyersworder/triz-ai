@@ -28,10 +28,11 @@ import json
 import time
 import traceback
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import litellm
 from dotenv import load_dotenv
+from litellm import ModelResponse
 from pydantic import BaseModel
 
 from triz_ai.engine.ariz import StructuredProblemModel
@@ -39,7 +40,7 @@ from triz_ai.llm.client import ProblemClassification
 from triz_ai.llm.prompts import classify_problem_prompt, deep_reformulation_prompt
 
 load_dotenv()
-litellm.suppress_debug_info = True  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+litellm.suppress_debug_info = True  # type: ignore[assignment]
 
 
 TEST_PROBLEM = (
@@ -160,10 +161,10 @@ def probe_chat_completions(
                 {"role": "user", "content": user_prompt},
             ],
             response_format={"type": "json_object"},
-            max_tokens=max_tokens,
+            max_completion_tokens=max_tokens,
         )
         latency = time.monotonic() - t0
-        raw = response.choices[0].message.content
+        raw = cast(ModelResponse, response).choices[0].message.content or ""
         parsed = response_model.model_validate(json.loads(raw))
         return ProbeResult(
             path=path,
@@ -218,10 +219,10 @@ def probe_chat_completions_json_schema(
                     "strict": True,
                 },
             },
-            max_tokens=max_tokens,
+            max_completion_tokens=max_tokens,
         )
         latency = time.monotonic() - t0
-        raw = response.choices[0].message.content
+        raw = cast(ModelResponse, response).choices[0].message.content or ""
         parsed = response_model.model_validate(json.loads(raw))
         return ProbeResult(
             path=path,

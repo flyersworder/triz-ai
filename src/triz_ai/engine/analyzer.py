@@ -1,6 +1,7 @@
 """TRIZ problem analysis pipeline."""
 
 import logging
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -79,7 +80,7 @@ def analyze_contradiction(
 
     # Map to principle details
     all_principles = {p.id: p for p in load_principles()}
-    recommended_principles = []
+    recommended_principles: list[dict[str, Any]] = []
     for pid in principle_ids:
         p = all_principles.get(pid)
         if p:
