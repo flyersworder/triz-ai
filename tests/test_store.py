@@ -1,6 +1,7 @@
 """Tests for patent store."""
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -367,19 +368,22 @@ def test_mark_observations_consolidated(store):
 
 
 def test_prune_observations(store):
+    # Dates are relative to now: a fixed "recent" date ages past the retention
+    # window and silently turns this test into a failure.
+    now = datetime.now(UTC)
     old_obs = SearchObservation(
         id="ws:old",
         title="Old Result",
         consolidated=True,
-        observed_at="2020-01-01T00:00:00",
-        consolidated_at="2020-01-02T00:00:00",
+        observed_at=(now - timedelta(days=366)).isoformat(),
+        consolidated_at=(now - timedelta(days=365)).isoformat(),
     )
     new_obs = SearchObservation(
         id="ws:new",
         title="New Result",
         consolidated=True,
-        observed_at="2026-04-13T10:00:00",
-        consolidated_at="2026-04-13T11:00:00",
+        observed_at=(now - timedelta(days=2)).isoformat(),
+        consolidated_at=(now - timedelta(days=1)).isoformat(),
     )
     store.insert_search_observation(old_obs)
     store.insert_search_observation(new_obs)
