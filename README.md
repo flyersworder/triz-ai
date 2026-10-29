@@ -78,7 +78,7 @@ triz-ai analyze "How to increase SiC MOSFET switching speed without increasing E
 
 # Deep with a reasoning model for reformulation/synthesis, cheaper model for pipelines
 triz-ai analyze "problem" --deep \
-  --model "openrouter/nvidia/nemotron-3-super-120b-a12b:free" \
+  --model "openrouter/deepseek/deepseek-v4.1-flash" \
   --deep-model "openrouter/deepseek/deepseek-r1:free" \
   --reasoning-effort high
 
@@ -143,7 +143,7 @@ triz-ai analyze "problem" --deep \
 
 # Mix models: cheap for Pass 2 pipelines, reasoning for Passes 1 & 3
 triz-ai analyze "problem" --deep \
-  --model "openrouter/nvidia/nemotron-3-super-120b-a12b:free" \
+  --model "openrouter/deepseek/deepseek-v4.1-flash" \
   --deep-model "anthropic/claude-sonnet-4-6" \
   --reasoning-effort medium
 ```
@@ -226,7 +226,7 @@ Example:
 
 ```yaml
 llm:
-  default_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+  default_model: openrouter/deepseek/deepseek-v4.1-flash
   classify_model: openrouter/deepseek/deepseek-v4-flash
   # router_model: null           # model for problem classification (defaults to classify_model)
   # deep_model: null             # model for ARIZ deep passes 1 & 3 (defaults to default_model)
@@ -265,7 +265,7 @@ If a model runs out of output budget mid-response you get a `TruncatedResponseEr
 
 Any [litellm-supported model string](https://docs.litellm.ai/docs/providers) works — just change the model and set the corresponding API key.
 
-> **Choose `classify_model` carefully — its failure mode is a hang, not an error.** Two independent things will stall every `analyze` call until the client timeout, surfacing as a misleading "provider may be slow or unreachable" message: a model that has quietly stopped serving (OpenRouter keeps listing models after they stop responding, so the catalogue is not a liveness check), and a model that does not advertise `structured_outputs` (every call ships a strict `json_schema`, and an unsupporting model does not reject it — it just never answers). The default (`deepseek-v4-flash`, $0.089/$0.177 per M tokens) is not free for this reason. To swap in a free model, confirm `structured_outputs` appears in its `supported_parameters` at <https://openrouter.ai/api/v1/models> and send it one live request before relying on it. `default_model`, which carries the bulk of token volume, is still free by default.
+> **Choose `classify_model` carefully — its failure mode is a hang, not an error.** Two independent things will stall every `analyze` call until the client timeout, surfacing as a misleading "provider may be slow or unreachable" message: a model that has quietly stopped serving (OpenRouter keeps listing models after they stop responding, so the catalogue is not a liveness check), and a model that does not advertise `structured_outputs` (every call ships a strict `json_schema`, and an unsupporting model does not reject it — it just never answers). The default (`deepseek-v4-flash`, $0.089/$0.177 per M tokens) is not free for this reason. To swap in a free model, confirm `structured_outputs` appears in its `supported_parameters` at <https://openrouter.ai/api/v1/models> and send it one live request before relying on it. `default_model` (`deepseek-v4.1-flash`, $0.045/$0.50 per M tokens) is not free either: OpenRouter withdrew the free tier of the previous default, `nemotron-3-super-120b-a12b:free`, in October 2026.
 
 ### Using a custom LLM gateway (e.g., company litellm proxy)
 

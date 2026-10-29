@@ -114,7 +114,7 @@ def _interpolate_env(data: Any, field_path: str = "") -> Any:
 
 
 class LLMConfig(BaseModel):
-    default_model: str = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+    default_model: str = "openrouter/deepseek/deepseek-v4.1-flash"
     classify_model: str = "openrouter/deepseek/deepseek-v4-flash"
     router_model: str | None = None  # Defaults to classify_model
     deep_model: str | None = None  # Model for ARIZ deep passes 1 & 3 (defaults to default_model)
