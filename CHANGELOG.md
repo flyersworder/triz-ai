@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every `analyze` call failed with "Model not found" on the default config.** OpenRouter withdrew the free tier of the default model `openrouter/nvidia/nemotron-3-super-120b-a12b:free`; requests now return 404 with `This model is unavailable for free`. The default is now `openrouter/deepseek/deepseek-v4.1-flash` ($0.045/$0.50 per M tokens), which supports strict structured outputs. There is no longer a free default model. Configs that set `llm.default_model` explicitly to the old free slug must be updated by hand.
 
   v4.1-flash is noticeably slower than `deepseek-v4-flash`: a full `analyze` on the same problem took 130s against 33s. Pass `--model openrouter/deepseek/deepseek-v4-flash` (or set `llm.default_model`) if latency matters more than answer quality.
+- README `--deep-model` examples pointed at `openrouter/deepseek/deepseek-r1:free`, which OpenRouter no longer serves, and at `anthropic/claude-sonnet-4-6`. They now use `openrouter/deepseek/deepseek-r1-0528` and `openrouter/anthropic/claude-sonnet-5.5`, so every example runs with just an OpenRouter key.
 
 ### Changed
 

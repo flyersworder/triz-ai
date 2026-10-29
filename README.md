@@ -79,7 +79,7 @@ triz-ai analyze "How to increase SiC MOSFET switching speed without increasing E
 # Deep with a reasoning model for reformulation/synthesis, cheaper model for pipelines
 triz-ai analyze "problem" --deep \
   --model "openrouter/deepseek/deepseek-v4.1-flash" \
-  --deep-model "openrouter/deepseek/deepseek-r1:free" \
+  --deep-model "openrouter/deepseek/deepseek-r1-0528" \
   --reasoning-effort high
 
 # Force a specific method
@@ -138,13 +138,13 @@ triz-ai analyze "problem" --deep
 
 # Use a reasoning model for reformulation/synthesis, cheaper model for pipelines
 triz-ai analyze "problem" --deep \
-  --deep-model "openrouter/deepseek/deepseek-r1:free" \
+  --deep-model "openrouter/deepseek/deepseek-r1-0528" \
   --reasoning-effort high
 
 # Mix models: cheap for Pass 2 pipelines, reasoning for Passes 1 & 3
 triz-ai analyze "problem" --deep \
   --model "openrouter/deepseek/deepseek-v4.1-flash" \
-  --deep-model "anthropic/claude-sonnet-4-6" \
+  --deep-model "openrouter/anthropic/claude-sonnet-5.5" \
   --reasoning-effort medium
 ```
 
