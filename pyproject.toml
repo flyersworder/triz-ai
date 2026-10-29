@@ -43,6 +43,12 @@ litellm = ["litellm>=1.83.7", "tenacity>=8.0"]
 override-dependencies = [
     "python-dotenv>=1.2.2",
     "aiohttp>=3.13.4",
+    # litellm >=1.104 caps filelock<4, but 3.x carries 13 advisories fixed only
+    # in 4.2.1. Without this, the resolver honours the cap by downgrading
+    # litellm instead (#59). litellm only uses filelock in its proxy-admin CLI,
+    # which triz-ai never calls, and the FileLock/Timeout API it uses is
+    # unchanged in 4.x.
+    "filelock>=4.2.1",
 ]
 
 [project.urls]
