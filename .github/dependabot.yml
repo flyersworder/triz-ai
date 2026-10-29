@@ -16,6 +16,14 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+    # litellm >=1.104 requires filelock<4. filelock is only transitive, so a
+    # major bump can still resolve -- by silently downgrading litellm to the
+    # last release without that cap (#59 took litellm 1.104.2 -> 1.103.7). The
+    # lockfile stays consistent, so CI cannot catch it. Drop this once
+    # litellm accepts filelock 4.
+    ignore:
+      - dependency-name: "filelock"
+        update-types: ["version-update:semver-major"]
     # Group minor/patch version bumps AND all security updates into single PRs.
     # The `security` CI job scans the whole uv.lock, so bundling security
     # updates lets one PR clear every advisory at once instead of each
