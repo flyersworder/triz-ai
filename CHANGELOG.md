@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.3] - 2026-10-29
+
+### Fixed
+
+- **Every `analyze` call failed with "Model not found" on the default config.** OpenRouter withdrew the free tier of the default model `openrouter/nvidia/nemotron-3-super-120b-a12b:free`; requests now return 404 with `This model is unavailable for free`. The default is now `openrouter/deepseek/deepseek-v4.1-flash` ($0.045/$0.50 per M tokens), which supports strict structured outputs. There is no longer a free default model. Configs that set `llm.default_model` explicitly to the old free slug must be updated by hand.
+
+  v4.1-flash is noticeably slower than `deepseek-v4-flash`: a full `analyze` on the same problem took 130s against 33s. Pass `--model openrouter/deepseek/deepseek-v4-flash` (or set `llm.default_model`) if latency matters more than answer quality.
+- README `--deep-model` examples pointed at `openrouter/deepseek/deepseek-r1:free`, which OpenRouter no longer serves, and at `anthropic/claude-sonnet-4-6`. They now use `openrouter/deepseek/deepseek-r1-0528` and `openrouter/anthropic/claude-sonnet-5.5`, so every example runs with just an OpenRouter key.
+
+### Changed
+
+- litellm 1.103.7 → 1.106.6 in the lockfile (#64). litellm ≥1.104 caps `filelock<4`, but filelock 3.x carries advisories fixed only in 4.2.1, so `filelock>=4.2.1` is now a `[tool.uv]` override. litellm only uses filelock in its proxy-admin CLI, which triz-ai never calls.
+
 ## [0.20.2] - 2026-10-10
 
 ### Fixed
